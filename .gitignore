@@ -1,0 +1,26 @@
+# ---- 数据（不进仓库，见 project/data/README.md 下载说明）----
+project/data/raw/*
+project/data/interim/*
+project/data/generated/*
+!project/data/**/README.md
+!project/data/**/.gitkeep
+
+# ---- SQL Server 产物 ----
+*.mdf
+*.ldf
+*.bak
+*.trn
+
+# ---- 原始会话日志 ----
+harness/logs/raw/
+
+# ---- 系统与编辑器 ----
+Thumbs.db
+.DS_Store
+.vscode/
+.idea/
+*.swp
+
+# ---- 临时文件 ----
+*.tmp
+~$*

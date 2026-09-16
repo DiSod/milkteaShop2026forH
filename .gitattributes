@@ -1,0 +1,22 @@
+# 换行符统一：仓库内存 LF，避免跨平台（Windows/macOS）产生整文件伪改动
+* text=auto
+
+# 二进制文件不参与换行符转换与 diff
+*.docx   binary
+*.doc     binary
+*.xlsx    binary
+*.xls     binary
+*.pdf     binary
+*.png     binary
+*.jpg     binary
+*.jpeg    binary
+*.gif     binary
+*.zip     binary
+
+# SQL 与 Markdown 明确按文本处理
+*.sql  text
+*.md   text
+
+# 让 GitHub 的语言统计正确识别（本项目主要是 Markdown + SQL）
+*.sql  linguist-language=TSQL
+*.md   linguist-documentation
