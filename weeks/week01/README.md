@@ -17,8 +17,9 @@
 |---|---|---|
 | 业务流程（含主流程 + 6 条支撑流程） | ✅ | `business-requirements.md` 第三节 |
 | 角色与职能清单（7 个角色） | ✅ | `business-requirements.md` 第二节 |
-| 数据边界清单（进库 23 项 / 不进库 12 项） | ✅ | `business-requirements.md` 第四节 |
-| 组队并创建仓库 | ⬜ 未完成 | — |
+| 数据边界清单（进库 **18** 项 / 不进库 **13** 项） | ✅ | `business-requirements.md` 第四节 |
+| 创建 git 仓库 | ✅ **第 2 周补做** | 远端 `git@github.com:DiSod/milkteaShop2026forH.git` |
+| 组队（成员名单） | ⬜ 未完成 | `harness/team/README.md` |
 
 ## 本周关键决策
 
@@ -28,6 +29,15 @@
 | 数据策略 | **母本 + 自建** | 公开数据中不存在单店奶茶的库存/进货记录 |
 | 数据源 | ⏳ **待定** | 候选调研见 `data-availability.md` |
 | 复杂度控制 | 原料 ≤ 60 种、菜单 ≤ 30 款、不接外卖平台 | 对应"不要太复杂" |
+
+## 第 2 周的修订
+
+> 第 2 周做关系模式设计时，对本周报告的以下内容做了修正（逐条比对，保留痕迹）：
+
+| 项 | 说明 |
+|---|---|
+| 数据边界项数 | 本页原写"进库 23 / 不进库 12"，与 `business-requirements.md` 实际的 **18 / 13** 不符 → 已按正文更正 |
+| 其余修正 | week1 报告的 7 条口径修正见 [`../week02/schema-design.md`](../week02/schema-design.md) 第七节 |
 
 ## 已并入 project 的产出
 

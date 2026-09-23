@@ -1,7 +1,7 @@
 # databaseExp · 目录结构方案
 
 > 本文档定义 17 周项目仓库的目录结构与组织规范。
-> 状态：**已执行**（2026 年第 1 周）
+> 状态：**已执行**（第 1 周建立骨架，第 2 周复核并补充 week02）
 > 命名约定：**目录名与文件名全部使用英文**，文档内容使用中文。
 
 ---
@@ -64,10 +64,13 @@ databaseExp/
 │
 ├─ weeks/                             # ② 过程域
 │  ├─ README.md                       #   周次索引表（17 周，先行列出）
-│  ├─ week01/                         #   目录按需创建，当前仅 week01
+│  ├─ week01/                         #   目录按需创建，当前 week01/ — week02/
 │  │  ├─ README.md                    #     本周小结 + 文件中文标题对照
 │  │  ├─ business-requirements.md     #     第一周报告·业务需求分析
 │  │  └─ data-availability.md         #     数据可得性对比表
+│  ├─ week02/
+│  │  ├─ README.md                    #     本周小结 + 进度与复盘
+│  │  └─ schema-design.md             #     第二周报告·关系模式设计（表清单 + 设计决策）
 │  └─ submissions/                    #     阶段提交快照
 │     ├─ README.md
 │     ├─ v0.1/  v1.0/  v2.0/  v3.0/   #     （占位，各含 .gitkeep）
@@ -305,14 +308,14 @@ Git 不追踪空目录，因此每个占位目录放**一份简短的 `README.md
 | 2 | 课程讲解文档格式 | ✅ **同时提供 `.md` 转写稿**（`lecture-week01.md`） |
 | 3 | 周次文件夹是否一次建全 | ✅ **只建 `week01/`**，后续按需创建； `weeks/README.md` 索引表先行列出 17 周 |
 | 4 | `harness/logs/raw/` 是否进 git | ✅ 排除 |
-| 5 | 是否现在 `git init` | ⬜ 延后（按约定，推送放最后） |
+| 5 | 是否现在 `git init` | ✅ **已完成（第 2 周补做）** —— 远端 `git@github.com:DiSod/milkteaShop2026forH.git`，主分支 `main` |
 
 ### 待办
 
 | # | 事项 | 状态 |
 |---|---|---|
 | 1 | `harness/team/` 成员名单与分工记录 | ⏸ **暂不落实，保持空模板** |
-| 2 | `git init` 与远端仓库创建 | ⬜ 待定（按约定放最后） |
+| 2 | `git init` 与远端仓库创建 | ✅ **已完成** |
 
 > `harness/team/` 下两份文件、以及 `weeks/week01/business-requirements.md` 附录 B 均已保留**空表格模板**，待成员确定后再填。
 

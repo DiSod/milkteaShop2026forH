@@ -16,7 +16,7 @@
 
 | 项 | 约定 |
 |---|---|
-| 仓库 | 本仓库（`databaseExp`），小组共用 |
+| 仓库 | `git@github.com:DiSod/milkteaShop2026forH.git`，小组共用 |
 | 分支 | `main` 保持可运行；开发走 `feat/<主题>`（见 `../conventions/04-git-workflow.md`） |
 | 提交 | 每次实验课结束前至少一次，不攒到最后 |
 | 文档 | 统一放各自的域（周报→`weeks/`、SQL→`project/`、规范→`harness/`） |
