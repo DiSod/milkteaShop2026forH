@@ -49,14 +49,16 @@ main                ← 始终可运行、可交付
 
 | 分支 | 规则 |
 |---|---|
-| `main` | **必须保持"从空库可一键重建"**。合并前必须本地验证 |
-| `feat/<主题>` | 单人使用，命名如 `feat/week03-ddl`、`feat/order-trigger` |
+| `main` | **必须保持"从空库可一键重建"**。合并前必须本地验证。`harness/issues/` 的提报统一在 `main` 沉淀 |
+| `feat/<主题>` / `fix/<issue-id>` | 单人短期分支，命名如 `feat/week03-ddl`、`fix/issue-003` |
 
-### 合并规则
+### 合并与同步规则
 
-1. 合并前**必须先跑通 `project/sql/99-rebuild.sql`**
-2. 合并时用 **squash**（保持 `main` 历史线性可读）
-3. **不要**直接在 `main` 上开发
+1. **开工同步**：开发分支每次开工前，先执行 `git pull --rebase origin main` 同步最新 Issue 与公共规范；若不便变基，可通过 `git show origin/main:harness/issues/` 跨分支巡检待办。
+2. **Issue 闭环**：代码或文档修复分支在本地验证通过后，将对应 Issue 文件标记为 `🟢 已解决`，随分支一同合入 `main`。
+3. **合并前验证**：合并前**必须先跑通 `project/sql/99-rebuild.sql`**。
+4. **合并策略**：合并时用 **squash**（保持 `main` 历史线性可读）。
+5. **代码防冲撞**：业务代码开发走分支，**不要**直接在 `main` 上开发未经验证的 SQL 代码。
 
 ## 3. 什么不该进仓库
 
