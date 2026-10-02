@@ -16,10 +16,10 @@
 | 交付物 | 状态 | 所在 |
 |---|---|---|
 | 业务流程（含主流程 + 6 条支撑流程） | ✅ | `business-requirements.md` 第三节 |
-| 角色与职能清单（7 个角色） | ✅ | `business-requirements.md` 第二节 |
+| 角色与职能清单（**5** 个：4 员工岗位 + 1 会员角色） | ✅ | `business-requirements.md` 第二节 |
 | 数据边界清单（进库 **18** 项 / 不进库 **13** 项） | ✅ | `business-requirements.md` 第四节 |
 | 创建 git 仓库 | ✅ **第 2 周补做** | 远端 `git@github.com:DiSod/milkteaShop2026forH.git` |
-| 组队（成员名单） | ⬜ 未完成 | `harness/team/README.md` |
+| 组队（成员名单） | ✅ **2026-09-23 完成** | 胡博锐 24325095 / 何争霖 24325094 · `harness/team/README.md` |
 
 ## 本周关键决策
 
@@ -37,7 +37,9 @@
 | 项 | 说明 |
 |---|---|
 | 数据边界项数 | 本页原写"进库 23 / 不进库 12"，与 `business-requirements.md` 实际的 **18 / 13** 不符 → 已按正文更正 |
-| 其余修正 | week1 报告的 7 条口径修正见 [`../week02/schema-design.md`](../week02/schema-design.md) 第七节 |
+| **角色数量** | 本页原写"**7 个角色**"，但 §2.1 角色总表实际是 **5 个**（店长 / 收银员 / 制作员 / 库管员 / 会员）→ 已更正；`business-requirements.md` §6.1 的同处错误也已一并更正 |
+| **成员名单** | 已填入 **胡博锐 24325095（DiSod）** / **何争霖 24325094（hezhlin5）** |
+| 其余修正 | week1 报告的 15 条口径修正见 [`../week02/issue-review.md`](../week02/issue-review.md) 第十节（`schema-design.md` 第七节的 7 条已并入其中） |
 
 ## 已并入 project 的产出
 
