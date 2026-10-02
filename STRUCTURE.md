@@ -108,10 +108,15 @@ databaseExp/
    │  ├─ 03-documentation.md
    │  ├─ 04-git-workflow.md
    │  └─ 05-ai-collaboration.md
+   ├─ issues/                         #   任务看板（第 2 周新增）
+   │  ├─ README.md                    #     看板索引、两条铁律与状态图例
+   │  ├─ ISSUE-TEMPLATE.md            #     Issue 模板（五段式）
+   │  └─ 001-*.md … 005-*.md          #     一 Issue 一文件，避免并发改大文件
    ├─ team/                           #   小组（原 team/ 并入）
    │  ├─ README.md                    #     成员名单
    │  └─ contributions.md             #     17 周分工与贡献记录
    ├─ prompts/                        #   可复用提示词
+   │  └─ agent-session-start.md       #     开工对齐 SOP（第 2 周新增）
    ├─ skills/                         #   可复用技能 / 工作流
    ├─ agents/                         #   子代理任务定义
    └─ logs/                           #   会话与操作留痕
@@ -318,6 +323,30 @@ Git 不追踪空目录，因此每个占位目录放**一份简短的 `README.md
 | 2 | `git init` 与远端仓库创建 | ✅ **已完成** |
 
 > `harness/team/` 下两份文件、以及 `weeks/week01/business-requirements.md` 附录 B 均已保留**空表格模板**，待成员确定后再填。
+
+---
+
+## 10.1 第 2 周的目录变更
+
+工程侧（hezhlin5）在第 2 周建立了一套「Agent 原生协作机制」，新增两个目录/文件。本节补登进结构文档：
+
+| 新增 | 类型 | 用途 |
+|---|---|---|
+| `harness/issues/` | **新目录** | Agent 原生文件式 Issue 看板。一 Issue 一文件、统一在 `main` 维护，避免两人并发编辑大文件产生 Git 冲突 |
+| `harness/prompts/agent-session-start.md` | 新文件 | 开工对齐 SOP：每次开工先读周目录 + 看板 + 最近 3 次提交，回显确认后再动手 |
+
+**边界判定**：两者都属于"**规则与留痕**"，符合 `harness/` 的域边界（不放 SQL、数据、业务内容），**无需调整第 4 节的边界规矩**。
+
+**与既有规范的衔接**：`harness/issues/` 的规则与 `04-git-workflow.md` 是配套的 —— 看板走 `main`，业务代码走 `feat/` `fix/` 分支。详见 `harness/issues/README.md` 与 `04-git-workflow.md`。
+
+### 本节的遗留问题（已在 `weeks/week02/issue-review.md` 登记）
+
+| # | 问题 |
+|---|---|
+| 1 | **`project/sql/99-rebuild.sql` 仍是桩文件** → "合并前必须跑通 99-rebuild"这条底线目前**无法执行**，需一条过渡约定 |
+| 2 | **"文档"的边界未写清** —— `project/sql/*.sql` 的脚本头注释算文档还是代码？建议按路径判定：`project/` 下一切走分支 |
+| 3 | **看板"直接推 main" 与 "随分支合入 main" 的优先关系未定** —— 两边同时改同一个 Issue 文件会冲突 |
+| 4 | **看板未表达 Issue 之间的依赖**（如 ISSUE-001 直接决定 ISSUE-002 的表数） |
 
 ---
 
