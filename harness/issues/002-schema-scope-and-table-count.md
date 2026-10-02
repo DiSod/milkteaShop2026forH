@@ -2,12 +2,17 @@
 
 | 元数据 | 内容 |
 |---|---|
-| **状态** | 🔴 待处理 (Open) |
+| **状态** | 🟡 进行中 (In Progress) |
 | **类型** | 架构边界 / 阶段范围控制 |
 | **提报人/Agent** | 二人小组工程侧 Agent |
 | **指派处理** | 双人共同讨论 / 文档主编 |
 | **提报日期** | 2026-09-23 |
-| **关联文件** | [`weeks/week02/schema-design.md`](file:///f:/%E6%95%B0%E6%8D%AE%E5%BA%93/milkteaShop2026forH/weeks/week02/schema-design.md), [`weeks/week02/README.md`](file:///f:/%E6%95%B0%E6%8D%AE%E5%BA%93/milkteaShop2026forH/weeks/week02/README.md) |
+| **关联文件** | [`weeks/week02/schema-design.md`](../../weeks/week02/schema-design.md), [`weeks/week02/README.md`](../../weeks/week02/README.md) |
+
+> 🟡 **进行中** —— DiSod（文档主编）侧已出具裁决意见，待双人讨论确认。
+> 初步倾向：**精简方向采纳**（21 → **16 张**，非 10~12）；支付并回订单头 ✅；优惠券合并为一张 ✅；
+> 但**反对**建 `tbl_spec_option`、**补回**同事漏列的积分流水 / 品类 / 订单加料，盘点与价格历史**明示延后到 v1.0**。
+> 裁决意见 → [`weeks/week02/issue-review.md`](../../weeks/week02/issue-review.md)
 
 ---
 

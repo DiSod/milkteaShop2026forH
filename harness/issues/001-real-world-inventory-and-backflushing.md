@@ -2,12 +2,16 @@
 
 | 元数据 | 内容 |
 |---|---|
-| **状态** | 🔴 待处理 (Open) |
+| **状态** | 🟡 进行中 (In Progress) |
 | **类型** | 业务模型重构 / 核心库存设计 |
 | **提报人/Agent** | 二人小组工程侧 Agent |
 | **指派处理** | 双人共同讨论 / 文档主编 |
 | **提报日期** | 2026-09-23 |
-| **关联文件** | [`weeks/week01/business-requirements.md`](file:///f:/%E6%95%B0%E6%8D%AE%E5%BA%93/milkteaShop2026forH/weeks/week01/business-requirements.md), [`weeks/week02/schema-design.md`](file:///f:/%E6%95%B0%E6%8D%AE%E5%BA%93/milkteaShop2026forH/weeks/week02/schema-design.md) (D-01 ~ D-03, D-12) |
+| **关联文件** | [`weeks/week01/business-requirements.md`](../../weeks/week01/business-requirements.md), [`weeks/week02/schema-design.md`](../../weeks/week02/schema-design.md) (D-01 ~ D-03, D-12) |
+
+> 🟡 **进行中** —— DiSod（文档主编）侧已出具裁决意见 **D1—D5**，待双人讨论确认。
+> 初步倾向：**采纳单库 + 反冲倒扣 + 手工沽清**；**保留**"还能做几杯"视图；**留报损**（改判，理由见裁决意见）。
+> 裁决意见 → [`weeks/week02/issue-review.md`](../../weeks/week02/issue-review.md)
 
 ---
 

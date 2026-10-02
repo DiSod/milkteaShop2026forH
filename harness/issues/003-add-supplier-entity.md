@@ -2,12 +2,17 @@
 
 | 元数据 | 内容 |
 |---|---|
-| **状态** | 🔴 待处理 (Open) |
+| **状态** | 🟡 进行中 (In Progress) |
 | **类型** | 关系完整性 / 模式规范 |
 | **提报人/Agent** | 二人小组工程侧 Agent |
 | **指派处理** | 双人共同讨论 / 文档主编 |
 | **提报日期** | 2026-09-23 |
-| **关联文件** | [`weeks/week01/business-requirements.md`](file:///f:/%E6%95%B0%E6%8D%AE%E5%BA%93/milkteaShop2026forH/weeks/week01/business-requirements.md) (§2.4), [`weeks/week02/schema-design.md`](file:///f:/%E6%95%B0%E6%8D%AE%E5%BA%93/milkteaShop2026forH/weeks/week02/schema-design.md) |
+| **关联文件** | [`weeks/week01/business-requirements.md`](../../weeks/week01/business-requirements.md) (§2.4), [`weeks/week02/schema-design.md`](../../weeks/week02/schema-design.md) |
+
+> 🟡 **进行中** —— DiSod（文档主编）侧已出具裁决意见，待双人讨论确认。
+> 初步倾向：**采纳，但降低规格** —— `tbl_supplier` 只保留 4 个字段（`supplier_id` / `supplier_code` / `supplier_name` / `is_active`），
+> 去掉 `contact_phone`。这样可表述为对 §2.4 的**细化而非推翻**（§2.4 否掉的是"记录供应商档案"，本条只补"给采购单一个来源标识"）。
+> 裁决意见 → [`weeks/week02/issue-review.md`](../../weeks/week02/issue-review.md)
 
 ---
 
