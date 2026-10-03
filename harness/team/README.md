@@ -17,14 +17,23 @@
 |---|---|
 | **基本关系** | 舍友二人同组，面对面高带宽交流，杜绝低效文字传话 |
 | **文档归属** | 全权由 **DiSod** 负责统一执笔、排版与落库，彻底避免 Markdown 并发 Git 冲突 |
+| **文档 / 代码边界** | ⭐ **按路径判定，不按内容**：`project/docs/**`、`harness/**`、`weeks/**`、根 `README.md` = **文档**（直接进 `main`）；`project/sql/**`、`project/app/**`、造数脚本 = **代码**（走分支）。<br>**设计文档不算代码**（2026-09-23 裁定）。详见 [`04-git-workflow.md`](../conventions/04-git-workflow.md) §2.1 |
 | **工程分工** | **全员参与（50/50 代码量）**，按方案 B 分阶段切分，核心底线是**任何时候两人开发域尽量不重叠** |
 | **技术细节传递** | 微观技术问题与排雷建议直接走 [`harness/issues/`](../issues/README.md) 看板，零口头中转成本 |
+| **Issue 闭环** | 每条 Issue 解决后在文件末尾补 `## 5. 解决记录`（处理人 / 时间 / **逐条对照原始诉求的结论** / commit / 遗留），状态改 `🟢`。写法见 [`issues/README.md`](../issues/README.md) |
 | **开工与分支** | 每次开工前使用 [`agent-session-start.md`](../prompts/agent-session-start.md) 对齐 Agent；分支开工必先 `git pull --rebase origin main` |
 | **合并底线** | 任何代码合并至 `main` 前，必须在本地确认 [`project/sql/99-rebuild.sql`](../../project/sql/99-rebuild.sql) 一键重建跑通无误 |
 
+> ### ⚠️ 过渡期提示（2026-09-23）
+>
+> `project/sql/99-rebuild.sql` **目前仍是桩文件**（`:r` 调用全被注释，第 3 周才补全），
+> 所以"**合并底线**"那条**当前无法执行**。生效分界点与过渡约定见
+> [`04-git-workflow.md`](../conventions/04-git-workflow.md) §2.2。
+
 ## 相关文档
 
-- 分工与贡献累计记录 → [`contributions.md`](contributions.md)（后续填报）
-- Git 协作规范 → [`../conventions/04-git-workflow.md`](../conventions/04-git-workflow.md)
+- 分工与贡献累计记录 → [`contributions.md`](contributions.md)
+- Git 协作规范（含**文档/代码边界**、过渡期说明、提交节奏） → [`../conventions/04-git-workflow.md`](../conventions/04-git-workflow.md)
+- SQL 编写规范（含**码的约定**、类型精度、`CHECK` 用法） → [`../conventions/02-sql-style.md`](../conventions/02-sql-style.md)
 - 会话开工对齐提示词 → [`../prompts/agent-session-start.md`](../prompts/agent-session-start.md)
-- 技术排雷看板 → [`../issues/README.md`](../issues/README.md)
+- 技术排雷看板（含**闭环写法**） → [`../issues/README.md`](../issues/README.md)

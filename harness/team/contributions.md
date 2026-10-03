@@ -30,8 +30,21 @@
 
 | 成员 | 承担工作 | 产出 | 工时 |
 |---|---|---|---|
-| **胡博锐** | 关系模式设计（16 条决策 D-01～D-12、21 张表清单）；对同事 3 项排雷 Issue 出具裁决意见（D1—D8 + 关闭 3 个设计漏洞）；主数据草案（30 成品 / 60 原料 / 6 配方）；结构文档与交叉引用同步 | `weeks/week02/schema-design.md`<br>`weeks/week02/issue-review.md`<br>`weeks/week02/master-data.md`<br>`STRUCTURE.md` | ⏳ |
+| **胡博锐** | ① 关系模式设计（16 条决策 D-01～D-12、21 张表清单，后精简为 **17 张**）<br>② 对同事 3 项排雷 Issue 出具**裁决意见**（D1—D8 + 关闭 3 个设计漏洞）<br>③ 主数据（30 成品 / 60 原料 / **10 配方**）<br>④ **课程任务 2/3/4**：字段字典（133 字段）、码标注（17 主码 / 17 候选码 / 30 外码）、样例元组（17 表 + 8 项一致性验证）<br>⑤ 域字典（16 条枚举）与编号体系统一（`DOM-` 前缀）<br>⑥ v0.1 阶段报告草稿<br>⑦ 全库文档同步与规范固化 | `weeks/week02/schema-design.md`<br>`weeks/week02/issue-review.md`<br>`weeks/week02/master-data.md`<br>**`project/docs/data-dictionary.md`（新）**<br>**`weeks/submissions/v0.1/report.md`（新）**<br>`README.md` / `STRUCTURE.md` / `weeks/README.md` | ⏳ |
 | **何争霖** | 建立 Agent 原生 Issue 看板（含模板与 5 项技术排雷）；开工对齐 SOP；团队角色定调；Git 分支与合并规范修订 | `harness/issues/`（README + 模板 + 001～005）<br>`harness/prompts/agent-session-start.md`<br>`harness/team/README.md`<br>`harness/conventions/04-git-workflow.md` | ⏳ |
+
+### 第 2 周的分工边界说明
+
+> 按 `team/README.md` 的「**文档全权由 DiSod 独占执笔**」约定，本周双方的产出**天然分层**：
+
+| | 产出性质 | 说明 |
+|---|---|---|
+| **胡博锐** | **文档 + 设计** | 关系模式、字段字典、裁决意见、报告 —— **全部是文档**，符合文档独占原则 |
+| **何争霖** | **机制 + 排雷** | Issue 看板、开工 SOP、团队定调、Git 规范 —— 属**协作机制的建立**，以及后续的**工程实施**（ISSUE-004 造数） |
+
+> **`project/` 下同样按此分层**：设计文档（`project/docs/`）由文档侧执笔；
+> 代码（`project/sql/`、造数脚本）由工程侧主责。边界见
+> [`04-git-workflow.md`](../conventions/04-git-workflow.md) §2.1。
 
 ---
 
