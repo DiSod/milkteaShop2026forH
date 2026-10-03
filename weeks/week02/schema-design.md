@@ -6,7 +6,8 @@
 **本周不做**：不写 DDL（建表留到第 3 周；SQL 风格见 `harness/conventions/02-sql-style.md`）
 
 > **状态**：⏸ **结构已冻结，暂停推进**。设计与决策部分完成，表数字 **21 张**；
-> 字段字典 / 码标注汇总 / 样例元组**尚未开始**（待小组确认后再做）。
+> 字段字典 / 码标注汇总 / 样例元组**已完成并并入**
+> [`project/docs/data-dictionary.md`](../../project/docs/data-dictionary.md)。
 
 > ### ⚠️ 本文件的设计已被修订，尚未同步
 >
@@ -23,6 +24,11 @@
 >
 > **讨论定案后**，本文件将统一更新；在此之前，**以 [`issue-review.md`](issue-review.md) 为准**。
 > 三个原未决漏洞（大杯加价 / 补货点位置 / 原料保质期）**已全部关闭**。
+>
+> 🔖 **编号说明**：本文件的 `D-01`～`D-12` 是**设计决策**编号；
+> [`issue-review.md`](issue-review.md) 的 `D1`～`D8` 是**裁决结论**编号；
+> [`project/docs/data-dictionary.md`](../../project/docs/data-dictionary.md) 的 `DOM-01`～`DOM-16` 是**域**编号。
+> **三者前缀不同，不要混用**（2026-09-23 曾因域编号误用 `D-xx` 与决策撞车，已改名）。
 
 ---
 

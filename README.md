@@ -12,7 +12,7 @@
 | 菜单规模 | 约 30 款成品 |
 | 原料规模 | 约 60 种 |
 | 营业模式 | 堂食 + 自提（**不接**外卖平台） |
-| 当前进度 | **第 2 周** · 阶段一（目标版本 v0.1） |
+| 当前进度 | **第 2 周已完成** · 阶段一（目标版本 v0.1，第 5 周周二截止） |
 
 数据库需覆盖 6 类核心对象：**商品、库存、订单、订单明细、会员、员工**。
 
@@ -42,11 +42,23 @@
 ## 整体链路
 
 ```
-业务需求分析（第1周）              ✅ 已完成
-    → 关系模式设计（第2周）         🔄 表清单已出，字段字典进行中
-        → 建库与 CRUD（第3周）
-            → 连接查询 / 视图 / 约束 / 授权（第4周）   ← v0.1 交付
+业务需求分析（第1周）                    ✅ 已完成
+    → 关系模式设计（第2周）               ✅ 已完成
+         ⤷ 17 张表 / 133 字段 / 30 外码 / 样例元组
+    → 建库与 CRUD（第3周）                ⬜ 未开始  ← 下一步
+        → 连接查询 / 视图 / 约束 / 授权（第4周）   ← v0.1 交付（第5周周二截止）
 ```
+
+## 关键文档入口
+
+| 我想看… | 去哪里 |
+|---|---|
+| **表结构、字段、域、码、样例数据** | [`project/docs/data-dictionary.md`](project/docs/data-dictionary.md) ⭐ **表结构的唯一真相源** |
+| 本周（第 2 周）做了什么 | [`weeks/week02/README.md`](weeks/week02/README.md) |
+| 设计决策与被否决的方案 | [`weeks/week02/schema-design.md`](weeks/week02/schema-design.md) |
+| 与同事的技术裁决记录 | [`weeks/week02/issue-review.md`](weeks/week02/issue-review.md) |
+| 菜单、原料、配方 | [`weeks/week02/master-data.md`](weeks/week02/master-data.md) |
+| 怎么协作、怎么提交 | [`harness/README.md`](harness/README.md) |
 
 ## 仓库
 
@@ -60,13 +72,23 @@
 
 | 项 | 说明 |
 |---|---|
-| 数据库 | SQL Server（版本待确认） |
+| 数据库 | SQL Server —— ⚠️ **版本待确认**（影响排序规则与部分语法，**第 3 周建库前必须定**） |
 | SQL 脚本 | `project/sql/`（按 `00-` → `99-` 顺序执行） |
 | 数据文件 | `project/data/`（**不进 git**，见其 README 下载说明） |
+| 客户端 | `sqlcmd`（命令行执行）或 SSMS |
 
 ## 快速开始
 
-> ⏳ 待第 3 周建库脚本完成后补全。届时入口为 `project/sql/99-rebuild.sql`。
+> ⏳ **待第 3 周补全。** 目标形态：clone → 按 `project/data/README.md` 下载数据 → 执行一条命令重建整库。
+
+```powershell
+# 唯一入口（当前仍是桩文件，第 3 周启用）
+sqlcmd -S <server> -i project/sql/99-rebuild.sql
+```
+
+**当前可复现的部分**：表结构定义在
+[`project/docs/data-dictionary.md`](project/docs/data-dictionary.md)（17 张表 / 133 字段），
+第 3 周由它翻译生成 `project/sql/01-schema/create-tables.sql`。
 
 ## 阶段提交计划
 
