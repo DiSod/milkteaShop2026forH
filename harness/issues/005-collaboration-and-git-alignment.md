@@ -2,7 +2,7 @@
 
 | 元数据 | 内容 |
 |---|---|
-| **状态** | 🔴 待处理 (Open) |
+| **状态** | 🟢 已解决 (Resolved) |
 | **类型** | 团队协作 / 流程规范 |
 | **提报人/Agent** | 二人小组工程侧 Agent |
 | **指派处理** | 双人共同讨论 / 文档主编 |
@@ -42,3 +42,34 @@
    - **Issue 看板在 `main` 维护**：提报或关闭 Issue 直接推 `main`；
    - **开发分支开工必拉取**：开发分支每次动工前，先执行一条 `git pull --rebase origin main` 同步最新 Issue，绝不落后；
    - **代码合并底线**：任何分支合入 `main` 前，必须在本地确认 `project/sql/99-rebuild.sql` 一键跑通无报错！
+
+---
+
+## 5. 解决记录
+
+**处理人**：DiSod（文档主编）
+**解决时间**：2026-09-23
+**状态**：🟢 已解决 —— **三条原则全部落地**
+
+### 变更说明
+
+| 原则 | 落地位置 | 状态 |
+|---|---|---|
+| 一 · **文档全归 DiSod 独占执笔** | [`harness/team/README.md`](../team/README.md) 协作约定表 | ✅ 已生效（第 2 周的文档均由 DiSod 侧提交） |
+| 二 · **工程全员参与、按方案 B 分阶段切分** | [`harness/team/README.md`](../team/README.md) 协作约定表 + 本 Issue 第 2 节 | ✅ 已生效 |
+| 三 · **Agent 开工对齐 + Git 提交铁律** | [`harness/prompts/agent-session-start.md`](../prompts/agent-session-start.md)<br>[`harness/conventions/04-git-workflow.md`](../conventions/04-git-workflow.md) | ✅ 已生效（分支新增 `fix/<issue-id>`、合并规则扩充为 5 条） |
+
+### commit 引用
+
+| commit | 说明 |
+|---|---|
+| `8ad7ad3` | 建立 Issue 看板、开工对齐 SOP、团队定调与 Git 规范修订（**本 Issue 的主要落地**） |
+| `a5c2428` | 三个 Issue 状态改 🟡，并修正关联文件的绝对路径链接 |
+
+### 遗留（不算本 Issue 未完成，另记）
+
+| # | 事项 | 说明 |
+|---|---|---|
+| 1 | **"方案 B" 缺少定义** | 本 Issue 与 `team/README.md` 都引用"方案 B"，但**全仓库没有写方案 A 是什么、谁定的**。第 1 阶段的分阶段切分**内容**在本 Issue 第 2 节是完整的，只是**代号没有出处** |
+| 2 | **第 4 周的 SQL 文件归属未切分** | 本 Issue 原则二的第 1 阶段只切了"模式结构与约束 DDL / 种子数据生成与装载查询"，**`query.sql` / `view.sql` / `role.sql` 归谁未写** |
+| 3 | **`99-rebuild.sql` 仍是桩文件** | 本 Issue 定的"合并前必须跑通"底线**目前无法执行**，需过渡约定 |

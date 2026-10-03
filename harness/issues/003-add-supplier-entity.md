@@ -47,3 +47,55 @@
    ```sql
    supplier_id INT NOT NULL FOREIGN KEY REFERENCES tbl_supplier(supplier_id)
    ```
+
+---
+
+## 5. 解决记录
+
+**处理人**：DiSod（文档主编）
+**解决时间**：⏳ 待确认后填写
+**状态**：🟡 **待双人讨论确认**
+
+### 裁决摘要（供确认）
+
+| 原始诉求 | 裁决 |
+|---|---|
+| 补建极简 `tbl_supplier` | ✅ **采纳，但降低规格** |
+| 字段 5 个（含 `contact_phone`） | ⚠️ **降为 4 个** —— 去掉 `contact_phone` |
+| 采购单加 `supplier_id` 外码 | ✅ 采纳 |
+
+### ⚠️ 一处必须说清的定性
+
+**这是对 week1 §2.4 的「推翻」，不是「细化」。**
+
+week1 §2.4 的方案甲原话是"**完全不记** —— 采购单只记原料与数量" ——
+**它明确否掉的就是采购单上的供应商**，不只是"供应商档案"。
+
+初稿曾把它写成"细化而非推翻"，**与 week1 原文不符，已改正**，并补进了
+[`issue-review.md`](../../weeks/week02/issue-review.md) 第十节的修正汇总（第 16 行）。
+
+**仍然保留 week1 §4.2 #6 的边界** —— 本表**不记**联系人、账期、银行账户。
+
+### 变更说明
+
+| 项 | 内容 |
+|---|---|
+| 新增表 | `tbl_supplier(supplier_id, supplier_code, supplier_name, is_active)` |
+| 改动表 | `tbl_purchase_order` 增加 `supplier_id` 外码 |
+| 留下的 JOIN 链 | `供应商 → 采购单 → 采购明细 → 原料`（**四层级联**，第 4 周 `query.sql` 素材） |
+| 已写入 | [`project/docs/data-dictionary.md`](../../project/docs/data-dictionary.md) 第 17 张表 |
+
+### commit 引用
+
+| commit | 说明 |
+|---|---|
+| `9c5cd69` | 出具裁决意见（采纳 + 降规格） |
+| `a5c2428` | 本 Issue 状态 🔴 → 🟡 |
+| `ccc19ee` | 补充"推翻 §2.4"的如实定性说明 |
+
+### 遗留
+
+| # | 事项 |
+|---|---|
+| 1 | **4 字段的降规格待 hezhlin5 认可** |
+| 2 | week1 报告 §2.4 正文**尚未同步修改**（等确认后与 `schema-design.md` 一并处理） |
