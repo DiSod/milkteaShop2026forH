@@ -99,7 +99,7 @@
 | DOM-02 | **商品状态** | `tbl_product.product_status` | `ON_SALE` / `OFF_SALE` | 在售 / 停售。**下架用状态，不删行** | ✅ week1 §3.8 |
 | DOM-03 | **订单状态** | `tbl_order_header.order_status` | `PENDING` / `MAKING` / `READY` / `COMPLETED` / `ABANDONED` / `CANCELLED` | 待制作 / 制作中 / 待取餐 / 已完成 / 已弃取 / 已取消 | ✅ week1 §3.2 |
 | DOM-04 | **库存流水类型** | `tbl_stock_ledger.ledger_type` | `PURCHASE_IN` / `SALES_USE` / `LOSS` | 采购入库(+) / 销售耗用(−) / 报损(−)。**v1.0 增 `STOCKTAKE`** | ✅ D2 |
-| DOM-05 | **流水来源** | `tbl_stock_ledger.ref_type` | `PURCHASE` / `ORDER` / `TRANSFER` / **`MANUAL`** / `OPENING` | 采购单 / 订单 / 移库配对 / **手工登记（报损等无来源单据的流水）** / 期初结转。**v1.0 增 `STOCKTAKE`** | ✅ D-09 · D-08a · D2 |
+| DOM-05 | **流水来源** | `tbl_stock_ledger.ref_type` | `PURCHASE` / `ORDER` / **`MANUAL`** / `OPENING` | 采购单 / 订单 / **手工登记（报损等无来源单据的流水）** / 期初结转。**v1.0 增 `STOCKTAKE`** | ✅ D-09 · D2 |
 | DOM-06 | **支付方式** | `tbl_order_header.pay_method` | `CASH` / `WECHAT` / `ALIPAY` / `CARD` | 现金 / 微信 / 支付宝 / 刷卡 | 🟡 week1 §4.1 #11 只写"在线支付/现金"，此处细化 |
 | DOM-07 | **券来源** | `tbl_coupon.source` | `POINTS_EXCHANGE` / `CAMPAIGN` | 积分兑换 / 活动赠与 | ✅ week1 §3.7 |
 | DOM-08 | **券状态** | `tbl_coupon.status` | `UNUSED` / `USED` / `EXPIRED` | 未使用 / 已核销 / 已过期 | ✅ D-11 |
@@ -381,15 +381,14 @@ PK      : ingredient_id
 | `ref_type` | VARCHAR | 10 | 否 | — | **DOM-05 流水来源** | 来源类型；**报损等无来源单据的流水填 `MANUAL`** | |
 | `purchase_order_id` | INT | — | **是** | — | `tbl_purchase_order.purchase_order_id` | 采购单（`ref_type='PURCHASE'` 时非空） | **FK** |
 | `order_id` | INT | — | **是** | — | `tbl_order_header.order_id` | 订单（`ref_type='ORDER'` 时非空） | **FK** |
-| `transfer_group_no` | INT | — | **是** | — | 正整数 | **移库配对号** —— 领料两行共用<br>⚠️ **非外键**（移库单已撤销，D-08a） | |
 | `operator_id` | INT | — | **是** | — | `tbl_employee.employee_id` | 操作人；**NULL ＝ 系统自动产生**（反冲扣料的销售耗用流水） | **FK** |
 | `ledger_time` | DATETIME2 | — | 否 | `SYSDATETIME()` | — | 发生时间 | |
 | `remark` | NVARCHAR | 100 | **是** | — | — | 备注；**报损时写原因**（打翻 / 其它） | |
 
 > **`qty` 不再有"库位"维度** —— 单库后流水只剩"原料 + 类型 + 数量"（D1）。
-> **移库的两行流水共用 `transfer_group_no`**，按原料汇总必须恰好为 0。
 >
 > **v1.0 再补**：`stocktake_id`（外码）+ 流水类型加 `STOCKTAKE` —— **这都是 D5 刻意延后留出的迁移素材**。
+
 
 **码标注**
 ```
@@ -791,11 +790,11 @@ PK      : purchase_order_detail_id
 
 ### 9. `tbl_stock_ledger`
 
-| ledger_id | ingredient_id | ledger_type | qty | ref_type | purchase_order_id | order_id | transfer_group_no | operator_id | ledger_time | remark |
-|---:|---:|---|---:|---|---:|---:|---:|---:|---|---|
-| 1001 | 17 | PURCHASE_IN | **+6000.000** | PURCHASE | 1 | NULL | NULL | 5 | 2026-09-22 09:15:00 | NULL |
-| 1002 | 17 | SALES_USE | **−48.000** | ORDER | NULL | 1 | NULL | **NULL** | 2026-09-23 10:09:25 | NULL |
-| 1003 | 17 | LOSS | **−850.000** | **MANUAL** | NULL | NULL | NULL | 3 | 2026-09-23 22:10:00 | **打烊称重：熟珍珠打翻** |
+| ledger_id | ingredient_id | ledger_type | qty | ref_type | purchase_order_id | order_id | operator_id | ledger_time | remark |
+|---:|---:|---|---:|---|---:|---:|---:|---|---|
+| 1001 | 17 | PURCHASE_IN | **+6000.000** | PURCHASE | 1 | NULL | 5 | 2026-09-22 09:15:00 | NULL |
+| 1002 | 17 | SALES_USE | **−48.000** | ORDER | NULL | 1 | **NULL** | 2026-09-23 10:09:25 | NULL |
+| 1003 | 17 | LOSS | **−850.000** | **MANUAL** | NULL | NULL | 3 | 2026-09-23 22:10:00 | **打烊称重：熟珍珠打翻** |
 
 > **三条流水正好演示三种来源**：
 > - `PURCHASE_IN` ← **采购单**（`ref_type='PURCHASE'`，外码指向 `purchase_order_id`）
@@ -918,7 +917,7 @@ PK      : purchase_order_detail_id
 |---|---|---|
 | 〇 | 使用说明、域的三种落地判据、DDL 归属声明 | ✅ |
 | 一 | **域字典**（16 条业务枚举 + 表承载域 + 单位字典） | ✅ |
-| 二 | **字段字典** —— 17 张表逐表定义（**133 个字段**） | ✅ **17 / 17** |
+| 二 | **字段字典** —— 17 张表逐表定义（**132 个字段**） | ✅ **17 / 17** |
 | 三 | **码标注汇总** —— 17 张表 + 统计 + 答辩要点 | ✅ |
 | 四 | **样例元组** —— 17 张表，含一致性交叉验证 8 项 | ✅ **17 / 17** |
 
@@ -933,17 +932,18 @@ PK      : purchase_order_detail_id
 
 ### 下一步
 
-1. 表结构经 hezhlin5 确认后，**由本文件第二节翻译生成**
+1. 表结构经双人全量确认，**由本文件第二节翻译生成**
    `project/sql/01-schema/create-tables.sql`（本文件是唯一真相源）
 2. 第四节样例元组 → 扩充为第 3 周的种子数据 `project/sql/04-seed/`
 3. v1.0 再补 3 张表的定义（D5 延后）：`tbl_stocktake` / `tbl_stocktake_detail` / `tbl_price_history`
 
-### 已知待确认项
+### 确认项闭环记录（2026-10-03 双人对齐闭环）
 
-| # | 项 | 状态 |
+| # | 项 | 确认结论与闭环状态 |
 |---|---|---|
-| 1 | 表结构整体（D1—D8、17 张表） | 🟡 待 hezhlin5 确认 |
-| 2 | 域字典 **DOM-06 支付方式** / **DOM-14 采购单状态** / **DOM-15 支付状态** 三条 | 🟡 由流程推出，待确认取值 |
-| 3 | `tbl_ingredient.spec`（包装规格）是否必要 | 🟡 当前仅作采购参考，不参与扣料 |
-| 4 | `tbl_stock_ledger.ref_type` 新增的 **`MANUAL`**（报损等无来源单据的流水） | 🟡 由 D2 留报损连带产生，待确认 |
-| 5 | `tbl_stock_ledger.operator_id` **允许为空**（NULL ＝ 系统自动反冲） | 🟡 同上次，待确认 |
+| 1 | 表结构整体（D1—D8、17 张表） | ✅ **已确认**（hezhlin5 确认采纳，ISSUE-001~003 闭环） |
+| 2 | 域字典 **DOM-06 / DOM-14 / DOM-15** 取值 | ✅ **已确认**（符合真实业务与第 4 周查询实验需求） |
+| 3 | `tbl_ingredient.spec`（包装规格）是否必要 | ✅ **已确认保留**（作为采购弱展示参考，不参与扣料数学运算） |
+| 4 | `tbl_stock_ledger.ref_type` 新增 **`MANUAL`** | ✅ **已确认**（打烊手工报损必备）；已同步彻底移除已作废的 `TRANSFER` 与 `transfer_group_no` |
+| 5 | `tbl_stock_ledger.operator_id` **允许为空** | ✅ **已确认**（NULL ＝ 系统自动交易反冲扣料，无需虚拟账号） |
+
