@@ -25,13 +25,13 @@
 | [**005**](005-collaboration-and-git-alignment.md) | **协作与分工定调**：明确文档归舍友、工程分阶段切分、严格遵守 Agent 对齐与提交规范 | 流程与规范 | 双人共同讨论 / 文档主编 | 🟢 **已解决** | [`harness/team/README.md`](../team/README.md), [`04-git-workflow.md`](../conventions/04-git-workflow.md) |
 | [**006**](006-sync-schema-design-to-17-tables.md) | **关系模式设计正文全面同步修订至 17 表及历史文档连带对齐** | 文档维护 / 模式对齐 | 文档主编 (DiSod) | 🟢 **已解决** | [`weeks/week02/schema-design.md`](../../weeks/week02/schema-design.md) |
 | [**007**](007-seed-generator-encoding-and-datasource.md) | **造数引擎输出规范化（UTF-8 BOM）与配方数据源单一化** | 数据工程 / 编码规范 | 核心工程 (hezhlin5) | 🟢 **已解决** | [`project/data/generate_seed.py`](../../project/data/generate_seed.py), [`04-seed/seed_data.sql`](../../project/sql/04-seed/seed_data.sql) |
-| [**008**](008-points-refund-and-crud-robustness.md) | **积分退单约束死锁修复与 CRUD 健壮性加固（防吞库存/防除零崩溃）** | 数据库约束 / DML 健壮性 | 核心工程 (hezhlin5) | 🟡 **进行中** | [`02-constraints/constraints.sql`](../../project/sql/02-constraints/constraints.sql), [`05-dml/crud.sql`](../../project/sql/05-dml/crud.sql) |
+| [**008**](008-points-refund-and-crud-robustness.md) | **积分退单约束死锁修复与 CRUD 健壮性加固（防吞库存/防除零崩溃）** | 数据库约束 / DML 健壮性 | 核心工程 (hezhlin5) | 🟢 **已解决** | [`02-constraints/constraints.sql`](../../project/sql/02-constraints/constraints.sql), [`05-dml/crud.sql`](../../project/sql/05-dml/crud.sql) |
 | [**009**](009-documentation-consistency-and-cleanup.md) | **交付文档全量一致性清扫与历史残留消除（132 字段定案、ANY 样例清除、D-05a 去重）** | 文档维护 / 一致性排雷 | 文档主编 (DiSod) | 🔴 **待处理** | [`report.md`](../../weeks/submissions/v0.1/report.md), [`data-dictionary.md`](../../project/docs/data-dictionary.md), [`schema-design.md`](../../weeks/week02/schema-design.md) |
 
-> **闭环进度**：🟢 已解决 **7** 条（001—007）· 🟡 进行中 **1** 条（008）· 🔴 待处理 **1** 条（009）
+> **闭环进度**：🟢 已解决 **8** 条（001—008）· 🔴 待处理 **1** 条（**009**）
 >
 > ⚠️ **排雷重点**：
-> - **008（工程主责）**：修复 `ck_points_ledger_target` 对无券退单的拦截死锁，优化 `crud.sql` 库存回冲与采购加权成本；
+> - **008（工程主责）**：✅ 已闭环。修复 `ck_points_ledger_target` 对无券退单的拦截死锁，优化 `crud.sql` 退单聚合回冲与采购加权成本除零保护；
 > - **009（文档主责）**：统一 132 字段口径、清理数据字典样例中的 ANY 残留，重构 `schema-design.md` 重复段落。
 
 
@@ -86,7 +86,7 @@ Issue 是"**提议**"，裁决后标题里的主张**可能被否决**。
 
 ### 当前闭环进度
 
-> 🟢 已解决 **7** 条（001—007）· 🟡 进行中 **1** 条（008）· 🔴 待处理 **1** 条（009）
+> 🟢 已解决 **8** 条（001—008）· 🔴 待处理 **1** 条（**009**）
 >
 > | 批次 | Issue | 日期 |
 > |---|---|---|
@@ -95,5 +95,5 @@ Issue 是"**提议**"，裁决后标题里的主张**可能被否决**。
 > | 第 3 批 | **004 造数原型**（工程侧） | 2026-10-03 |
 > | 第 4 批 | **006 文档正文同步**（文档侧） | 2026-10-03 |
 > | 第 5 批 | **007 造数引擎编码与数据源**（工程侧） | 2026-10-04 |
-> | 第 6 批 | **008 积分退单约束死锁与 CRUD 健壮性**（工程侧）<br>**009 文档全量一致性清扫**（文档侧） | 2026-10-04 |
+> | 第 6 批 | **008 积分退单约束死锁与 CRUD 健壮性**（工程侧已闭环）<br>**009 文档全量一致性清扫**（待文档侧处理） | 2026-10-04 |
 

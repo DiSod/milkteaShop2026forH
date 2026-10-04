@@ -384,13 +384,13 @@ ALTER TABLE tbl_stock_ledger
                 AND order_id IS NULL)
         );
 
--- ⭐ 积分流水的"去向二选一"一致性
---    EARN 应对应一张订单；REDEEM 应对应一张券。两者不能同时为空。
+-- ⭐ 积分流水的"去向二选一"一致性（ISSUE-008）
+--    EARN 应对应一张订单；REDEEM 可对应一张券（积分兑换）或一张订单（退单积分回滚）。两者不能同时为空。
 ALTER TABLE tbl_points_ledger
     ADD CONSTRAINT ck_points_ledger_target
         CHECK (
                (point_type = 'EARN'   AND order_id  IS NOT NULL)
-            OR (point_type = 'REDEEM' AND coupon_id IS NOT NULL)
+            OR (point_type = 'REDEEM' AND (coupon_id IS NOT NULL OR order_id IS NOT NULL))
         );
 GO
 

@@ -2,11 +2,12 @@
 
 | 元数据 | 内容 |
 |---|---|
-| **状态** | 🟡 进行中 (In Progress) |
+| **状态** | 🟢 已解决 (Resolved) |
 | **类型** | 数据库约束 / DML 健壮性 · Bug 修复 |
 | **提报人/Agent** | 何争霖（hezhlin5 / 核心工程） |
 | **指派处理** | 核心工程（hezhlin5）—— 改 `02-constraints/constraints.sql` 与 `05-dml/crud.sql` |
 | **提报日期** | 2026-10-04 |
+| **解决日期** | 2026-10-04 |
 | **关联文件** | [`project/sql/02-constraints/constraints.sql`](../../project/sql/02-constraints/constraints.sql), [`project/sql/05-dml/crud.sql`](../../project/sql/05-dml/crud.sql) |
 
 ---
@@ -109,4 +110,23 @@ FROM   tbl_ingredient i ...
 ---
 
 ## 5. 解决记录
-*(修复完成后填写)*
+
+**处理人**：何争霖（hezhlin5 / 核心工程）  
+**解决时间**：2026-10-04  
+**状态**：🟢 **已解决 (Resolved)** —— 三项健壮性方案全部落地并通过 SQL Server 2022 实测验证！
+
+### 落实成果对照
+
+| # | 方案项 | 落地动作 | 验收结果 |
+|---|---|---|---|
+| 1 | **方案一（积分退单解死锁）** | 修改 `02-constraints.sql` 中的 `ck_points_ledger_target`，放宽为 `OR (point_type = 'REDEEM' AND (coupon_id IS NOT NULL OR order_id IS NOT NULL))` | ✅ 实测无券退单插入 `REDEEM` 成功扣积分；同时非法插入（两码皆空）仍被 100% 拦截 |
+| 2 | **方案二（退单库存防吞行）** | `crud.sql` 3.6 改用分组子查询 `GROUP BY ingredient_id` 并严格限定当前订单 `order_id` | ✅ 消除多对一非确定性更新风险，多次退单时库存数量精确累加 |
+| 3 | **方案三（加权成本防除零）** | `crud.sql` 3.4 引入 `CASE WHEN (qty_on_hand + qty_received) > 0` 保护 | ✅ 零实收验收时平稳保留原成本，彻底杜绝 NULL 击穿 NOT NULL 约束 |
+
+### commit 引用
+
+- `fix(sql): 修复积分退单约束死锁与 CRUD 健壮性漏洞（ISSUE-008 闭环）`
+
+### 遗留
+
+- 无。SQL Server 2022 空库重建 17 表 20,979 行与 CRUD 全测试 100% 跑通。

@@ -570,10 +570,13 @@ BEGIN TRY
 
         -- 库存增加 + 移动加权成本重算
         --   新成本 = (旧库存×旧成本 + 本次入库量×本次单价) / (旧库存 + 本次入库量)
+        --   （带除零防御：若总入库与现库存为 0，保持原成本，杜绝击穿 NOT NULL）
         UPDATE i
-        SET    i.moving_avg_cost =
-                   (i.qty_on_hand * i.moving_avg_cost + d.qty_received * d.unit_price)
-                   / NULLIF(i.qty_on_hand + d.qty_received, 0),
+        SET    i.moving_avg_cost = CASE 
+                   WHEN (i.qty_on_hand + d.qty_received) > 0 
+                   THEN (i.qty_on_hand * i.moving_avg_cost + d.qty_received * d.unit_price) / (i.qty_on_hand + d.qty_received)
+                   ELSE i.moving_avg_cost 
+               END,
                i.qty_on_hand = i.qty_on_hand + d.qty_received
         FROM   tbl_ingredient i
         JOIN   tbl_purchase_order_detail d ON d.ingredient_id = i.ingredient_id
@@ -652,12 +655,17 @@ BEGIN TRY
         WHERE  l.order_id = (SELECT order_id FROM tbl_order_header WHERE order_no = 'DEMO-O1')
           AND  l.ledger_type = N'SALES_USE';
 
-        -- 库存加回去（用刚写入的那条回冲流水，数量是正数）
+        -- 库存加回去（用刚写入的那条回冲流水，严格限定当前订单并聚合，杜绝多对一非确定性覆盖）
         UPDATE i
-        SET    i.qty_on_hand = i.qty_on_hand + l.qty
+        SET    i.qty_on_hand = i.qty_on_hand + r.total_return_qty
         FROM   tbl_ingredient i
-        JOIN   tbl_stock_ledger l ON l.ingredient_id = i.ingredient_id
-        WHERE  l.remark = N'订单取消回冲';
+        JOIN (
+            SELECT ingredient_id, SUM(qty) AS total_return_qty
+            FROM   tbl_stock_ledger
+            WHERE  order_id = (SELECT order_id FROM tbl_order_header WHERE order_no = 'DEMO-O1')
+              AND  remark   = N'订单取消回冲'
+            GROUP BY ingredient_id
+        ) r ON r.ingredient_id = i.ingredient_id;
 
         -- ④ 订单改状态（不删行）
         UPDATE tbl_order_header SET order_status = N'CANCELLED' WHERE order_no = 'DEMO-O1';
