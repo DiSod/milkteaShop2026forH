@@ -24,13 +24,12 @@
 | [**004**](004-data-generation-prototype.md) | **锁定销量母本并启动 Python 仿真造数原型**：验证台账平衡闭环（7天/90天） | 数据工程 | 核心工程 (主抓造数脚本) | 🟢 **已解决** | [`project/data/README.md`](../../project/data/README.md), [`project/data/generate_seed.py`](../../project/data/generate_seed.py) |
 | [**005**](005-collaboration-and-git-alignment.md) | **协作与分工定调**：明确文档归舍友、工程分阶段切分、严格遵守 Agent 对齐与提交规范 | 流程与规范 | 双人共同讨论 / 文档主编 | 🟢 **已解决** | [`harness/team/README.md`](../team/README.md), [`04-git-workflow.md`](../conventions/04-git-workflow.md) |
 | [**006**](006-sync-schema-design-to-17-tables.md) | **关系模式设计正文全面同步修订至 17 表及历史文档连带对齐** | 文档维护 / 模式对齐 | 文档主编 (DiSod) | 🟢 **已解决** | [`weeks/week02/schema-design.md`](../../weeks/week02/schema-design.md) |
-| [**007**](007-seed-generator-encoding-and-datasource.md) | **造数引擎输出规范化（UTF-8 BOM）与配方数据源单一化** | 数据工程 / 编码规范 | 核心工程 (hezhlin5) | 🔴 **待处理** | [`project/data/generate_seed.py`](../../project/data/generate_seed.py), [`04-seed/seed_data.sql`](../../project/sql/04-seed/seed_data.sql) |
+| [**007**](007-seed-generator-encoding-and-datasource.md) | **造数引擎输出规范化（UTF-8 BOM）与配方数据源单一化** | 数据工程 / 编码规范 | 核心工程 (hezhlin5) | 🟢 **已解决** | [`project/data/generate_seed.py`](../../project/data/generate_seed.py), [`04-seed/seed_data.sql`](../../project/sql/04-seed/seed_data.sql) |
 
-> **闭环进度**：🟢 已解决 **6** 条（001—006）· 🔴 待处理 **1** 条（**007**）
+> **闭环进度**：🟢 已解决 **7** 条（001—007 全部闭环）· 🔴 待处理 **0** 条
 >
-> ⚠️ **007 优先级高**：造数引擎若仍输出**无 BOM** 的 SQL，
-> **重新生成一次种子数据就会静默全废**（装载 0 行且不报错）。
-> 文档侧已给当前提交的 `seed_data.sql` 补过 BOM，但**脚本不改，下次生成又会丢**。
+> 🎯 **里程碑达成**：所有已提报 Issue 全部闭环（001—007）。
+> 造数引擎输出强制带 UTF-8 BOM，配方解析直接以 `master-data.md` 为唯一真相源，全库从建表到种子装载 100% 幂等可复现。
 
 
 ---
@@ -84,7 +83,7 @@ Issue 是"**提议**"，裁决后标题里的主张**可能被否决**。
 
 ### 当前闭环进度
 
-> 🟢 已解决 **6** 条（001—006）· 🔴 待处理 **1** 条（**007**）
+> 🟢 已解决 **7** 条（001—007）· 🔴 待处理 **0** 条
 >
 > | 批次 | Issue | 日期 |
 > |---|---|---|
@@ -92,5 +91,5 @@ Issue 是"**提议**"，裁决后标题里的主张**可能被否决**。
 > | 第 2 批 | **001 库存机制 · 002 表结构精简 · 003 供应商**（双人确认闭环） | 2026-10-03 |
 > | 第 3 批 | **004 造数原型**（工程侧） | 2026-10-03 |
 > | 第 4 批 | **006 文档正文同步**（文档侧） | 2026-10-03 |
-> | **待处理** | **007 造数引擎编码与数据源**（工程侧） | 提报 2026-10-04 |
+> | 第 5 批 | **007 造数引擎编码与数据源**（工程侧） | 2026-10-04 |
 

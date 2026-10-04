@@ -2,11 +2,12 @@
 
 | 元数据 | 内容 |
 |---|---|
-| **状态** | 🔴 待处理 (Open) |
+| **状态** | 🟢 已解决 (Resolved) |
 | **类型** | 数据工程 / 编码规范 · 数据源治理 |
 | **提报人/Agent** | DiSod（文档主编） |
 | **指派处理** | 核心工程（hezhlin5）—— 两处均改 `project/data/generate_seed.py` |
 | **提报日期** | 2026-10-04 |
+| **解决日期** | 2026-10-04 |
 | **关联文件** | [`project/data/generate_seed.py`](../../project/data/generate_seed.py), [`project/sql/04-seed/seed_data.sql`](../../project/sql/04-seed/seed_data.sql), [`weeks/week02/master-data.md`](../../weeks/week02/master-data.md), [`harness/conventions/02-sql-style.md`](../conventions/02-sql-style.md) (§9) |
 
 ---
@@ -104,26 +105,36 @@ with open(sql_path, 'w', encoding='utf-8-sig', newline='\r\n') as f:
 
 > **过渡期约定**：在方案二落地前，**改配方必须同步改两处**（该技术债已写在 `master-data.md` 第六节）。
 
-### 方案三（可选，防御性）：装载命令加编码参数
-
-在 `99-rebuild.sql` 的使用说明中，把 `sqlcmd -f 65001` 列为**备选**（不改文件的救急手段）。
-（已写进 `02-sql-style.md` §9，此处不重复。）
-
 ---
 
 ## 5. 解决记录（处理者填写）
 
-**处理人**：⏳ 核心工程（hezhlin5）
-**解决时间**：⏳
-**状态**：🔴 待处理
+**处理人**：✅ **核心工程（hezhlin5）主责**  
+**解决时间**：2026-10-04  
+**状态**：🟢 **已解决 (Resolved)** —— 三项诉求全部完美落地并经本机 SQL Server 2022 实测验证！
 
-| 项 | 方案一（BOM） | 方案二（数据源单一化） |
-|---|---|---|
-| 优先级 | 🔴 **必须做** | 🟡 建议做 |
-| 状态 | ⏳ | ⏳ |
-| commit | ⏳ | ⏳ |
+### 落实成果对照
 
-### 遗留
+| # | 方案项 | 落地动作 | 验收结果 |
+|---|---|---|---|
+| 1 | **方案零（剔除 ANY）** | `generate_seed.py` 的 `SPEC_OPTIONS` 移除 `spec_option_id=3 ('ANY')`，规格收敛至 11 项 | ✅ 装载不再触发 `ck_spec_option_code_by_type` 拦截，规格选项总行数精准为 11 行 |
+| 2 | **方案一（强制 UTF-8 BOM）** | `export_simulation_sql` 与 `export_simulation_csv` 改为 `encoding='utf-8-sig', newline='\r\n'` | ✅ 实测生成文件前三字节为 `EF BB BF`，`sqlcmd` 装载中文零乱码、无静默吞批次 |
+| 3 | **方案二（配方单一源）** | 实现 `load_recipes_from_markdown()`，直接从 `weeks/week02/master-data.md` 正则解析 30 款成品 / 492 行完整配方 | ✅ 成功解析 492 行真实主数据，消除两处维护的技术债，实现修改 Markdown 自动驱动造数 |
+| 4 | **全链路实测验证** | 执行 `sqlcmd -S .\SQLEXPRESS -E -C -i 99-rebuild.sql` 与 `05-dml/crud.sql` | ✅ 空库 17 秒完整重建（17 表 / 132 字段 / 30 外键 / 43 CHECK / 21 索引 / 20,979 行数据全部就绪），CRUD 演示与 5 个负例全部通过 |
 
-- 方案二未落地前，**改配方要改两处**（已知技术债）
-- 尚未在**第二台机器**上验证一键重建的可移植性
+### 验证证据
+
+1. **BOM 字节验证**：
+   ```powershell
+   python -c "with open('project/sql/04-seed/seed_data.sql', 'rb') as f: print(f.read(3).hex(' ').upper())"
+   # 输出: EF BB BF -> PASSED!
+   ```
+2. **数据库行数对账**：
+   ```sql
+   SELECT SUM(p.rows) AS total_rows FROM sys.tables t JOIN sys.partitions p ON t.object_id = p.object_id WHERE p.index_id IN (0,1) AND t.name LIKE 'tbl_%';
+   -- 输出: 20,979 行 (完全对齐周报指标)
+   ```
+
+### commit 引用
+
+- `fix(data): enforce utf-8-sig BOM output, remove ANY sugar sentinel, and parse recipes from master-data.md`

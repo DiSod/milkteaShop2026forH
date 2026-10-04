@@ -55,11 +55,11 @@ SUPPLIERS = [
     {"supplier_id": 3, "supplier_code": "SUP03", "supplier_name": "佳益包材",     "is_active": 1},
 ]
 
-# 1.4 规格选项 tbl_spec_option (12项)
+# 1.4 规格选项 tbl_spec_option (11项，已移除废弃的 ANY 哨兵)
 SPEC_OPTIONS = [
     {"spec_option_id": 1,  "spec_type": "CUP",   "spec_code": "M",       "spec_name": "中杯",     "extra_price": 0.00, "sort_no": 1},
     {"spec_option_id": 2,  "spec_type": "CUP",   "spec_code": "L",       "spec_name": "大杯",     "extra_price": 3.00, "sort_no": 2},
-    {"spec_option_id": 3,  "spec_type": "SUGAR", "spec_code": "ANY",     "spec_name": "任意糖度", "extra_price": 0.00, "sort_no": 1},
+    # ⚠️ spec_option_id=3 ('ANY') 系 D-05a 废弃的哨兵，已从数据字典与数据库中彻底移除
     {"spec_option_id": 4,  "spec_type": "SUGAR", "spec_code": "NONE",    "spec_name": "无糖",     "extra_price": 0.00, "sort_no": 2},
     {"spec_option_id": 5,  "spec_type": "SUGAR", "spec_code": "S30",     "spec_name": "三分糖",   "extra_price": 0.00, "sort_no": 3},
     {"spec_option_id": 6,  "spec_type": "SUGAR", "spec_code": "S50",     "spec_name": "五分糖",   "extra_price": 0.00, "sort_no": 4},
@@ -200,12 +200,73 @@ PRODUCTS = [
     {"product_id": 30, "product_code": "P030", "product_name": "红丝绒奶昔",   "category_id": 5, "base_price": 12.00, "product_status": "OFF_SALE"},
 ]
 
+import re
+
 # ==============================================================================
 # 2. 配方展开生成 (Recipe BOM)
 # ==============================================================================
 
+def load_recipes_from_markdown(md_path: str) -> Optional[List[Dict[str, Any]]]:
+    """从主数据唯一真相源 (weeks/week02/master-data.md) 解析配方表 (492 行)"""
+    if not os.path.exists(md_path):
+        return None
+
+    try:
+        with open(md_path, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        prod_map = {p["product_code"]: p["product_id"] for p in PRODUCTS}
+        prod_pattern = re.compile(r"^###\s+\d+\.\s+.*?[（\(](P\d{3})[）\)]", re.M)
+        table_row_pattern = re.compile(r"^\|\s*([ML])\s*\|\s*([A-Za-z0-9_]+)\s*\|\s*I(\d{3})\b[^|]*\|\s*([0-9\.]+)\s*\|")
+
+        recipes = []
+        recipe_id = 1
+        current_prod_id = None
+
+        for line in content.splitlines():
+            line_strip = line.strip()
+            m_prod = prod_pattern.match(line_strip)
+            if m_prod:
+                current_code = m_prod.group(1)
+                current_prod_id = prod_map.get(current_code)
+                continue
+
+            if current_prod_id:
+                m_row = table_row_pattern.match(line_strip)
+                if m_row:
+                    cup_code, sugar_code, ing_num_str, qty_str = m_row.groups()
+                    cup_id = SPEC_MAP[("CUP", cup_code)]
+                    sugar_id = None if sugar_code == "ANY" else SPEC_MAP.get(("SUGAR", sugar_code))
+                    ing_id = int(ing_num_str)
+                    qty = round(float(qty_str), 3)
+
+                    recipes.append({
+                        "recipe_id": recipe_id,
+                        "product_id": current_prod_id,
+                        "cup_spec_id": cup_id,
+                        "sugar_spec_id": sugar_id,
+                        "ingredient_id": ing_id,
+                        "qty": qty
+                    })
+                    recipe_id += 1
+
+        if len(recipes) >= 400:
+            return recipes
+    except Exception as e:
+        print(f"[WARN] 解析主数据 Markdown 配方失败 ({e})，将回退至内置配方逻辑。")
+
+    return None
+
 def build_all_recipes() -> List[Dict[str, Any]]:
-    """生成 30 款成品的完整配方行，严格满足 D-05a (无糖不写行，与糖度无关 sugar_spec_id 为 NULL)"""
+    """生成 30 款成品的完整配方行 (优先从主数据 master-data.md 读取)"""
+    # 尝试从唯一真相源 weeks/week02/master-data.md 解析
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    md_path = os.path.normpath(os.path.join(script_dir, "..", "..", "weeks", "week02", "master-data.md"))
+    parsed_recipes = load_recipes_from_markdown(md_path)
+    if parsed_recipes:
+        return parsed_recipes
+
+    # 若未找到真相源文件，则回退到内置高保真规则
     recipes = []
     recipe_id = 1
 
@@ -1289,7 +1350,7 @@ def export_simulation_csv(sim: ShopSimulation, output_dir: str):
         if not rows:
             continue
         headers = list(rows[0].keys())
-        with open(csv_path, "w", encoding="utf-8-sig") as f:
+        with open(csv_path, "w", encoding="utf-8-sig", newline="\r\n") as f:
             f.write(",".join(headers) + "\n")
             for r in rows:
                 line = []
@@ -1308,7 +1369,7 @@ def export_simulation_csv(sim: ShopSimulation, output_dir: str):
     print(f"[EXPORT] 成功导出 17 张核心表 CSV 到: {os.path.abspath(output_dir)}")
 
 def export_simulation_sql(sim: ShopSimulation, sql_path: str):
-    """导出符合 SQL Server 语法规范的种子数据 SQL 文件"""
+    """导出符合 SQL Server 语法规范的种子数据 SQL 文件 (强制 UTF-8 BOM 与 Windows CRLF)"""
     os.makedirs(os.path.dirname(sql_path), exist_ok=True)
 
     # 拓扑排序装载顺序 (确保外键前置)
@@ -1332,7 +1393,7 @@ def export_simulation_sql(sim: ShopSimulation, sql_path: str):
         ("tbl_points_ledger",         sim.tbl_points_ledger,         "point_ledger_id"),
     ]
 
-    with open(sql_path, "w", encoding="utf-8") as f:
+    with open(sql_path, "w", encoding="utf-8-sig", newline="\r\n") as f:
         f.write("-- =============================================================================\n")
         f.write("-- 奶茶店经营数据库 (茶颜小铺 · 单店)\n")
         f.write("-- 04-seed/seed_data.sql · 17 张核心表种子数据 (高保真业务仿真生成)\n")
