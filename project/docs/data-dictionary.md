@@ -297,7 +297,7 @@ PK      : spec_option_id
 | `ingredient_id` | INT | — | 否 | — | `tbl_ingredient.ingredient_id` | 原料 | **FK** |
 | `qty` | DECIMAL | (12,3) | 否 | — | **> 0** | 用量，**单位＝该原料的基本单位** | |
 
-> **`sugar_spec_id` 用 NULL 表示"与糖度无关"**（D-05a 的补丁，替代原 `'ANY'` 哨兵）。
+> **`sugar_spec_id` 用 NULL 表示"与糖度无关"**（见 D-05a）。
 > **SQL Server 的 `UNIQUE` 把 NULL 视为相等**，所以下面的候选码在 NULL 时**只允许存一行** —— 唯一性照样成立。
 >
 > **无糖档不写行**（`NONE` 时配方中无该行＝用量 0）；**煮制/泡制不产生流水**，用量一律是**干重当量**。
@@ -574,8 +574,8 @@ PK      : coupon_id
 | `ordered_by` | INT | — | 否 | — | `tbl_employee.employee_id` | **下单人**（店长拍板） | **FK** |
 | `received_by` | INT | — | **是** | — | `tbl_employee.employee_id` | **验收人**（库管员）；未验收时 NULL | **FK** |
 
-> **相比草案砍掉了 3 个字段**（D-08b）：
-> ~~`expected_date`~~（提前期固定 1 天，**是算出来的，不是记下来的**）、~~`remark`~~、~~`line_status`~~（部分到货一比即知）。
+> **本表特别不含**以下几个字段（见 D-08b）：
+> 预计到货日（**提前期固定 1 天，是算出来的**）、备注、行状态（**部分到货一比即知**）。
 
 **码标注**
 ```
@@ -932,18 +932,10 @@ PK      : purchase_order_detail_id
 
 ### 下一步
 
-1. 表结构经双人全量确认，**由本文件第二节翻译生成**
-   `project/sql/01-schema/create-tables.sql`（本文件是唯一真相源）
-2. 第四节样例元组 → 扩充为第 3 周的种子数据 `project/sql/04-seed/`
-3. v1.0 再补 3 张表的定义（D5 延后）：`tbl_stocktake` / `tbl_stocktake_detail` / `tbl_price_history`
+1. **由本文件第二节翻译生成** `project/sql/01-schema/create-tables.sql`（本文件是唯一真相源）
+2. 第四节样例元组 → 已扩充为种子数据 `project/sql/04-seed/seed_data.sql`
+3. v1.0 再补 3 张表的定义（**D5** 延后）：`tbl_stocktake` / `tbl_stocktake_detail` / `tbl_price_history`
 
-### 确认项闭环记录（2026-10-03 双人对齐闭环）
-
-| # | 项 | 确认结论与闭环状态 |
-|---|---|---|
-| 1 | 表结构整体（D1—D8、17 张表） | ✅ **已确认**（hezhlin5 确认采纳，ISSUE-001~003 闭环） |
-| 2 | 域字典 **DOM-06 / DOM-14 / DOM-15** 取值 | ✅ **已确认**（符合真实业务与第 4 周查询实验需求） |
-| 3 | `tbl_ingredient.spec`（包装规格）是否必要 | ✅ **已确认保留**（作为采购弱展示参考，不参与扣料数学运算） |
-| 4 | `tbl_stock_ledger.ref_type` 新增 **`MANUAL`** | ✅ **已确认**（打烊手工报损必备）；已同步彻底移除已作废的 `TRANSFER` 与 `transfer_group_no` |
-| 5 | `tbl_stock_ledger.operator_id` **允许为空** | ✅ **已确认**（NULL ＝ 系统自动交易反冲扣料，无需虚拟账号） |
+> **表结构已双人确认**（见 [`issue-review.md`](../../weeks/week02/issue-review.md)）。
+> 本文档中的域取值与字段设计即为**最终定案**。
 
