@@ -62,17 +62,37 @@ GO
 PRINT N'【重建】=== 00-bootstrap ===';
 :r .\00-bootstrap\create-database.sql
 
--- ⬜ 01-schema：create-tables.sql 待编写
--- PRINT N'【重建】=== 01-schema ===';
--- :r .\01-schema\create-tables.sql
+PRINT N'【重建】=== 01-schema ===';
+:r .\01-schema\create-tables.sql
 
--- ⬜ 02-constraints：待编写
--- PRINT N'【重建】=== 02-constraints ===';
--- :r .\02-constraints\constraints.sql
+PRINT N'【重建】=== 02-constraints ===';
+:r .\02-constraints\constraints.sql
 
--- ⬜ 04-seed：种子数据依赖表结构，待 01-schema 就绪后接入
--- PRINT N'【重建】=== 04-seed ===';
--- :r .\04-seed\seed_data.sql
+PRINT N'【重建】=== 03-indexes ===';
+:r .\03-indexes\indexes.sql
 
-PRINT N'【重建】完成（当前仅覆盖 00-bootstrap，其余脚本待补）。';
+PRINT N'【重建】=== 04-seed ===';
+:r .\04-seed\seed_data.sql
+
+-- ✅ 05-dml/crud.sql 已完成，但**故意不接入本文件** ——
+--    它是【演示脚本】（CRUD + 负例），会写入 DEMO- 前缀的数据，
+--    不属于"从空库重建出干净数据库"的范畴。需要时单独执行：
+--      sqlcmd -S .\SQLEXPRESS -E -i 05-dml\crud.sql
+--
+-- ⬜ 06-query / 07-view / 08-security：待第 4 周补，同样属于演示脚本。
+
+PRINT N'【重建】完成 —— 数据库已从空库重建完毕。';
+GO
+
+/* ---------- 重建结果总览 ---------- */
+SELECT
+    (SELECT COUNT(*) FROM sys.tables)              AS [表],
+    (SELECT COUNT(*) FROM sys.columns
+      WHERE object_id IN (SELECT object_id FROM sys.tables)) AS [字段],
+    (SELECT COUNT(*) FROM sys.foreign_keys)        AS [外键],
+    (SELECT COUNT(*) FROM sys.check_constraints)   AS [CHECK],
+    (SELECT COUNT(*) FROM sys.indexes
+      WHERE name LIKE N'ix[_]%'
+        AND object_id IN (SELECT object_id FROM sys.tables
+                          WHERE name LIKE N'tbl[_]%'))         AS [业务索引];
 GO
