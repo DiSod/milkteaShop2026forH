@@ -70,7 +70,6 @@ INSERT INTO tbl_spec_option (spec_option_id, spec_type, spec_code, spec_name, ex
 VALUES
   (1, N'CUP', N'M', N'中杯', 0.0, 1),
   (2, N'CUP', N'L', N'大杯', 3.0, 2),
-  (3, N'SUGAR', N'ANY', N'任意糖度', 0.0, 1),
   (4, N'SUGAR', N'NONE', N'无糖', 0.0, 2),
   (5, N'SUGAR', N'S30', N'三分糖', 0.0, 3),
   (6, N'SUGAR', N'S50', N'五分糖', 0.0, 4),

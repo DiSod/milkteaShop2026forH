@@ -106,7 +106,7 @@
 | DOM-09 | **积分流水类型** | `tbl_points_ledger.point_type` | `EARN` / `REDEEM` | 消费累积(+) / 兑换扣减(−) | ✅ week1 §3.7 |
 | DOM-10 | **规格类型** | `tbl_spec_option.spec_type` | `CUP` / `SUGAR` / `ICE` | 杯型 / 糖度 / 冰量 | ✅ 漏洞 1 |
 | DOM-11 | **杯型** | `tbl_spec_option.spec_code`（`spec_type='CUP'`） | `M` / `L` | 中杯 / 大杯（**大杯 +3.00 元**） | ✅ 漏洞 1 |
-| DOM-12 | **糖度** | `tbl_spec_option.spec_code`（`spec_type='SUGAR'`） | `ANY` / `NONE` / `S30` / `S50` / `S70` / `FULL` | **`ANY` = 该原料用量与糖度无关**（配方表哨兵）<br>`NONE`/`S30`/`S50`/`S70`/`FULL` = 无糖/三分/五分/七分/全糖 | ✅ week1 §3.1 · D-05a |
+| DOM-12 | **糖度** | `tbl_spec_option.spec_code`（`spec_type='SUGAR'`） | `NONE` / `S30` / `S50` / `S70` / `FULL` | 无糖 / 三分 / 五分 / 七分 / 全糖<br>⚠️ **没有 `ANY`** —— "该原料用量与糖度无关"由 `tbl_recipe.sugar_spec_id IS NULL` 表达，**不是**一个糖度档（D-05a） | ✅ week1 §3.1 · D-05a |
 | DOM-13 | **冰量** | `tbl_spec_option.spec_code`（`spec_type='ICE'`） | `NO_ICE` / `LESS` / `NORMAL` / `HOT` | 去冰 / 少冰 / 正常冰 / 热饮 | ✅ week1 §3.1 |
 | DOM-14 | **采购单状态** | `tbl_purchase_order.order_status` | `ORDERED` / `ARRIVED` / `ACCEPTED` / `PARTIAL` / `CANCELLED` | 已下单 / 已到货 / 已验收 / **部分拒收** / 已取消 | 🟡 由 week1 §3.3 流程推出，待确认 |
 | DOM-15 | **支付状态** | `tbl_order_header.pay_status` | `SUCCESS` / `FAILED` | 支付成功 / 失败（失败重试见 week1 §3.1 J2 分支） | 🟡 由 week1 §3.1 流程推出，待确认 |
@@ -663,7 +663,7 @@ PK      : purchase_order_detail_id
 
 - **主码一律用代理键**（`INT IDENTITY`）—— D-04
 - **业务码一律建 `UNIQUE` 作为候选码**（如 `product_code`）
-- **外键一律引用代理键**，且**显式命名**（`fk_<表>_<目标>`）
+- **外键一律引用代理键**，且**显式命名**为 **`fk_<表>_<列>`**（用**外键列名**，不用目标表名）<br>  ⚠️ 不用 `fk_<表>_<目标>` —— `tbl_order_detail` 有 3 个外键都指向 `tbl_spec_option`，用目标表名会撞名
 - 复合候选码用括号括起
 - **`tbl_stock_ledger` 与 `tbl_points_ledger` 没有候选码** —— 流水表按时间追加，没有业务唯一标识
 
@@ -675,14 +675,14 @@ PK      : purchase_order_detail_id
 |---|---|---|
 | 1 | **所有主码都是代理键** | 演示课程那句"**主码是选出来做标识的，候选码是其他也能唯一标识的**" —— 每张表都能举例 |
 | 2 | **`tbl_recipe` 的候选码有 4 列** | 它是"**带属性的联系**"而非纯连接表：既有属性（`qty`），码里又多了杯型与糖度两个维度 |
-| 3 | **25 个外码里没有一个是弱类型** | `tbl_stock_ledger` 的"来源"用**判别列 + 真外键**（D-09），而不是一个字符串 `ref_no` —— 这样每个来源都能被数据库强制保证存在 |
+| 3 | **30 个外码里没有一个是弱类型** | `tbl_stock_ledger` 的"来源"用**判别列 + 真外键**（D-09），而不是一个字符串 `ref_no` —— 这样每个来源都能被数据库强制保证存在 |
 
 ---
 
 ## 四、样例元组（任务 4）
 
 > 每张表 2—3 行**真实业务数据**（字典类小表给出全部行）。
-> 数据取自 [`master-data.md`](../../weeks/week02/master-data.md) 的 30 成品 / 60 原料 / 10 配方。
+> 数据取自 [`master-data.md`](../../weeks/week02/master-data.md) 的 30 成品 / 60 原料 / **30 款配方（492 行）**。
 >
 > **本节的样例是自洽的** —— 订单、明细、加料、支付、积分、券、库存流水之间**能对得上账**，
 > 可直接作为第 3 周种子数据的雏形。
