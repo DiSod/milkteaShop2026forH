@@ -59,6 +59,21 @@ python project/data/generate_seed.py --days 90 --enable-stocktake-variance
 
 * **可复现性保证**：脚本内默认固定随机种子 `random.seed(2026)`，确保任何人在任何环境执行输出的订单、流水与金额哈希值 100% 一致。
 
+* ⚠️ **编码要求（第 3 周实测，务必遵守）**：导出 SQL 时必须使用 **`encoding='utf-8-sig'`**（UTF-8 **带 BOM**）。
+
+  ```python
+  with open(sql_path, 'w', encoding='utf-8-sig', newline='\r\n') as f:
+      f.write(sql_text)
+  ```
+
+  **原因**：`sqlcmd -i` 在文件**没有 BOM** 时按系统 OEM 代码页（中文 Windows 上是 GBK）读取。
+  UTF-8 的中文被错误解码后，**不报错，而是整个批次静默失效** ——
+  1.9 MB 的种子数据看起来装载成功，**实际一行都没进去**。
+
+  > 证据与验收标准见 [**ISSUE-007**](../../harness/issues/007-seed-generator-encoding-and-datasource.md)，
+  > 规范见 [`02-sql-style.md`](../../harness/conventions/02-sql-style.md) §9。
+  > 备选救急手段：`sqlcmd -f 65001 -i seed_data.sql`（不改文件）。
+
 ---
 
 ## ④ 进销存台账自洽平衡公式
