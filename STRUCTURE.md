@@ -64,13 +64,15 @@ databaseExp/
 │
 ├─ weeks/                             # ② 过程域
 │  ├─ README.md                       #   周次索引表（17 周，先行列出）
-│  ├─ week01/                         #   目录按需创建，当前 week01/ — week02/
+│  ├─ week01/                         #   目录按需创建，当前 week01/ — week03/
 │  │  ├─ README.md                    #     本周小结 + 文件中文标题对照
 │  │  ├─ business-requirements.md     #     第一周报告·业务需求分析
 │  │  └─ data-availability.md         #     数据可得性对比表
 │  ├─ week02/
 │  │  ├─ README.md                    #     本周小结 + 进度与复盘
 │  │  └─ schema-design.md             #     第二周报告·关系模式设计（表清单 + 设计决策）
+│  ├─ week03/
+│  │  └─ README.md                    #     第 3 周周报（SQL 直接写进 project/，无草稿副本）
 │  └─ submissions/                    #     阶段提交快照
 │     ├─ README.md
 │     ├─ v0.1/  v1.0/  v2.0/  v3.0/   #     （占位，各含 .gitkeep）
@@ -78,8 +80,8 @@ databaseExp/
 ├─ project/                           # ③ 成果域
 │  ├─ README.md                       #   项目说明 + 一键重建步骤
 │  ├─ sql/
-│  │  ├─ README.md                    #   SQL 执行顺序说明
-│  │  ├─ 00-bootstrap/                #   建库、建 schema
+│  │  ├─ README.md                    #   SQL 执行顺序说明 + 怎么跑
+│  │  ├─ 00-bootstrap/                #   建库（排序规则/兼容级别/恢复模式）
 │  │  ├─ 01-schema/                   #   DDL 建表
 │  │  ├─ 02-constraints/              #   主外键 / CHECK
 │  │  ├─ 03-indexes/                  #   索引

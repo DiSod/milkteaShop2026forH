@@ -72,23 +72,32 @@
 
 | 项 | 说明 |
 |---|---|
-| 数据库 | SQL Server —— ⚠️ **版本待确认**（影响排序规则与部分语法，**第 3 周建库前必须定**） |
+| 数据库 | **SQL Server 2022** · Express Edition · 实例 **`.\SQLEXPRESS`** |
+| 排序规则 / 兼容级别 | `Chinese_PRC_CI_AS` / **160** |
 | SQL 脚本 | `project/sql/`（按 `00-` → `99-` 顺序执行） |
 | 数据文件 | `project/data/`（**不进 git**，见其 README 下载说明） |
-| 客户端 | `sqlcmd`（命令行执行）或 SSMS |
+| 客户端 | `sqlcmd`（命令行）或 SSMS |
 
 ## 快速开始
 
-> ⏳ **待第 3 周补全。** 目标形态：clone → 按 `project/data/README.md` 下载数据 → 执行一条命令重建整库。
-
 ```powershell
-# 唯一入口（当前仍是桩文件，第 3 周启用）
-sqlcmd -S <server> -i project/sql/99-rebuild.sql
+# 唯一入口：从空库一键重建（会先 DROP 再重建）
+cd project\sql
+sqlcmd -S .\SQLEXPRESS -E -i 99-rebuild.sql
 ```
 
-**当前可复现的部分**：表结构定义在
-[`project/docs/data-dictionary.md`](project/docs/data-dictionary.md)（17 张表 / 133 字段），
-第 3 周由它翻译生成 `project/sql/01-schema/create-tables.sql`。
+> ⚠️ **必须在 `project/sql/` 目录下执行** —— `sqlcmd` 的 `:r` 是相对**当前工作目录**解析的，
+> 不是相对脚本所在目录。
+
+| 已接通 | 待补 |
+|---|---|
+| `00-bootstrap`（建库，含排序规则 / 兼容级别） | `01-schema`（建表）· `02-constraints` · `03-indexes` · `04-seed` · `05-dml` · `06-query` · `07-view` · `08-security` |
+
+**表结构的定义处**：[`project/docs/data-dictionary.md`](project/docs/data-dictionary.md)（17 张表 / **132 字段**）——
+`01-schema/create-tables.sql` 由它翻译生成，**它是唯一真相源**。
+
+> ⚠️ **含中文的 `.sql` 必须存为 UTF-8 带 BOM** —— 否则 `sqlcmd` 会**静默失效**（无报错，但一行都不生效）。
+> 见 [`02-sql-style.md`](harness/conventions/02-sql-style.md) §9。
 
 ## 阶段提交计划
 

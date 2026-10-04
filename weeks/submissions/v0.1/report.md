@@ -213,7 +213,8 @@
 
 | 项 | 说明 |
 |---|---|
-| 数据库 | SQL Server —— ⏳ **版本待确认**（影响排序规则与部分语法） |
+| 数据库 | **SQL Server 2022** · Express Edition · 实例 `.\SQLEXPRESS` |
+| 排序规则 / 兼容级别 | `Chinese_PRC_CI_AS` / **160** |
 | 客户端 | `sqlcmd` / SSMS |
 | 版本控制 | Git，远端 `git@github.com:DiSod/milkteaShop2026forH.git` |
 | 数据源 | ✅ **已登记** —— Mendeley *Retail Transactions and Stocks Data*（DOI `10.17632/27x8mjm8k4.1`，CC BY 4.0），**仅借用客流波动曲线**。见 [`project/data/README.md`](../../../project/data/README.md) |
@@ -325,8 +326,8 @@
 
 | # | 问题 | 影响 | 责任 |
 |---|---|---|---|
-| 1 | **SQL Server 版本未确认** | **卡住建库脚本** —— 版本影响排序规则与部分语法 | 待定 |
-| 2 | **`99-rebuild.sql` 仍是桩文件** | "合并前必须跑通"的底线**至今空转**，而 `seed_data.sql` 已是首批真代码 | 第 3 周补全 |
+| 1 | **`01-schema` 建表脚本未写** | **v0.1 的核心** —— 卡住 CRUD / 查询 / 视图 / 约束 / 授权的全部演示 | 第 3 周 |
+| 2 | **`99-rebuild.sql` 仅接通 `00-bootstrap`** | 建表与种子数据尚未接入，"从空库一键重建"还不完整 | 第 3 周 |
 | 3 | **60 项原料的补货点 / 目标水位仍是估值** | 影响库存曲线的合理性（**不影响台账自洽** —— 仿真已按现有参数跑通并通过断言） | 待校准 |
 | 4 | **配方数据两处维护** | `generate_seed.py` 内嵌一份 → **改一次配方要改两处** | 工程侧（改为读 `master-data.md` 派生） |
 
@@ -334,7 +335,7 @@
 
 | 周 | 计划 |
 |---|---|
-| **第 3 周** | ① **确定 SQL Server 版本**（唯一卡点）② 由 `data-dictionary.md` 翻译生成 `create-tables.sql` ③ 生成 `create-database.sql` ④ 装载 `04-seed` ⑤ 编写 CRUD 脚本 ⑥ **启用 `99-rebuild.sql`**，让"从空库一键重建"真正可跑 |
+| **第 3 周** | ① 由 `data-dictionary.md` **翻译生成 `create-tables.sql`** ② `02-constraints`（主外键 / CHECK）③ 装载 `04-seed` ④ 编写 CRUD 脚本 ⑤ 把 01/02/04 接入 `99-rebuild.sql`，让"**从空库一键重建**"真正完整 |
 | **第 4 周** | `query.sql`（多表连接，含**四层级联** `供应商→采购单→采购明细→原料`）、`view.sql`（含"还能做几杯"与"沽清推导"）、`constraint.sql`、`role.sql`（含三组职责分离的授权对比） |
 | **第 5 周** | 冻结并归档 v0.1；补齐本报告的 **2.4 验证与测试记录**、`ai-usage.md`、`contributions.md` 的贡献占比 |
 
