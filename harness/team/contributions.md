@@ -48,6 +48,20 @@
 
 ---
 
+## 第 3 周
+
+| 成员 | 承担工作 | 产出 | 工时 |
+|---|---|---|---|
+| **胡博锐** | ① 确定数据库环境（**SQL Server 2022** / 排序规则 / 兼容级别 / 库名）<br>② 编写建库脚本并**实测幂等**<br>③ 打通**一键重建**链路（`99-rebuild.sql` 从桩文件变为**可执行**）<br>④ 排查并修复 4 个 `sqlcmd` 坑（**BOM 静默失效** / 方括号被吃 / 惰性元数据 / `:r` 路径）<br>⑤ 固化编码与数据库级约定到规范<br>⑥ 提报 ISSUE-007 | `project/sql/00-bootstrap/create-database.sql`（**新**）<br>`project/sql/99-rebuild.sql`<br>`harness/conventions/02-sql-style.md` §9 §10<br>`weeks/week03/README.md`<br>`harness/issues/007-*.md`（**新**） | ⏳ |
+| **何争霖** | ⏳ **待启动**：ISSUE-007 的两项改造 —— ① 造数引擎输出 UTF-8 BOM ② 配方数据源单一化 | `project/data/generate_seed.py` | ⏳ |
+
+### 第 3 周的分工边界说明
+
+> 仍按 `team/README.md` 的边界：**设计侧文档由文档主编执笔**；
+> **`project/data/**` 的脚本改造属工程侧** —— ISSUE-007 已指派给 hezhlin5。
+
+---
+
 ## 累计贡献汇总
 
 > 每次阶段提交前更新。
