@@ -89,9 +89,9 @@ sqlcmd -S .\SQLEXPRESS -E -i 99-rebuild.sql
 > ⚠️ **必须在 `project/sql/` 目录下执行** —— `sqlcmd` 的 `:r` 是相对**当前工作目录**解析的，
 > 不是相对脚本所在目录。
 
-| 已接通 | 待补 |
+| 已接通 ✅ | 待补 ⬜ |
 |---|---|
-| `00-bootstrap`（建库，含排序规则 / 兼容级别） | `01-schema`（建表）· `02-constraints` · `03-indexes` · `04-seed` · `05-dml` · `06-query` · `07-view` · `08-security` |
+| `00-bootstrap` 建库 · `01-schema` 建表 · `02-constraints` 约束 · `03-indexes` 索引 · `04-seed` 种子数据 | `05-dml`（CRUD）· `06-query` · `07-view` · `08-security` |
 
 **表结构的定义处**：[`project/docs/data-dictionary.md`](project/docs/data-dictionary.md)（17 张表 / **132 字段**）——
 `01-schema/create-tables.sql` 由它翻译生成，**它是唯一真相源**。

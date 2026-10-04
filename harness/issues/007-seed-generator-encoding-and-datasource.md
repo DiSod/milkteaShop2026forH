@@ -20,7 +20,11 @@
 `sqlcmd -i` 在无 BOM 时按系统 OEM 代码页（中文 Windows 上是 **GBK**）读取，
 UTF-8 的中文被错误解码后 —— **不报错，而是整个批次静默失效**。
 
-**② 配方数据仍有两份来源。**
+**② 域字典里有一处废弃残留被写进了种子数据。**
+`tbl_spec_option` 里有一行 `(3, SUGAR, 'ANY', '任意糖度')` —— 它是被 **D-05a 废弃的 `'ANY'` 哨兵**。
+"与糖度无关"现在由 `tbl_recipe.sugar_spec_id IS NULL` 表达，**不再是一个糖度档**。
+
+**③ 配方数据仍有两份来源。**
 `generate_seed.py` 内嵌一份配方（30 款），而 [`master-data.md`](../../weeks/week02/master-data.md)
 已声明自己是「**主数据的唯一真相源**」（30 款 / 492 行）。两者目前内容一致，但**改一次配方要改两处**。
 
@@ -66,6 +70,13 @@ INSERT INTO dbo.enc_probe (id, name) VALUES (1, N'红茶（阿萨姆）'), (2, N
 ## 4. 建议解法与行动方案
 
 均只需改 `project/data/generate_seed.py` 一个文件。
+
+### 方案零（**已由文档侧临时处理，但需脚本同步**）：不要再生成 `'ANY'` 糖度档
+
+`tbl_spec_option` 的种子数据里不应再有 `N'ANY'` 这一行 —— 文档侧已于 2026-10-04 从
+`seed_data.sql` 与域字典 DOM-12 中删除（**实测该行从未被 1963 张订单、492 条配方引用过**）。
+**请同步修改生成逻辑**，否则下次生成又会带回来，而 `02-constraints` 的
+`ck_spec_option_code_by_type` **会拒绝它**（糖度合法集合已不含 `ANY`）。
 
 ### 方案一（**必须做**）：输出 UTF-8 带 BOM
 

@@ -20,12 +20,33 @@
 
 | # | 交付物 | 状态 | 落点 |
 |---|---|---|---|
-| 1 | **建库语句** | ✅ | [`project/sql/00-bootstrap/create-database.sql`](../../project/sql/00-bootstrap/create-database.sql) |
-| 2 | **一键重建入口接线** | ✅ **已可跑** | [`project/sql/99-rebuild.sql`](../../project/sql/99-rebuild.sql) |
-| 3 | 建表语句（DDL） | ⬜ **进行中** | `project/sql/01-schema/create-tables.sql` |
-| 4 | 约束（主外键 / CHECK） | ⬜ | `project/sql/02-constraints/` |
-| 5 | 种子数据装载 | 🟡 脚本已就绪，**待表结构** | [`project/sql/04-seed/seed_data.sql`](../../project/sql/04-seed/seed_data.sql) |
-| 6 | 增删改查语句 | ⬜ | `project/sql/05-dml/` |
+| 1 | **建库语句** | ✅ | [`00-bootstrap/create-database.sql`](../../project/sql/00-bootstrap/create-database.sql) |
+| 2 | **建表语句（DDL）** | ✅ **17 张表 / 132 字段** | [`01-schema/create-tables.sql`](../../project/sql/01-schema/create-tables.sql) |
+| 3 | **约束（主外键 / CHECK）** | ✅ **候选码 17 / CHECK 43 / 外键 30** | [`02-constraints/constraints.sql`](../../project/sql/02-constraints/constraints.sql) |
+| 4 | **索引** | ✅ **21 个** | [`03-indexes/indexes.sql`](../../project/sql/03-indexes/indexes.sql) |
+| 5 | **种子数据装载** | ✅ **20,979 行** | [`04-seed/seed_data.sql`](../../project/sql/04-seed/seed_data.sql) |
+| 6 | **一键重建全链路** | ✅ **实测 17 秒从空库跑通** | [`99-rebuild.sql`](../../project/sql/99-rebuild.sql) |
+| 7 | **增删改查语句** | ✅ **含 5 个负例** | [`05-dml/crud.sql`](../../project/sql/05-dml/crud.sql) |
+
+### ✅ 一键重建实测结果（硬指标：要求能够复现）
+
+```powershell
+cd project\sql
+sqlcmd -S .\SQLEXPRESS -E -i 99-rebuild.sql
+```
+
+```
+【重建】DROP 已存在的 milktea_shop（含全部数据）...
+【重建】=== 00-bootstrap ===   建库
+【重建】=== 01-schema ===      17 张表
+【重建】=== 02-constraints === 候选码 17 + 域 15 + 值域 + 跨列 + 外键 30
+【重建】=== 03-indexes ===     21 个索引
+【重建】=== 04-seed ===        20,979 行种子数据
+【重建】完成 —— 数据库已从空库重建完毕。
+
+业务表 17 | 字段 132 | 外键 30 | 候选码 17 | CHECK 43 | 索引 21 | 总行数 20,979
+耗时 17.1 秒
+```
 
 ### 本周已完成的部分
 
@@ -33,8 +54,12 @@
 |---|---|
 | **数据库环境** | **SQL Server 2022** Express · 实例 `.\SQLEXPRESS` · 排序规则 `Chinese_PRC_CI_AS` · 兼容级别 **160** |
 | **建库脚本** | 幂等；库名 / 排序规则 / 兼容级别 / 恢复模式**四项全部锁定** |
-| **一键重建** | `cd project\sql && sqlcmd -S .\SQLEXPRESS -E -i 99-rebuild.sql` —— **实测通过**，已接通 `00-bootstrap` |
-| **设计输入** | 表结构定义已 100% 就绪（`project/docs/data-dictionary.md`，17 张表 / 132 字段），可直接翻译为 DDL |
+| **建表脚本** | 从 `data-dictionary.md` **逐字翻译**，17 张表 / 132 字段，与字典完全对得上 |
+| **约束脚本** | 17 候选码（6 复合）+ 15 条域 CHECK + 值域/跨列 CHECK + **30 个外键** |
+| **索引脚本** | 21 个 —— 19 个建在外键连接路径，2 个建在日期/时间列 |
+| **一键重建** | **从空库一键跑通**，含 2 万行种子数据，17 秒 |
+
+> **课程第 3 周的三项要求全部达成**：① 建库语句 ✅ ② 增删改查语句 ✅ ③ **要求能够复现 ✅**
 
 ## 已并入 project 的产出
 
@@ -54,6 +79,9 @@
 | 2 | **`sqlcmd` 会吃掉半角方括号** | 日志前缀 `[建库]` 不显示 | 改用 `【建库】`，写进规范 §9 |
 | 3 | **`sys.databases.collation_name` 是惰性填充的** | 库刚建好时该列返回 `NULL`，**看起来像排序规则没设上** | 对照实验确认非 bug；脚本里加 `USE milktea_shop` 触发元数据 |
 | 4 | **`:r` 相对当前工作目录**，不是脚本目录 | 从仓库根执行 `99-rebuild.sql` 报"找不到文件" | 文档明确要求 `cd project\sql` 再执行 |
+| 7 | **CRUD 脚本的清理段不完整 + `XACT_ABORT ON` 放大后果** | 第二次执行报"重复键"错误 | `tbl_purchase_order_detail` 还引用着演示原料，导致 DELETE 失败；而 `XACT_ABORT ON` 使**整批后续清理全部跳过** → 重写清理段为**严格的 13 步依赖逆序**，并连测 3 次全绿 |
+| 5 | **`ix[_]%` 匹配到了系统表的索引** | 重建总览显示"业务索引 23"而非 21 | `backup_metadata_store` 的 `IX_backup_*` 被不区分大小写的匹配捞进来了 → 三处清理逻辑全部**限定到 `tbl_%` 表** |
+| 6 | **域字典里的 `ANY` 糖度档是废弃残留** | 写约束时发现 `DOM-12` 含 `ANY`，但它**从未被任何订单或配方引用**（1963 单 / 492 条配方里都没有） | 它是被 **D-05a 废弃的哨兵**（"与糖度无关"改由 `sugar_spec_id IS NULL` 表达）→ 已从**域字典**与**种子数据**中删除，并要求生成脚本同步（并入 ISSUE-007） |
 
 ## 本周关键决策
 
@@ -76,7 +104,7 @@
 
 ## 下一步
 
-1. **`create-tables.sql`**（17 张表 / 132 字段，由 `data-dictionary.md` 翻译）
-2. `02-constraints/constraints.sql`（主外键 / CHECK）
-3. `99-rebuild.sql` 接入 `01-schema` 与 `04-seed`
-4. `05-dml/crud.sql`（现场演示用）
+1. ✅ **第 3 周三项要求已全部达成**（建库 / CRUD / 可复现）
+2. 补充本周的 **2.4 验证与测试记录**（把一键重建 + CRUD 的实测输出正式记进阶段报告）
+3. 第 4 周：`06-query`（多表连接）· `07-view`（统计视图）· `08-security`（角色权限）
+4. 顺带：把 `03-indexes` 与 `02-constraints` 的说明补进答辩提纲

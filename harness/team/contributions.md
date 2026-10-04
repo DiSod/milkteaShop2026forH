@@ -52,8 +52,8 @@
 
 | 成员 | 承担工作 | 产出 | 工时 |
 |---|---|---|---|
-| **胡博锐** | ① 确定数据库环境（**SQL Server 2022** / 排序规则 / 兼容级别 / 库名）<br>② 编写建库脚本并**实测幂等**<br>③ 打通**一键重建**链路（`99-rebuild.sql` 从桩文件变为**可执行**）<br>④ 排查并修复 4 个 `sqlcmd` 坑（**BOM 静默失效** / 方括号被吃 / 惰性元数据 / `:r` 路径）<br>⑤ 固化编码与数据库级约定到规范<br>⑥ 提报 ISSUE-007 | `project/sql/00-bootstrap/create-database.sql`（**新**）<br>`project/sql/99-rebuild.sql`<br>`harness/conventions/02-sql-style.md` §9 §10<br>`weeks/week03/README.md`<br>`harness/issues/007-*.md`（**新**） | ⏳ |
-| **何争霖** | ⏳ **待启动**：ISSUE-007 的两项改造 —— ① 造数引擎输出 UTF-8 BOM ② 配方数据源单一化 | `project/data/generate_seed.py` | ⏳ |
+| **胡博锐** | ① 确定数据库环境（**SQL Server 2022** / 排序规则 / 兼容级别 / 库名）<br>② **建库**脚本（幂等，4 项设置锁定）<br>③ **建表** —— 由数据字典逐字翻译出 **17 张表 / 132 字段**<br>④ **约束** —— 17 候选码 + 43 CHECK + 30 外键<br>⑤ **索引** —— 21 个（19 外键路径 + 2 查询驱动），并登记 7 处"不建"及理由<br>⑥ **CRUD 演示脚本**（含 5 个负例）<br>⑦ 打通**一键重建**链路并实测（**17 秒 / 20,979 行**）<br>⑧ 排查修复 **7 个坑**（BOM 静默失效 / 方括号被吃 / 惰性元数据 / `:r` 路径 / 索引误伤系统表 / 糖度档 `ANY` 残留 / `XACT_ABORT` 放大失败）<br>⑨ 固化编码与数据库级约定到规范 · 提报 ISSUE-007 | `project/sql/00-bootstrap/create-database.sql`（**新**）<br>`project/sql/01-schema/create-tables.sql`（**新**）<br>`project/sql/02-constraints/constraints.sql`（**新**）<br>`project/sql/03-indexes/indexes.sql`（**新**）<br>`project/sql/05-dml/crud.sql`（**新**）<br>`project/sql/99-rebuild.sql`<br>`harness/conventions/02-sql-style.md` §7 §9 §10<br>`weeks/week03/README.md`<br>`harness/issues/007-*.md`（**新**） | ⏳ |
+| **何争霖** | ⏳ **待启动**：ISSUE-007 的**三项**改造 —— ① 造数引擎输出 UTF-8 BOM ② 不再生成 `ANY` 糖度档 ③ 配方数据源单一化 | `project/data/generate_seed.py` | ⏳ |
 
 ### 第 3 周的分工边界说明
 
