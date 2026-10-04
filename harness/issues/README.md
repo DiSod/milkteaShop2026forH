@@ -23,9 +23,11 @@
 | [**003**](003-add-supplier-entity.md) | **采购单补全供应商外码**：补建极简 `tbl_supplier`，消除“向空气采购”漏洞 | 关系规范化 | 双人共同讨论 / 文档主编 | 🟢 **已解决** | [`weeks/week01/business-requirements.md`](../../weeks/week01/business-requirements.md) (§2.4) |
 | [**004**](004-data-generation-prototype.md) | **锁定销量母本并启动 Python 仿真造数原型**：验证台账平衡闭环（7天/90天） | 数据工程 | 核心工程 (主抓造数脚本) | 🟢 **已解决** | [`project/data/README.md`](../../project/data/README.md), [`project/data/generate_seed.py`](../../project/data/generate_seed.py) |
 | [**005**](005-collaboration-and-git-alignment.md) | **协作与分工定调**：明确文档归舍友、工程分阶段切分、严格遵守 Agent 对齐与提交规范 | 流程与规范 | 双人共同讨论 / 文档主编 | 🟢 **已解决** | [`harness/team/README.md`](../team/README.md), [`04-git-workflow.md`](../conventions/04-git-workflow.md) |
-| [**006**](006-sync-schema-design-to-17-tables.md) | **关系模式设计正文全面同步修订至 17 表及历史文档连带对齐** | 文档维护 / 模式对齐 | 文档主编 (DiSod) | 🔴 **待处理** | [`weeks/week02/schema-design.md`](../../weeks/week02/schema-design.md) |
+| [**006**](006-sync-schema-design-to-17-tables.md) | **关系模式设计正文全面同步修订至 17 表及历史文档连带对齐** | 文档维护 / 模式对齐 | 文档主编 (DiSod) | 🟢 **已解决** | [`weeks/week02/schema-design.md`](../../weeks/week02/schema-design.md) |
 
-> **闭环进度**：🟢 已解决 **5** 条（001/002/003/004/005）· 🔴 待处理 **1** 条（**006 文档正文同步**，交由 DiSod 统筹）
+> **闭环进度**：🎉 **6 条全部已解决**（001—006），看板清零。
+>
+> 最后闭环的两条：**005**（协作规范，2026-09-23）· **006**（文档正文同步，2026-10-03）。
 
 
 ---
@@ -79,5 +81,12 @@ Issue 是"**提议**"，裁决后标题里的主张**可能被否决**。
 
 ### 当前闭环进度
 
-> 🟢 已解决 **4**（001 / 002 / 003 / 005）· 🔴 待处理 **2**（**004 核心造数** · **006 文档同步**）
+> 🎉 **6 条全部已解决**（001—006）—— 看板清零。
+>
+> | 批次 | Issue | 闭环日期 |
+> |---|---|---|
+> | 第 1 批 | 005 协作规范 | 2026-09-23 |
+> | 第 2 批 | **001 库存机制 · 002 表结构精简 · 003 供应商**（双人确认闭环） | 2026-10-03 |
+> | 第 3 批 | **004 造数原型**（工程侧） | 2026-10-03 |
+> | 第 4 批 | **006 文档正文同步**（文档侧） | 2026-10-03 |
 
