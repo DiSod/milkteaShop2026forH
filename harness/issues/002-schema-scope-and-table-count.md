@@ -75,7 +75,7 @@
 
 - 表清单最终收敛至 **17 张**（乙档：交易 + 供应链）；
 - 4 项有业务理由的非核心结构（券模板拆分、支付一对多独立表、盘点单据、调价历史）明确延后至第 2 阶段，作为第 8 周“模式重构与数据迁移”的真实答辩素材；
-- 逐表 133 个字段、主候选外键标注与 17 表样例数据已完备落地于 [`project/docs/data-dictionary.md`](../../project/docs/data-dictionary.md)。
+- 逐表 132 个字段、主候选外键标注与 17 表样例数据已完备落地于 [`project/docs/data-dictionary.md`](../../project/docs/data-dictionary.md)。
 
 ### commit 引用
 

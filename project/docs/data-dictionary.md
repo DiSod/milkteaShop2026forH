@@ -731,13 +731,12 @@ PK      : purchase_order_detail_id
 
 > P030 演示 week1 §3.8：**下架只改状态，历史订单不受影响**。
 
-### 5. `tbl_spec_option`（12 行，给出全部行）
+### 5. `tbl_spec_option`（11 行，给出全部行）
 
 | spec_option_id | spec_type | spec_code | spec_name | extra_price | sort_no |
 |---:|---|---|---|---:|---:|
 | 1 | CUP | M | 中杯 | 0.00 | 1 |
 | 2 | CUP | L | 大杯 | **3.00** | 2 |
-| 3 | SUGAR | ANY | 任意糖度 | 0.00 | 1 |
 | 4 | SUGAR | NONE | 无糖 | 0.00 | 2 |
 | 5 | SUGAR | S30 | 三分糖 | 0.00 | 3 |
 | 6 | SUGAR | S50 | 五分糖 | 0.00 | 4 |
@@ -748,7 +747,7 @@ PK      : purchase_order_detail_id
 | 11 | ICE | NORMAL | 正常冰 | 0.00 | 3 |
 | 12 | ICE | HOT | 热饮 | 0.00 | 4 |
 
-> **`ANY`（任意糖度）只用于配方表，不用于订单** —— 顾客必须选一个真实糖度档。
+> **糖度档里没有 `ANY`** —— "某原料用量与糖度无关"由 `tbl_recipe.sugar_spec_id IS NULL` 表达（见 D-05a），**它不是一个糖度档**。顾客下单时必须选一个真实糖度档（`NONE` / `S30` / `S50` / `S70` / `FULL`）。
 > **大杯加价 3.00 落在这里**，而不是商品表（漏洞 1 = 全店统一加价）。
 
 ### 6. `tbl_recipe`（取「珍珠奶茶 P004 · 中杯」的 4 行）

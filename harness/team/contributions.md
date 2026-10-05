@@ -30,7 +30,7 @@
 
 | 成员 | 承担工作 | 产出 | 工时 |
 |---|---|---|---|
-| **胡博锐** | ① 关系模式设计（16 条决策 D-01～D-12、21 张表清单，后精简为 **17 张**）<br>② 对同事 3 项排雷 Issue 出具**裁决意见**（D1—D8 + 关闭 3 个设计漏洞）<br>③ 主数据（30 成品 / 60 原料 / **10 配方**）<br>④ **课程任务 2/3/4**：字段字典（133 字段）、码标注（17 主码 / 17 候选码 / 30 外码）、样例元组（17 表 + 8 项一致性验证）<br>⑤ 域字典（16 条枚举）与编号体系统一（`DOM-` 前缀）<br>⑥ v0.1 阶段报告草稿<br>⑦ 全库文档同步与规范固化 | `weeks/week02/schema-design.md`<br>`weeks/week02/issue-review.md`<br>`weeks/week02/master-data.md`<br>**`project/docs/data-dictionary.md`（新）**<br>**`weeks/submissions/v0.1/report.md`（新）**<br>`README.md` / `STRUCTURE.md` / `weeks/README.md` | ⏳ |
+| **胡博锐** | ① 关系模式设计（16 条决策 D-01～D-12、21 张表清单，后精简为 **17 张**）<br>② 对同事 3 项排雷 Issue 出具**裁决意见**（D1—D8 + 关闭 3 个设计漏洞）<br>③ 主数据（30 成品 / 60 原料 / **30 款配方 · 492 行**）<br>④ **课程任务 2/3/4**：字段字典（132 字段）、码标注（17 主码 / 17 候选码 / 30 外码）、样例元组（17 表 + 8 项一致性验证）<br>⑤ 域字典（16 条枚举）与编号体系统一（`DOM-` 前缀）<br>⑥ v0.1 阶段报告草稿<br>⑦ 全库文档同步与规范固化 | `weeks/week02/schema-design.md`<br>`weeks/week02/issue-review.md`<br>`weeks/week02/master-data.md`<br>**`project/docs/data-dictionary.md`（新）**<br>**`weeks/submissions/v0.1/report.md`（新）**<br>`README.md` / `STRUCTURE.md` / `weeks/README.md` | ⏳ |
 | **何争霖** | ① 建立 Agent 原生 Issue 看板（含模板与 5 项技术排雷）；开工对齐 SOP；团队角色定调；Git 分支与合并规范修订<br>② **仿真造数原型与进销存台账自洽断言**（ISSUE-004）：实现 60 种原料平衡式零误差断言，生成 7 天 20,979 行纯净种子与 90 天压力测试数据 | `harness/issues/`（README + 模板 + 001～005）<br>`harness/prompts/agent-session-start.md`<br>`harness/team/README.md`<br>`harness/conventions/04-git-workflow.md`<br>`project/data/generate_seed.py`（**新**）<br>`project/sql/04-seed/seed_data.sql`（**新**） | ⏳ |
 
 ### 第 2 周的分工边界说明
@@ -58,7 +58,7 @@
 ### 第 3 周的分工边界说明
 
 > 仍按 `team/README.md` 的边界：**设计侧文档由文档主编执笔**；
-> **`project/data/**` 的脚本改造属工程侧** —— ISSUE-007 已指派给 hezhlin5。
+> **`project/data/**` 的脚本改造属工程侧** —— ISSUE-007 已由 hezhlin5 闭环（造数引擎改为 `utf-8-sig`、以 `master-data.md` 为单一真相源）。
 
 ---
 
