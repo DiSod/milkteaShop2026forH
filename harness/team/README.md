@@ -24,16 +24,16 @@
 | **开工与分支** | 每次开工前使用 [`agent-session-start.md`](../prompts/agent-session-start.md) 对齐 Agent；分支开工必先 `git pull --rebase origin main` |
 | **合并底线** | 任何代码合并至 `main` 前，必须在本地确认 [`project/sql/99-rebuild.sql`](../../project/sql/99-rebuild.sql) 一键重建跑通无误 |
 
-> ### ⚠️ 过渡期提示（2026-09-23）
+> ### ✅ 合并底线已生效（2026-10-04）
 >
-> `project/sql/99-rebuild.sql` **目前仍是桩文件**（`:r` 调用全被注释，第 3 周才补全），
-> 所以"**合并底线**"那条**当前无法执行**。生效分界点与过渡约定见
-> [`04-git-workflow.md`](../conventions/04-git-workflow.md) §2.2。
+> `project/sql/99-rebuild.sql` **已可执行** —— 从空库一键重建，实测 17 秒。
+> 上面那条"**合并底线**"**已经真正生效**：任何 SQL 改动合并前必须本地跑通它。
+> 详见 [`04-git-workflow.md`](../conventions/04-git-workflow.md) §2.2。
 
 ## 相关文档
 
 - 分工与贡献累计记录 → [`contributions.md`](contributions.md)
-- Git 协作规范（含**文档/代码边界**、过渡期说明、提交节奏） → [`../conventions/04-git-workflow.md`](../conventions/04-git-workflow.md)
+- Git 协作规范（含**文档/代码边界**、**合并底线**、提交节奏） → [`../conventions/04-git-workflow.md`](../conventions/04-git-workflow.md)
 - SQL 编写规范（含**码的约定**、类型精度、`CHECK` 用法） → [`../conventions/02-sql-style.md`](../conventions/02-sql-style.md)
 - 会话开工对齐提示词 → [`../prompts/agent-session-start.md`](../prompts/agent-session-start.md)
 - 技术排雷看板（含**闭环写法**） → [`../issues/README.md`](../issues/README.md)

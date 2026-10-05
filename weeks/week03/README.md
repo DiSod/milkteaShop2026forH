@@ -75,13 +75,13 @@ sqlcmd -S .\SQLEXPRESS -E -i 99-rebuild.sql
 
 | # | 问题 | 发现方式 | 处理 |
 |---|---|---|---|
-| 1 | ⭐ **SQL 文件无 BOM → `sqlcmd` 静默失效** | 实测：同一条 INSERT，无 BOM 时 **0 行受影响且不报错** | 三个 SQL 文件补 BOM；写进规范 §9；**工程侧生成脚本需改用 `utf-8-sig`**（见 [ISSUE-007](../../harness/issues/007-seed-generator-encoding-and-datasource.md)） |
+| 1 | ⭐ **SQL 文件无 BOM → `sqlcmd` 静默失效** | 实测：同一条 INSERT，无 BOM 时 **0 行受影响且不报错** | 三个 SQL 文件补 BOM；写进规范 §9；**工程侧生成脚本已改用 `utf-8-sig`** —— ✅ **已由 hezhlin5 闭环**（[ISSUE-007](../../harness/issues/007-seed-generator-encoding-and-datasource.md)） |
 | 2 | **`sqlcmd` 会吃掉半角方括号** | 日志前缀 `[建库]` 不显示 | 改用 `【建库】`，写进规范 §9 |
 | 3 | **`sys.databases.collation_name` 是惰性填充的** | 库刚建好时该列返回 `NULL`，**看起来像排序规则没设上** | 对照实验确认非 bug；脚本里加 `USE milktea_shop` 触发元数据 |
 | 4 | **`:r` 相对当前工作目录**，不是脚本目录 | 从仓库根执行 `99-rebuild.sql` 报"找不到文件" | 文档明确要求 `cd project\sql` 再执行 |
 | 7 | **CRUD 脚本的清理段不完整 + `XACT_ABORT ON` 放大后果** | 第二次执行报"重复键"错误 | `tbl_purchase_order_detail` 还引用着演示原料，导致 DELETE 失败；而 `XACT_ABORT ON` 使**整批后续清理全部跳过** → 重写清理段为**严格的 13 步依赖逆序**，并连测 3 次全绿 |
 | 5 | **`ix[_]%` 匹配到了系统表的索引** | 重建总览显示"业务索引 23"而非 21 | `backup_metadata_store` 的 `IX_backup_*` 被不区分大小写的匹配捞进来了 → 三处清理逻辑全部**限定到 `tbl_%` 表** |
-| 6 | **域字典里的 `ANY` 糖度档是废弃残留** | 写约束时发现 `DOM-12` 含 `ANY`，但它**从未被任何订单或配方引用**（1963 单 / 492 条配方里都没有） | 它是被 **D-05a 废弃的哨兵**（"与糖度无关"改由 `sugar_spec_id IS NULL` 表达）→ 已从**域字典**与**种子数据**中删除，并要求生成脚本同步（并入 ISSUE-007） |
+| 6 | **域字典里的 `ANY` 糖度档是废弃残留** | 写约束时发现 `DOM-12` 含 `ANY`，但它**从未被任何订单或配方引用**（1963 单 / 492 条配方里都没有） | 它是被 **D-05a 废弃的哨兵**（"与糖度无关"改由 `sugar_spec_id IS NULL` 表达）→ 已从**域字典**与**种子数据**中删除，并要求生成脚本同步 —— ✅ **已由 hezhlin5 闭环**（ISSUE-007） |
 
 ## 本周关键决策
 

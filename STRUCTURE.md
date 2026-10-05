@@ -343,12 +343,12 @@ Git 不追踪空目录，因此每个占位目录放**一份简短的 `README.md
 
 ### 本节的遗留问题（已在 `weeks/week02/issue-review.md` 登记）
 
-| # | 问题 |
-|---|---|
-| 1 | **`project/sql/99-rebuild.sql` 仍是桩文件** → "合并前必须跑通 99-rebuild"这条底线目前**无法执行**，需一条过渡约定 |
-| 2 | **"文档"的边界未写清** —— `project/sql/*.sql` 的脚本头注释算文档还是代码？建议按路径判定：`project/` 下一切走分支 |
-| 3 | **看板"直接推 main" 与 "随分支合入 main" 的优先关系未定** —— 两边同时改同一个 Issue 文件会冲突 |
-| 4 | **看板未表达 Issue 之间的依赖**（如 ISSUE-001 直接决定 ISSUE-002 的表数） |
+| # | 问题 | 现状 |
+|---|---|---|
+| 1 | ~~`99-rebuild.sql` 仍是桩文件~~ → "合并前必须跑通 99-rebuild"这条底线无法执行 | ✅ **已解决** —— `99-rebuild.sql` 已可执行，第 3 周实测从空库重建 **17 秒 / 20,979 行** |
+| 2 | ~~"文档"的边界未写清~~ —— 脚本头注释算文档还是代码？ | ✅ **已解决** —— [`04-git-workflow.md`](harness/conventions/04-git-workflow.md) §2.1 按**路径**判定：`project/sql/**` 算代码走分支；`project/docs/**`、`harness/**`、`weeks/**` 算文档直接进 `main` |
+| 3 | **看板"直接推 main" 与 "随分支合入 main" 的优先关系未定** —— 两边同时改同一个 Issue 文件会冲突 | ❌ **未解决**（待定） |
+| 4 | **看板未表达 Issue 之间的依赖**（如 ISSUE-001 直接决定 ISSUE-002 的表数） | 🟡 **部分解决** —— [`issues/README.md`](harness/issues/README.md) 已写明"依赖要显式写"，但 Issue 元数据里还没有 `依赖` 字段 |
 
 ---
 

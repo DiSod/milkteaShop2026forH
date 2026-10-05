@@ -237,9 +237,18 @@ UTF-8 的中文被当成 GBK 解码后，**不报错，而是整个批次静默�
 
 | 场景 | 做法 |
 |---|---|
-| **手写 SQL** | 编辑器另存为 **UTF-8 with BOM** |
+| **手写 SQL** | 编辑器另存为 **UTF-8 with BOM**（**首选**） |
 | **脚本生成 SQL**（如造数引擎） | Python 用 `open(path, 'w', encoding='utf-8-sig')` —— `utf-8-sig` 就是带 BOM |
-| 临时救急（不改文件） | `sqlcmd -f 65001 -i xxx.sql` |
+| **执行时的兜底** | `sqlcmd -f 65001 -i xxx.sql` —— **显式指定输入编码，不依赖文件 BOM** |
+
+> **两条路是互补的，不是二选一**：
+> - **文件带 BOM** 是根本解法 —— 在 SSMS 里打开也不会乱码；
+> - **`-f 65001`** 是执行侧的保险 —— 即使文件因故丢了 BOM（例如被某些工具重写），仍然不出错。
+>
+> 因此 `99-rebuild.sql` 的推荐命令**两者都上**：
+> ```powershell
+> sqlcmd -S .\SQLEXPRESS -E -f 65001 -i 99-rebuild.sql
+> ```
 
 ### 另一条 sqlcmd 的坑：`[...]` 会被吃掉
 

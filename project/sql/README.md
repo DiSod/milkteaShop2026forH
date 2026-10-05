@@ -22,9 +22,13 @@
 ## 怎么跑
 
 ```powershell
-# 全库重建（唯一入口）
-sqlcmd -S .\SQLEXPRESS -E -i project\sql\99-rebuild.sql
+# 全库重建（唯一入口）—— ⚠️ 必须先 cd 到 project\sql
+cd project\sql
+sqlcmd -S .\SQLEXPRESS -E -i 99-rebuild.sql
 ```
+
+> ⚠️ **`99-rebuild.sql` 里用的是 sqlcmd 的 `:r` 指令，它相对【当前工作目录】解析，不是相对脚本目录。**
+> 从仓库根直接跑会报"找不到 `.\00-bootstrap\...`"。
 
 | 项 | 值 |
 |---|---|
@@ -41,6 +45,8 @@ sqlcmd -S .\SQLEXPRESS -E -i project\sql\99-rebuild.sql
 4. 新增脚本后，在上表登记
 5. ⚠️ **含中文的 `.sql` 必须存为「UTF-8 带 BOM」** —— 否则 `sqlcmd` 会**静默失效**
    （无报错，但一行都不生效）。详见 [`02-sql-style.md`](../../harness/conventions/02-sql-style.md) §9
+   · **备选（不改文件）**：运行时加 `-f 65001` 显式指定输入编码
+     `sqlcmd -S .\SQLEXPRESS -E -f 65001 -i 99-rebuild.sql`
 6. ⚠️ **日志前缀用 `【建库】` 而不是 `[建库]`** —— `sqlcmd` 会吃掉半角方括号
 
 编写风格见 `harness/conventions/02-sql-style.md`。
