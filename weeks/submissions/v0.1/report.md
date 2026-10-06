@@ -15,7 +15,7 @@
 > |---|---|
 > | **关系模式** | **17 张表 / 132 字段 / 30 个外码**，双人确认闭环 —— [`data-dictionary.md`](../../../project/docs/data-dictionary.md) |
 > | **主数据** | 30 成品 / 60 原料 / **30 款配方（492 行）** —— [`master-data.md`](../../week02/master-data.md) |
-> | **种子数据** | 仿真造数引擎 + **台账严格自洽**的 7 天种子（20,980 行）—— `project/sql/04-seed/` |
+> | **种子数据** | 仿真造数引擎 + **台账严格自洽**的 7 天种子（20,979 行）—— `project/sql/04-seed/` |
 
 ---
 
@@ -234,7 +234,7 @@
 
 ## 2.2 实施步骤
 
-> ✅ **全库自动化重建全链路已跑通**：建库、建表（17 表）、约束（43 CHECK / 30 FK）、索引（21 IX）、种子数据（20,980 行）、CRUD 测试、5 大核心视图、4 组多表穿透业务查询、4 岗位安全角色与越权负例拦截，统一收口至 `project/sql/99-rebuild.sql`，一键实测耗时 **~17.3 秒**。
+> ✅ **全库自动化重建全链路已跑通**：建库、建表（17 表）、约束（43 CHECK / 30 FK）、索引（21 IX）、种子数据（20,979 行）、CRUD 测试、5 大核心视图、4 组多表穿透业务查询、4 岗位安全角色与越权负例拦截，统一收口至 `project/sql/99-rebuild.sql`，一键实测耗时 **15—17 秒**。
 
 
 ### ✅ 已完成：仿真造数与种子数据（第 2 周末，ISSUE-004）
@@ -259,7 +259,7 @@
 | 2 | 域字典（16 条枚举 + 单位字典） | 同上 第一节 |
 | 3 | 主数据（30 成品 / 60 原料 / **30 配方 · 492 行**） | [`weeks/week02/master-data.md`](../../week02/master-data.md) |
 | 4 | 样例元组（17 张表 + 8 项一致性验证） | `data-dictionary.md` 第四节 |
-| 5 | **种子数据**（7 天版，20,980 行） | `project/sql/04-seed/seed_data.sql` |
+| 5 | **种子数据**（7 天版，20,979 行） | `project/sql/04-seed/seed_data.sql` |
 
 ## 2.3 遇到的问题与解决过程 ⭐ **（过程证据）**
 
@@ -297,36 +297,128 @@
 
 ## 2.4 验证与测试记录
 
-### 2.4.1 全库自动化一键重建验证（99-rebuild.sql）
-在 Windows 终端（`chcp 65001` + `sqlcmd -C -f 65001`）环境下实测跑通：
-- **重建耗时**：**~17.3 秒**（空库重置至全部就绪）
-- **对象清单与统计验证**：
-  - **17 张业务数据表**（132 个字段）
-  - **30 条外键约束**（级联与引用完整性全覆盖）
-  - **43 条 CHECK 约束**（非负库存、非负积分、金额非负、枚举校验等，含 5 组负例拦截断言）
-  - **21 个业务索引**（涵盖高频复合业务查询与覆盖索引）
-  - **20,980 行种子数据**（1,963 订单 / 2,629 明细 / 13,851 条库存流水全量自洽入库）
-  - **5 个核心业务视图**（含瓶颈料推导"还能做几杯"）
-  - **4 个业务岗位角色**（基于 RBAC 模型配置并完成 3 组越权负例测试）
+> 本节数据**全部来自在 SQL Server 2022 上的实测**，每条都可用文中命令复现。
 
-### 2.4.2 业务查询自洽与台账期末核对实测（06-query）
-- **Q1 日销售与时段客流穿透**：成功统计 7 天 1,963 笔订单实收与客流峰值分布，实收金额与明细累加 100% 对齐。
-- **Q2 原料安全警戒报警**：基于当前库存与 `reorder_point` 阈值，正向穿透识别出处于缺料风险的原料列表。
-- **Q3 采购生命周期四层穿透**：成功跑通 `供应商 → 采购单 → 采购明细 → 原料` 完整采购供应链链路溯源。
-- **Q4 进销存台账平账断言**：执行 `期初 + 采购入库 - 销售扣减 - 报损 = 期末` 动态核算，全库 13,851 条库存流水计算出的期末值与原料主表 `qty_on_hand` 100% 严格一致（全店 60 种原料差额全为 `0.0000`，`[PASS] 进销存台账与原料当前库存 100% 平账自洽！`）。
+### 2.4.1 全库一键重建验证（`99-rebuild.sql`）
 
-### 2.4.3 核心统计视图实测（07-view）
-- **`vw_product_stock_availability`（还能做几杯）**：通过"商品-配方-原料"动态关联，以瓶颈物料 `FLOOR(qty_on_hand / qty)` 逆向计算每个成品的即时可制作上限，并自动剔除下架商品。
-- **`vw_daily_business_summary` / `vw_popular_products_rank` 等**：成功实现对日营收、杯数、加料渗透率及商品热销榜的秒级视图聚合。
+```powershell
+cd project\sql
+sqlcmd -S .\SQLEXPRESS -E -C -f 65001 -i 99-rebuild.sql
+```
 
-### 2.4.4 安全角色与越权负例拦截实测（08-security）
-构建了 4 岗位 RBAC（`store_manager_role` 店长、`barista_role` 店员、`inventory_role` 库管、`finance_role` 财务），并执行越权拦截断言：
-1. **店员越权访问进价**：执行 `SELECT * FROM tbl_purchase_order_detail`，被 SQL Server 严格拦截抛出 `Msg 229: The SELECT permission was denied on the object 'tbl_purchase_order_detail'`。
-2. **库管越权修改会员积分**：执行 `UPDATE tbl_member SET points_balance = 9999`，拦截抛出 `Msg 229: The UPDATE permission was denied on the object 'tbl_member'`。
-3. **财务越权手工调拨库存**：执行 `INSERT INTO tbl_stock_ledger`，拦截抛出 `Msg 229: The INSERT permission was denied on the object 'tbl_stock_ledger'`。
-三组越权负例均验证了业务边界与职责分离要求。
+**实测结果**（多次执行 **15—17 秒**）：
 
----
+| 对象 | 数量 | 对象 | 数量 |
+|---|---:|---|---:|
+| 业务表 | **17** | 业务索引 | **21** |
+| 字段 | **132** | 业务视图 | **5** |
+| 外键 | **30** | 安全角色 | **4** |
+| CHECK 约束 | **43** | **种子数据总行数** | **20,979** |
+| 候选码 UNIQUE | **17** | | |
+
+**种子数据分表规模：**
+
+| 表 | 行数 | 表 | 行数 |
+|---|---:|---|---:|
+| `tbl_stock_ledger` | 13,851 | `tbl_order_header` | 1,963 |
+| `tbl_order_detail` | 2,629 | `tbl_points_ledger` | 1,179 |
+| `tbl_order_detail_topping` | 614 | `tbl_recipe` | 492 |
+| `tbl_member` | 80 | `tbl_ingredient` | 60 |
+| `tbl_product` | 30 | `tbl_coupon` | 24 |
+| `tbl_purchase_order_detail` | 21 | **`tbl_spec_option`** | **11** |
+| `tbl_purchase_order` | 8 | `tbl_employee` | 5 |
+| `tbl_product_category` | 5 | `tbl_topping` | 4 |
+| `tbl_supplier` | 3 | | |
+
+> **`tbl_spec_option` 是 11 行而不是 12 行** —— 第 3 行那个废弃的 `ANY` 糖度档已删除
+> （见 [ISSUE-009](../../../harness/issues/009-documentation-consistency-and-cleanup.md)：
+> 它会被 `ck_spec_option_code_by_type` 拒绝）。
+
+### 2.4.2 多表连接查询实测（`06-query/query.sql`）
+
+```powershell
+sqlcmd -S .\SQLEXPRESS -E -C -d milktea_shop -f 65001 -i 06-query\query.sql
+```
+
+**实测：0 错误。** 共 4 组查询：
+
+| 查询 | 内容 | 规模 |
+|---|---|---|
+| **Q1** | **供应链四层级联穿透与入库追溯** | 跨 **6 表**（供应商 → 采购单 → 员工 → 采购明细 → 原料 → 入库流水） |
+| **Q2a** | 单品加料渗透率与小料增收贡献 | 加料渗透率 TOP 10 |
+| **Q2b** | 全店顾客甜度与冰度组合偏好热度分布 | TOP 10 组合 |
+| **Q3** | 品类与单品销售总榜及多层贡献率排行 | **窗口函数**，全店 TOP 12 |
+| **Q4** | **进销存台账自洽平衡审计** | 13,851 条流水，见下 |
+
+**Q4 的账实平衡做了独立验算**（不依赖脚本自身的输出）：
+
+```
+验算式：期初 + 采购入库 − 销售耗用 − 报损 = 期末
+
+I001 红茶（阿萨姆）  4250.000 + 4147.900 − 3814.000 − 165.000 = 4418.900  = 实存 ✅
+I002 茉莉绿茶        4250.000 +      0.000 − 1984.000 − 175.400 = 2090.600  = 实存 ✅
+I003 四季春茶        3400.000 +      0.000 − 2559.000 −    0.000 =  841.000  = 实存 ✅
+I005 伯爵红茶        1275.000                                     = 1275.000  = 实存 ✅
+
+全库 60 种原料：差额全为 0.0000（60 / 60）
+```
+
+> **补充**：Q4 的 `INNER JOIN` **不会漏掉任何原料** —— 已确认 **60 种原料全部有流水行**。
+
+### 2.4.3 核心统计视图实测（`07-view/view.sql`）
+
+共 **5 个视图**（由 `99-rebuild.sql` 自动编译）：
+
+| 视图 | 内容 |
+|---|---|
+| **`vw_product_stock_availability`** | **"还能做几杯"** —— 木桶短板理论 `MIN(FLOOR(库存 ⁄ 配方用量))`，并融合 `is_sold_out` 沽清状态 |
+| `vw_ingredient_reorder_alert` | 缺料与采购预警 |
+| `vw_daily_business_summary` | 每日经营日报 |
+| `vw_member_consumption_profile` | 会员消费画像与分级 |
+| `vw_order_detail_full` | 订单全景明细平铺宽表 |
+
+**实测抽样（`vw_product_stock_availability`）：**
+
+```
+P016 原味奶昔  · 中杯  →  还能做 200 杯
+P017 草莓奶昔  · 中杯  →  还能做 198 杯
+P018 巧克力奶昔 · 中杯  →  还能做  61 杯
+```
+
+### 2.4.4 安全角色与越权负例拦截实测（`08-security/role.sql`）
+
+```powershell
+sqlcmd -S .\SQLEXPRESS -E -C -d milktea_shop -f 65001 -i 08-security\role.sql
+```
+
+**4 个岗位角色**（用 `WITHOUT LOGIN` 测试主体，**不污染服务器登录**）：
+
+| 角色 | 岗位 |
+|---|---|
+| `role_manager` | 店长（数据库级 CRUD） |
+| `role_cashier` | 收银员 |
+| `role_maker` | 制作员 |
+| `role_stocker` | 库管员 |
+
+**3 组越权负例 —— 全部被 SQL Server 拦截（`Error 229`）：**
+
+| # | 越权尝试 | 拦截理由 |
+|---|---|---|
+| 1 | **收银员**篡改配方表 `tbl_recipe` | 防原料偷工减料 |
+| 2 | **制作员**窥探会员档案 `tbl_member` | 防顾客隐私泄露 |
+| 3 | **库管员**删除前台交易单据 `tbl_order_header` | 防财务销赃对不上账 |
+
+**实测输出：**
+
+```
+✅ 负例 1 成功拦截：拒绝了对对象 'tbl_recipe' 的 SELECT 权限。（错误码：229）
+✅ 负例 2 成功拦截：拒绝了对对象 'tbl_member' 的 SELECT 权限。（错误码：229）
+✅ 负例 3 成功拦截：拒绝了对对象 'tbl_order_header' 的 SELECT 权限。（错误码：229）
+【安全】第 4 周 RBAC 权限体系与越权拦截负例测试全部通过！
+```
+
+> **权限设计的两处取舍与一处已知边界**（制作员经视图读库存、跨岗位业务动作的 RBAC 限制）
+> 见 [`project/docs/design-notes.md`](../../../project/docs/design-notes.md) 第一节。---
 
 # 3. 实验总结
 
