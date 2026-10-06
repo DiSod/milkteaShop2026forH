@@ -55,10 +55,26 @@
 | **胡博锐** | ① 确定数据库环境（**SQL Server 2022** / 排序规则 / 兼容级别 / 库名）<br>② **建库**脚本（幂等，4 项设置锁定）<br>③ **建表** —— 由数据字典逐字翻译出 **17 张表 / 132 字段**<br>④ **约束** —— 17 候选码 + 43 CHECK + 30 外键<br>⑤ **索引** —— 21 个（19 外键路径 + 2 查询驱动），并登记 7 处"不建"及理由<br>⑥ **CRUD 演示脚本**（含 5 个负例）<br>⑦ 打通**一键重建**链路并实测（**17 秒 / 20,979 行**）<br>⑧ 排查修复 **7 个坑**（BOM 静默失效 / 方括号被吃 / 惰性元数据 / `:r` 路径 / 索引误伤系统表 / 糖度档 `ANY` 残留 / `XACT_ABORT` 放大失败）<br>⑨ 固化编码与数据库级约定到规范 · 提报 ISSUE-007 | `project/sql/00-bootstrap/create-database.sql`（**新**）<br>`project/sql/01-schema/create-tables.sql`（**新**）<br>`project/sql/02-constraints/constraints.sql`（**新**）<br>`project/sql/03-indexes/indexes.sql`（**新**）<br>`project/sql/05-dml/crud.sql`（**新**）<br>`project/sql/99-rebuild.sql`<br>`harness/conventions/02-sql-style.md` §7 §9 §10<br>`weeks/week03/README.md`<br>`harness/issues/007-*.md`（**新**） | ⏳ |
 | **何争霖** | ① **闭环 ISSUE-007**：造数引擎输出 UTF-8 BOM 规范化、清除糖度 `ANY` 哨兵残留、实现以 `master-data.md` 为唯一真相源的 492 行配方自动解析，消除两处维护技术债<br>② **穿透式代码审查与实测排雷**：复现并定位无券退单积分约束死锁（Error 547）、退单库存多对一回冲吞行漏洞、采购加权成本除零击穿 NOT NULL（Error 515）<br>③ **闭环 ISSUE-008**：修复 `ck_points_ledger_target` 支持无券退单回滚，重构 `crud.sql` 步骤 3.4/3.6 健壮性加固，经 99-rebuild 与 crud 实测验证<br>④ **提报 ISSUE-009**：交叉审查定位 132 vs 133 字段口径不一、数据字典样例 ANY 残留与设计文档 D-05a 段落重复冲突 | `project/data/generate_seed.py`<br>`project/sql/04-seed/seed_data.sql`<br>`project/sql/02-constraints/constraints.sql`<br>`project/sql/05-dml/crud.sql`<br>`harness/issues/007-*.md`<br>`harness/issues/008-*.md`<br>`harness/issues/009-*.md` | ⏳ |
 
+
 ### 第 3 周的分工边界说明
 
 > 仍按 `team/README.md` 的边界：**设计侧文档由文档主编执笔**；
 > **`project/data/**` 的脚本改造属工程侧** —— ISSUE-007 已由 hezhlin5 闭环（造数引擎改为 `utf-8-sig`、以 `master-data.md` 为单一真相源）。
+
+---
+
+## 第 4 周
+
+| 成员 | 承担工作 | 产出 | 工时 |
+|---|---|---|---|
+| **胡博锐** | ① **协同 review 第 4 周 SQL 与权限设计方案** —— 实测 `99-rebuild`（**17.3 秒** / 17 表 / 132 字段 / 5 视图 / 4 角色）、独立跑 `query.sql`（0 错误）与 `role.sql`（3 组越权全部拦截）；**逐项验算 Q4 的账实平衡声明**（60/60 原料零差额，属实）<br>② **权限设计深化** —— 用 `EXECUTE AS` 实测收银员/制作员的能力边界，定位「**跨岗位业务动作纯 RBAC 无解**」这一架构边界，写成完整设计说明<br>③ **准备阶段一提交 v0.1 材料与答辩框架**（进行中） | `project/docs/design-notes.md`（**新**）<br>`weeks/week04/README.md`（权限取舍节）<br>`weeks/submissions/v0.1/report.md` 1.3.3 | ⏳ |
+| **何争霖** | ① **设计并落地 5 个核心业务统计与全景视图**：`vw_product_stock_availability`（招牌“还能做几杯”短板理论推导）、`vw_ingredient_reorder_alert`（缺料与采购预警）、`vw_daily_business_summary`（每日经营日报）、`vw_member_consumption_profile`（会员消费画像与分级）、`vw_order_detail_full`（订单全景明细平铺宽表）<br>② **设计并实测 4 组深度多表连接业务查询**：Q1 四层级联采购追溯（跨 6 表）、Q2 订单深度透视与小料加料偏好分析（跨 5 表）、Q3 品类与单品销售排行（窗口函数实战）、Q4 进销存台账自洽平衡审计（13,851 条流水 100% 账实严格平账零差额数学证明）<br>③ **构建 RBAC 4 岗位权限控制体系与越权防御**：设计店长/收银/制作/库管 4 角色赋权矩阵，使用 `WITHOUT LOGIN` 测试主体，通过 `EXECUTE AS` + `TRY...CATCH` 实测 3 组越权负例硬性拦截（收银改配方、制作查会员隐私、库管删订单）<br>④ **升级一键重建链路与周报**：`99-rebuild.sql` 串联编译 5 视图与 4 角色，编写 `weeks/week04/README.md`，更新全局索引 | `project/sql/07-view/view.sql`（**新**）<br>`project/sql/06-query/query.sql`（**新**）<br>`project/sql/08-security/role.sql`（**新**）<br>`project/sql/99-rebuild.sql`<br>`project/sql/README.md`<br>`weeks/week04/README.md`（**新**）<br>`weeks/README.md` | ⏳ |
+
+### 第 4 周的分工边界说明
+
+> 秉承细粒度协作与阶段可见原则：
+> - 何争霖在特性分支 `feat/week04-queries-and-views` 上分步完成视图 DDL、多表查询 DQL、安全控制 DCL 编写与实测，并集成进 `99-rebuild.sql`；
+> - 过程进展按里程碑分批推送至远端仓库，供组员胡博锐随时拉取并协同联调。
 
 ---
 

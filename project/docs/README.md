@@ -8,7 +8,7 @@
 | `er-diagram.*` | ER 图 | 第 6 周 | ⬜ |
 | `normalization.md` | 范式分析与改进记录 | 第 7 周 | ⬜ |
 | `migration.md` | 模式迁移说明 | 第 8 周 | ⬜ |
-| `design-notes.md` | 设计取舍与理由 | 全程 | ⬜ |
+| [`design-notes.md`](design-notes.md) | 设计取舍与理由 · **已知边界** | 第 4 周起 | 🟡 已建（首批 2 条） |
 
 > **`data-dictionary.md` 是第 2 周的重点产出** —— 它同时承载课程第 2 周的
 > **任务 2（字段定义）· 任务 3（码标注）· 任务 4（样例元组）**，共 **17 张表 / 132 个字段**。
