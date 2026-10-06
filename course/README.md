@@ -26,14 +26,18 @@
 
 ## 待收集
 
-以下材料在课程发放处存在，**尚未收入本目录**：
+以下材料在课程发放处**确实存在**，尚未收入本目录：
 
 | 材料 | 说明 |
 |---|---|
-| `lecture-week02.docx` | 第二周任务讲解（ch2 关系、属性、码、模式） |
-| `lecture-week03.docx` | 第三周任务讲解（ch3 DDL 与数据修改） |
-| `ppt-week01` ～ `ppt-week05` | 理论课件（ch1—ch5） |
-| 实验指导 | 数据库安装与下载、Homework 1 等 |
+| `lecture-week02.docx` | 第二周任务讲解（35.1 KB） |
+| `ppt-week0N.pptx` ×6 | 理论课件：`Chapter_1`、`Chapter_2`、`ch3_SQL`、`ch4_Intermediate_SQL`、`ch5-Advanced_SQL`、`实验基础2` |
+| `lab-install.docx` | 实验 1 · 数据库安装与下载（18 KB） |
+| `homework-01.docx` | Homework 1（2.0 MB） |
+| `lab-*.docx` | 实验.docx（151.8 KB） |
+
+> ⚠️ **第三周任务讲解未见到** —— 已确认发放处**没有** `第三周任务讲解.docx`。
+> 第 3 周的任务要求只能从 `lecture-week04.md` 的**周次安排表**（第 3 行）推得。
 
 ## 约定
 
