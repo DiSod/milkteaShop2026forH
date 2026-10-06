@@ -202,7 +202,7 @@ sqlcmd -S .\SQLEXPRESS -E -C -f 65001 -i 99-rebuild.sql
 | 3 | ⭐ **结果目录** | 成功建库 · 正常 · 非法 · 越权 · 关键查询 · CRUD · 统计视图 · 角色权限 **的截图** | **`result/`** —— 清单见 [`result/README.md`](result/README.md) | ✅ **36 张** |
 | 4 | **阶段报告** | 设计思路、实验过程、实验总结 | [`report.md`](report.md)（499 行） | ✅ |
 | 5 | **`ai_log`** | 记录 AI 建议、人工修改及验证结论 | [`ai-log.md`](ai-log.md)（373 行） | ✅ ⚠️ 提示词留存有缺口，见其 §5 |
-| 6 | **组内分工** | 小组成员分工与贡献 | [`contributions.md`](contributions.md)（136 行） | ✅ ⏳ 工时列待双方填写 |
+| 6 | **组内分工** | 小组成员分工与贡献 | [`contributions.md`](contributions.md) | ✅ ⏳ 工时列待双方填写 |
 
 ---
 
