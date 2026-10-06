@@ -17,7 +17,7 @@
 
 ## 第 1 周
 
-> ⏳ **待确认** —— 以下归属是**依产出物推断**的，需两位本人核对。
+> 📌 第 1 周的归属**依产出物推断**；第 2—4 周已按实际提交记录填写。**工时与占比待阶段提交时汇总。**
 
 | 成员 | 承担工作 | 产出 | 工时 |
 |---|---|---|---|
@@ -67,7 +67,7 @@
 
 | 成员 | 承担工作 | 产出 | 工时 |
 |---|---|---|---|
-| **胡博锐** | ① **协同 review 第 4 周 SQL 与权限设计方案** —— 实测 `99-rebuild`（**17.3 秒** / 17 表 / 132 字段 / 5 视图 / 4 角色）、独立跑 `query.sql`（0 错误）与 `role.sql`（3 组越权全部拦截）；**逐项验算 Q4 的账实平衡声明**（60/60 原料零差额，属实）<br>② **权限设计深化** —— 用 `EXECUTE AS` 实测收银员/制作员的能力边界，定位「**跨岗位业务动作纯 RBAC 无解**」这一架构边界，写成完整设计说明<br>③ **准备阶段一提交 v0.1 材料与答辩框架**（进行中） | `project/docs/design-notes.md`（**新**）<br>`weeks/week04/README.md`（权限取舍节）<br>`weeks/submissions/v0.1/report.md` 1.3.3 | ⏳ |
+| **胡博锐** | ① **协同 review 第 4 周 SQL 与权限设计方案** —— 实测 `99-rebuild`（**15—17 秒** / 17 表 / 132 字段 / 5 视图 / 4 角色）、独立跑 `query.sql`（0 错误）与 `role.sql`（3 组越权全部拦截）；**逐项验算 Q4 的账实平衡声明**（60/60 原料零差额，属实）<br>② **权限设计深化** —— 用 `EXECUTE AS` 实测收银员/制作员的能力边界，定位「**跨岗位业务动作纯 RBAC 无解**」这一架构边界，写成完整设计说明<br>③ **准备阶段一提交 v0.1 材料与答辩框架**（进行中） | `project/docs/design-notes.md`（**新**）<br>`weeks/week04/README.md`（权限取舍节）<br>`weeks/submissions/v0.1/report.md` 1.3.3 | ⏳ |
 | **何争霖** | ① **设计并落地 5 个核心业务统计与全景视图**：`vw_product_stock_availability`（招牌“还能做几杯”短板理论推导）、`vw_ingredient_reorder_alert`（缺料与采购预警）、`vw_daily_business_summary`（每日经营日报）、`vw_member_consumption_profile`（会员消费画像与分级）、`vw_order_detail_full`（订单全景明细平铺宽表）<br>② **设计并实测 4 组深度多表连接业务查询**：Q1 四层级联采购追溯（跨 6 表）、Q2 订单深度透视与小料加料偏好分析（跨 5 表）、Q3 品类与单品销售排行（窗口函数实战）、Q4 进销存台账自洽平衡审计（13,851 条流水 100% 账实严格平账零差额数学证明）<br>③ **构建 RBAC 4 岗位权限控制体系与越权防御**：设计店长/收银/制作/库管 4 角色赋权矩阵，使用 `WITHOUT LOGIN` 测试主体，通过 `EXECUTE AS` + `TRY...CATCH` 实测 3 组越权负例硬性拦截（收银改配方、制作查会员隐私、库管删订单）<br>④ **升级一键重建链路与周报**：`99-rebuild.sql` 串联编译 5 视图与 4 角色，编写 `weeks/week04/README.md`，更新全局索引 | `project/sql/07-view/view.sql`（**新**）<br>`project/sql/06-query/query.sql`（**新**）<br>`project/sql/08-security/role.sql`（**新**）<br>`project/sql/99-rebuild.sql`<br>`project/sql/README.md`<br>`weeks/week04/README.md`（**新**）<br>`weeks/README.md` | ⏳ |
 
 ### 第 4 周的分工边界说明

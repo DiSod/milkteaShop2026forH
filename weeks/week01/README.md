@@ -27,7 +27,7 @@
 |---|---|---|
 | 经营场景 | **奶茶店（单店）** | 结构完备：商品 ↔ 库存之间隔着配方（BOM） |
 | 数据策略 | **母本 + 自建** | 公开数据中不存在单店奶茶的库存/进货记录 |
-| 数据源 | ⏳ **待定** | 候选调研见 `data-availability.md` |
+| 数据源 | ✅ **已登记**（第 2 周定案） | **Mendeley** *Retail Transactions and Stocks Data* —— 见 [`project/data/README.md`](../../project/data/README.md) |
 | 复杂度控制 | 原料 ≤ 60 种、菜单 ≤ 30 款、不接外卖平台 | 对应"不要太复杂" |
 
 ## 第 2 周的修订

@@ -20,16 +20,12 @@
 > 因此本文档**只为 `tbl_employee` 保留一段 DDL 作为格式示例**，其余表不重复附 DDL；
 > 需要看建表语句时，以 `project/sql/01-schema/create-tables.sql` 为准，**修改一律先改本文件**。
 
-> ### 🔖 编号体系对照（三个前缀，别混）
+> ### 🔖 编号体系
 >
-> 本项目同时存在三套编号，**前缀不同、含义不同**：
->
-> | 前缀 | 含义 | 定义处 | 例子 |
-> |---|---|---|---|
-> | **`D-01`～`D-12`** | 第 2 周的**设计决策** | [`schema-design.md`](../../weeks/week02/schema-design.md) | `D-04` ＝ 主码用代理键 |
-> | **`D1`～`D8`** | ISSUE-001/002/003 的**裁决结论** | [`issue-review.md`](../../weeks/week02/issue-review.md) | `D1` ＝ 单库反冲倒扣 |
-> | **`DOM-01`～`DOM-16`** | **域**（取值集合） | **本文件第一节** | `DOM-06` ＝ 支付方式 |
->
+> 本文档用 **`DOM-01`～`DOM-16`** 表示**域**（取值集合，见第一节）。
+> 另有 `D-01`～`D-12`（设计决策）与 `D1`～`D8`（裁决结论）两套编号 ——
+> **三套的对照表与唯一真相源见** [`01-layout-and-naming.md`](../../harness/conventions/01-layout-and-naming.md) §2。
+
 > ⚠️ **本文件的域一律用 `DOM-` 前缀** —— 早期草稿曾用 `D-xx`，与设计决策编号正面撞车
 > （`D-06` 既是"小料建桥接表"又是"支付方式"），已于 2026-09-23 全部改名。
 
@@ -108,8 +104,8 @@
 | DOM-11 | **杯型** | `tbl_spec_option.spec_code`（`spec_type='CUP'`） | `M` / `L` | 中杯 / 大杯（**大杯 +3.00 元**） | ✅ 漏洞 1 |
 | DOM-12 | **糖度** | `tbl_spec_option.spec_code`（`spec_type='SUGAR'`） | `NONE` / `S30` / `S50` / `S70` / `FULL` | 无糖 / 三分 / 五分 / 七分 / 全糖<br>⚠️ **没有 `ANY`** —— "该原料用量与糖度无关"由 `tbl_recipe.sugar_spec_id IS NULL` 表达，**不是**一个糖度档（D-05a） | ✅ week1 §3.1 · D-05a |
 | DOM-13 | **冰量** | `tbl_spec_option.spec_code`（`spec_type='ICE'`） | `NO_ICE` / `LESS` / `NORMAL` / `HOT` | 去冰 / 少冰 / 正常冰 / 热饮 | ✅ week1 §3.1 |
-| DOM-14 | **采购单状态** | `tbl_purchase_order.order_status` | `ORDERED` / `ARRIVED` / `ACCEPTED` / `PARTIAL` / `CANCELLED` | 已下单 / 已到货 / 已验收 / **部分拒收** / 已取消 | 🟡 由 week1 §3.3 流程推出，待确认 |
-| DOM-15 | **支付状态** | `tbl_order_header.pay_status` | `SUCCESS` / `FAILED` | 支付成功 / 失败（失败重试见 week1 §3.1 J2 分支） | 🟡 由 week1 §3.1 流程推出，待确认 |
+| DOM-14 | **采购单状态** | `tbl_purchase_order.order_status` | `ORDERED` / `ARRIVED` / `ACCEPTED` / `PARTIAL` / `CANCELLED` | 已下单 / 已到货 / 已验收 / **部分拒收** / 已取消 | ✅ 由 week1 §3.3 流程推出，已落为 `ck_purchase_order_status` |
+| DOM-15 | **支付状态** | `tbl_order_header.pay_status` | `SUCCESS` / `FAILED` | 支付成功 / 失败（失败重试见 week1 §3.1 J2 分支） | ✅ 由 week1 §3.1 流程推出，已落为 `ck_order_header_pay_status` |
 | DOM-16 | **盘点单状态** | `tbl_stocktake.status` | `DRAFT` / `CONFIRMED` | 盘点中 / 已复核确认 | ⏸ **v1.0**（D5 延后） |
 
 ### 1.2 由表承载的"域"（不是 `CHECK`，是外键）

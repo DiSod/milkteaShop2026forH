@@ -47,7 +47,7 @@
          ⤷ 17 张表 / 132 字段 / 30 外码 / 样例元组
     → 建库 / 建表 / 约束 / 索引 / 种子 / CRUD（第3周）  ✅ 已完成
          ⤷ 一键重建实测 17 秒（20,979 行）
-        → 连接查询 / 视图 / 授权（第4周）  🔄 已在分支完成，待实测合并   ← v0.1 交付（第5周周二截止）
+        → 连接查询 / 视图 / 约束 / 授权（第4周）  ✅ 已完成         ← v0.1 交付（第5周周二截止）
 ```
 
 ## 关键文档入口
@@ -84,15 +84,15 @@
 ```powershell
 # 唯一入口：从空库一键重建（会先 DROP 再重建）
 cd project\sql
-sqlcmd -S .\SQLEXPRESS -E -i 99-rebuild.sql
+sqlcmd -S .\SQLEXPRESS -E -C -f 65001 -i 99-rebuild.sql
 ```
 
 > ⚠️ **必须在 `project/sql/` 目录下执行** —— `sqlcmd` 的 `:r` 是相对**当前工作目录**解析的，
 > 不是相对脚本所在目录。
 
-| 已接通 ✅ | 待补 ⬜ |
-|---|---|
-| `00-bootstrap` 建库 · `01-schema` 建表 · `02-constraints` 约束 · `03-indexes` 索引 · `04-seed` 种子数据 | `05-dml`（CRUD）· `06-query` · `07-view` · `08-security` |
+| 一键重建自动执行 ✅ | 按需单独执行 📄 | 待补 ⬜ |
+|---|---|---|
+| `00-bootstrap` 建库 · `01-schema` 建表 · `02-constraints` 约束 · `03-indexes` 索引 · `04-seed` 种子数据 · `07-view` 视图 · `08-security` 角色 | `05-dml/crud.sql`（CRUD + 5 个负例）· `06-query/query.sql`（4 组多表查询） | `09-programmability`（第 11—12 周）· `10-transaction`（第 13 周） |
 
 **表结构的定义处**：[`project/docs/data-dictionary.md`](project/docs/data-dictionary.md)（17 张表 / **132 字段**）——
 `01-schema/create-tables.sql` 由它翻译生成，**它是唯一真相源**。

@@ -39,12 +39,15 @@ databaseExp/
 └─ harness/              # ④ 协作域（规范 + AI + 小组）
 ```
 
-| 域 | 一句话职责 | 放什么 | **不放什么** |
-|---|---|---|---|
-| `course/` | 课程原始资料 | 课程发的 PPT、任务讲解、作业要求 | 自己写的东西；改编版本 |
-| `weeks/` | 过程记录与阶段提交 | 周报、索引、探索性脚本、提交快照 | 最终版代码（那些进 `project/`） |
-| `project/` | 最终可运行项目 | SQL 脚本、数据、应用、设计文档、测试 | 草稿、周报、AI 记录 |
-| `harness/` | 协作规范与留痕 | 规范文档、提示词、技能、会话日志、小组分工 | 任何业务内容 |
+| 域 | 一句话职责 |
+|---|---|
+| `course/` | 课程原始资料（**只读**） |
+| `weeks/` | 过程记录与阶段提交 |
+| `project/` | 最终可运行项目 |
+| `harness/` | 协作规范与留痕 |
+
+> 📄 **「放什么 / 不放什么」的边界表见** [`01-layout-and-naming.md`](harness/conventions/01-layout-and-naming.md) §4
+> 与 §6 违规判定 —— 那里维护，本节不重复。下一节的完整目录树是本节的展开。
 
 ---
 
@@ -139,75 +142,40 @@ databaseExp/
 
 ### 4.1 草稿 → 正式 的升级路径
 
+> 📄 **完整规则见** [`01-layout-and-naming.md`](harness/conventions/01-layout-and-naming.md) §5。
+
 ```
 weeks/weekNN/ 草稿脚本
       │  验证通过、纳入正式流程
       ▼
-project/sql/NN-xxx/ 正式脚本
+project/<对应目录>/ 正式文件
       │
       ▼
-weeks/weekNN/README.md 中留一行记录：
-      "本周产出的 xxx.sql 已并入 project/sql/01-schema/"
+weeks/weekNN/README.md 中留一行记录
 ```
 
-> 这样既保留了"每周做了什么"的过程痕迹（课程要的过程证据），又不会出现两份 SQL 各自演化的分裂。
+> 这样既保留了"每周做了什么"的过程痕迹（课程要的过程证据），又不会出现两份内容各自演化的分裂。
 
 ---
 
 ## 5. 命名规范
 
-### 5.1 目录与文件
-
-| 对象 | 规则 | 示例 |
-|---|---|---|
-| 目录 | 全小写，单词用 `-` 连接 | `data-availability`、`business-requirements` |
-| 有序目录 / 脚本 | 两位数字前缀 + `-` | `00-bootstrap`、`01-schema`、`99-rebuild.sql` |
-| 周次目录 | `week` + 两位数字 | `week01` … `week17` |
-| 版本目录 | `v` + 主.次 | `v0.1`、`v1.0` |
-| 文档 | 全小写，`-` 连接，`.md` | `data-availability.md` |
-| SQL 脚本 | 全小写，`-` 连接，`.sql` | `create-tables.sql` |
-
-**不使用**：空格、中文、大写字母、下划线（顺序前缀除外）。
-
-### 5.2 为什么要数字前缀
-
-`00-` 到 `10-` 的前缀让**文件管理器排序 = 执行顺序**，新人 clone 后不需要读文档就知道先跑哪个。这是"可复现"最便宜的保障。
-
-### 5.3 可读性补偿
-
-全英文命名会牺牲可读性，用两个办法补回来：
-
-1. **每个目录放 `README.md`**，说明该目录用途（取代大量 `.gitkeep`）
-2. **`weeks/weekNN/README.md` 里放中英对照表**：
-
-```markdown
-| 文件 | 中文标题 |
-|---|---|
-| business-requirements.md | 第一周报告 · 业务需求分析 |
-| data-availability.md | 数据可得性对比表 |
-```
+> 📄 **完整规范见** [`01-layout-and-naming.md`](harness/conventions/01-layout-and-naming.md) §1—3 ——
+> 命名总则、目录与文件命名表、两位数字前缀的理由、可读性补偿、**编号前缀（三套，别混）** 都在那里。
+>
+> **一句话**：目录与文件名**全英文、全小写、`-` 连接**；有序目录用**两位数字前缀**。
+> `01-layout-and-naming.md` 是本节的**可执行规范版**，**以它为维护处**。
 
 ---
 
 ## 6. `harness/conventions/` 五份规范
 
-| 文件 | 管什么 | 要点 |
-|---|---|---|
-| `01-layout-and-naming.md` | 目录与命名 | 本文档第 4、5 节的固化版 |
-| `02-sql-style.md` | SQL 编写规范 | 关键字大写、缩进 4 空格、对象命名前缀（`tbl_` / `vw_` / `sp_` / `fn_` / `trg_`）、脚本头注释模板 |
-| `03-documentation.md` | 文档规范 | 报告模板与必填章节（设计思路 / 实验过程 / 实验总结） |
-| `04-git-workflow.md` | Git 协作 | commit message 格式（`feat:` / `fix:` / `docs:` / `sql:`）、分支策略、共同仓库的合并规则 |
-| `05-ai-collaboration.md` | **AI 协作** | 课程硬性要求：提示词留痕格式、AI 输出与人工修改的区分标注、验证证据如何保存 |
-
-> `05-ai-collaboration.md` 是重点。课程明确要求"**保留提示词、候选答案、人工修改与验证证据**"，这份规范把已在进行的做法固定成可执行的格式。
-
-### 6.1 AI 留痕的存放位置
-
-| 内容 | 位置 | 进 git |
-|---|---|---|
-| 正式提交用的 AI 使用记录 | `weeks/submissions/vX.Y/ai-usage.md` | ✅ |
-| 周度 AI 使用记录 | `weeks/weekNN/README.md` 的固定小节 | ✅ |
-| 原始会话日志 / 大段原始对话 | `harness/logs/` | ⚠️ 视体积，默认排除 |
+> 📄 **清单与要点见** [`harness/README.md`](harness/README.md) —— 那里维护，本节不重复。
+>
+> **`05-ai-collaboration.md` 是重点**：课程明确要求"**保留提示词、候选答案、人工修改与验证证据**"，
+> 这份规范把已在进行的做法固定成可执行的格式。
+>
+> **AI 留痕的存放位置**同样见 `harness/README.md`（正式提交 / 周度记录 / 可复用提示词 / 原始日志 四类）。
 
 ---
 
