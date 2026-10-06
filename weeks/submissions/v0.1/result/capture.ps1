@@ -1,4 +1,4 @@
-﻿# capture.ps1 —— 按 result/README.md 的清单生成 .png + .txt
+# capture.ps1 —— 按 result/README.md 的清单生成 .png + .txt
 #
 #   powershell -ExecutionPolicy Bypass -File capture.ps1              # 全部 35 张
 #   powershell -ExecutionPolicy Bypass -File capture.ps1 -Only 02     # 只跑某一组
@@ -12,8 +12,16 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$here    = Split-Path -Parent $MyInvocation.MyCommand.Path
-$sqlRoot = (Resolve-Path (Join-Path $here '..\..\..\..\project\sql')).Path
+$here = Split-Path -Parent $MyInvocation.MyCommand.Path
+$localCode = Join-Path $here '..\code'
+$projSql   = Join-Path $here '..\..\..\..\project\sql'
+if (Test-Path $localCode) {
+    $sqlRoot = (Resolve-Path $localCode).Path
+} elseif (Test-Path $projSql) {
+    $sqlRoot = (Resolve-Path $projSql).Path
+} else {
+    throw "找不到 SQL 脚本根目录（需存在 ..\code 或 project\sql）"
+}
 $tmpDir  = Join-Path $env:TEMP ('milktea-cap-' + [guid]::NewGuid().ToString('N').Substring(0,8))
 New-Item -ItemType Directory -Path $tmpDir -Force | Out-Null
 
@@ -240,7 +248,9 @@ if ($Only -eq '' -or $Only -eq '05') {
 SET NOCOUNT ON;
 SELECT TOP 12 product_name AS 成品, cup_spec_name AS 杯型, selling_price AS 售价,
        theor_makeable_cups AS 还能做几杯, sale_status AS 在售状态
-FROM vw_product_stock_availability ORDER BY theor_makeable_cups, product_name;
+FROM vw_product_stock_availability
+WHERE product_name NOT LIKE N'演示%'
+ORDER BY theor_makeable_cups, product_name;
 '@
     Do-TableShot -Id '05-view/view-ingredient-reorder-alert' -Title '统计视图 · vw_ingredient_reorder_alert（缺料与采购预警）' -Sql @'
 SET NOCOUNT ON;

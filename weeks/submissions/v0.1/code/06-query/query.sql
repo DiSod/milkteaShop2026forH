@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
  * 脚本：query.sql
  * 用途：奶茶店多表深度连接与业务决策综合查询（DQL 实战）
  * 依赖：00-bootstrap/create-database.sql
@@ -255,7 +255,8 @@ FROM (
 ) sub
 INNER JOIN tbl_ingredient i 
     ON i.ingredient_id = sub.ingredient_id
-WHERE ABS(i.qty_on_hand - sub.ledger_sum) > 0.0001;
+WHERE ABS(i.qty_on_hand - sub.ledger_sum) > 0.0001
+  AND i.ingredient_code NOT LIKE 'DEMO-%';
 GO
 
 PRINT N'【查询】第 4 周多表连接查询实战脚本执行完毕。';

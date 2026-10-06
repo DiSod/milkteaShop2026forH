@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
  * 脚本：crud.sql
  * 用途：增删改查演示（课程第 3 周"现场执行一组 CRUD"的素材）
  * 依赖：00 → 01 → 02 → 03 → 04 全部执行完毕（库里有种子数据）
@@ -152,6 +152,15 @@ INSERT INTO tbl_ingredient
     (ingredient_code, ingredient_name, unit, spec, qty_on_hand, reorder_point, target_level, moving_avg_cost)
 VALUES
     (N'DEMO-I1', N'演示原料', N'g', N'1000g/袋', 5000.000, 1000.000, 5000.000, 0.0500);
+
+-- 建立演示原料的期初建账流水（保持进销存台账绝对自洽）
+INSERT INTO tbl_stock_ledger
+    (ingredient_id, ledger_type, qty, ref_type, operator_id, remark)
+VALUES
+    ((SELECT ingredient_id FROM tbl_ingredient WHERE ingredient_code = 'DEMO-I1'),
+     N'PURCHASE_IN', 5000.000, N'OPENING',
+     (SELECT employee_id FROM tbl_employee WHERE employee_code = 'DEMO-E1'),
+     N'演示原料期初建账');
 
 INSERT INTO tbl_product (product_code, product_name, category_id, base_price, product_status)
 VALUES (N'DEMO-P1', N'演示奶茶', 1, 12.00, N'ON_SALE');
