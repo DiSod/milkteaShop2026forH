@@ -28,6 +28,12 @@ function Get-DispWidth {
     return $w
 }
 
+function Get-FooterText {
+    # 每张图都自带脚注 —— 脱离 README 也不会被误认为图形客户端的截屏
+    '本图由 sqlcmd 的真实运行输出渲染 —— 不是 GUI 客户端的截屏',
+    '可执行 SQL 见 code/ · 运行 capture.ps1 可一键重新生成'
+}
+
 function Get-RenderPalette {
     @{
         Bg      = [System.Drawing.Color]::FromArgb(18, 18, 22)
@@ -90,7 +96,14 @@ function New-TableImage {
     $titleW = 0
     foreach ($tl in $titleLines) { $d = Get-DispWidth $tl; if ($d -gt $titleW) { $titleW = $d } }
     [int]$imgW = [Math]::Ceiling([Math]::Max($tableW + $padX * 2 + 2, $titleW * $charW + $padX * 2 + 8))
-    [int]$imgH = [Math]::Ceiling($titleH + ($Rows.Count + 1) * $lineH + $padY * 4 + 8)
+    $footFont = New-Object System.Drawing.Font($FontName, [float]($FontSize - 3))
+    $footLines = @(Get-FooterText)
+    $footW = 0
+    foreach ($fl in $footLines) { $d = Get-DispWidth $fl; if ($d -gt $footW) { $footW = $d } }
+    $needW = [Math]::Ceiling($footW * ($charW * 0.78) + $padX * 2 + 8)
+    if ($needW -gt $imgW) { $imgW = $needW }
+    $footH = [int]($lineH * 1.25 * $footLines.Count) + 6
+    [int]$imgH = [Math]::Ceiling($titleH + ($Rows.Count + 1) * $lineH + $padY * 4 + 8 + $footH)
 
     $bmp = New-Object System.Drawing.Bitmap $imgW, $imgH
     $g   = [System.Drawing.Graphics]::FromImage($bmp)
@@ -135,11 +148,16 @@ function New-TableImage {
     $g.DrawLine($penGrid, $padX, $tableTop + $lineH, $padX + $tableW, $tableTop + $lineH)
     $g.DrawLine($penGrid, $padX, $y, $padX + $tableW, $y)
 
+    $brFoot = New-Object System.Drawing.SolidBrush($P.Dim)
+    $fy = $y + $padY
+    foreach ($fl in $footLines) { $g.DrawString($fl, $footFont, $brFoot, [float]$padX, [float]$fy); $fy += [int]($lineH * 1.25) }
+
     $g.Dispose()
     $bmp.Save($OutPath, [System.Drawing.Imaging.ImageFormat]::Png)
     $bmp.Dispose()
     $font.Dispose(); $fontBold.Dispose(); $fontTitle.Dispose(); $penGrid.Dispose()
     $brTitle.Dispose(); $brHead.Dispose(); $brHeadBg.Dispose(); $brZebra.Dispose(); $brText.Dispose()
+    $footFont.Dispose(); $brFoot.Dispose()
     return @{ Width = $imgW; Height = $imgH }
 }
 
@@ -169,9 +187,17 @@ function New-TextImage {
     foreach ($l in $Lines) { $d = Get-DispWidth $l; if ($d -gt $maxDisp) { $maxDisp = $d } }
     foreach ($t in @($Title)) { if ($t) { $d = Get-DispWidth $t; if ($d -gt $maxDisp) { $maxDisp = $d } } }
 
-    [int]$imgW = [Math]::Min($MaxWidth, [Math]::Ceiling($maxDisp * $charW + $padX * 2 + 8))
     $titleLines = if ($Title) { @($Title) } else { @() }
-    [int]$imgH = [Math]::Ceiling(($Lines.Count + $titleLines.Count) * $lineH + $padY * 4 + 8)
+    [int]$imgW = [Math]::Min($MaxWidth, [Math]::Ceiling($maxDisp * $charW + $padX * 2 + 8))
+    # 脚注：图片自带来源说明
+    $footFont = New-Object System.Drawing.Font($FontName, [float]($FontSize - 3))
+    $footLines = @(Get-FooterText)
+    $footW = 0
+    foreach ($fl in $footLines) { $d = Get-DispWidth $fl; if ($d -gt $footW) { $footW = $d } }
+    $needW = [Math]::Ceiling($footW * ($charW * 0.78) + $padX * 2 + 8)
+    if ($needW -gt $imgW) { $imgW = [Math]::Min($MaxWidth, $needW) }
+    $footH = [int]($lineH * 1.25 * $footLines.Count) + 6
+    [int]$imgH = [Math]::Ceiling(($Lines.Count + $titleLines.Count) * $lineH + $padY * 4 + 8 + $footH)
 
     $bmp = New-Object System.Drawing.Bitmap $imgW, $imgH
     $g   = [System.Drawing.Graphics]::FromImage($bmp)
@@ -191,10 +217,15 @@ function New-TextImage {
         $y += $lineH
     }
 
+    $brFoot = New-Object System.Drawing.SolidBrush($P.Dim)
+    $fy = $y + $padY
+    foreach ($fl in $footLines) { $g.DrawString($fl, $footFont, $brFoot, [float]$padX, [float]$fy); $fy += [int]($lineH * 1.25) }
+
     $g.Dispose()
     $bmp.Save($OutPath, [System.Drawing.Imaging.ImageFormat]::Png)
     $bmp.Dispose()
     $font.Dispose(); $fontTitle.Dispose(); $brTitle.Dispose(); $brDim.Dispose()
+    $footFont.Dispose(); $brFoot.Dispose()
     return @{ Width = $imgW; Height = $imgH }
 }
 
