@@ -27,12 +27,14 @@
 | [**007**](007-seed-generator-encoding-and-datasource.md) | **造数引擎输出规范化（UTF-8 BOM）与配方数据源单一化** | 数据工程 / 编码规范 | 核心工程 (hezhlin5) | 🟢 **已解决** | [`project/data/generate_seed.py`](../../project/data/generate_seed.py), [`04-seed/seed_data.sql`](../../project/sql/04-seed/seed_data.sql) |
 | [**008**](008-points-refund-and-crud-robustness.md) | **积分退单约束死锁修复与 CRUD 健壮性加固（防吞库存/防除零崩溃）** | 数据库约束 / DML 健壮性 | 核心工程 (hezhlin5) | 🟢 **已解决** | [`02-constraints/constraints.sql`](../../project/sql/02-constraints/constraints.sql), [`05-dml/crud.sql`](../../project/sql/05-dml/crud.sql) |
 | [**009**](009-documentation-consistency-and-cleanup.md) | **交付文档全量一致性清扫与历史残留消除（132 字段定案、ANY 样例清除、D-05a 去重）** | 文档维护 / 一致性排雷 | 文档主编 (DiSod) | 🟢 **已解决** | [`report.md`](../../weeks/submissions/v0.1/report.md), [`data-dictionary.md`](../../project/docs/data-dictionary.md), [`schema-design.md`](../../weeks/week02/schema-design.md) |
+| [**010**](010-v0.1-submission-review.md) | ⭐ **v0.1 提交物协同审查** —— 内容合理性 / 文档合理性 / 协同补充（含给 AI 的提示词与审查清单） | 交付审查 / 协同 | **核心工程 (hezhlin5)** | 🔴 **待处理** | [`weeks/submissions/v0.1/`](../../weeks/submissions/v0.1/) 全部 |
 
-> **闭环进度**：🎉 **9 条全部已解决**（001—009），看板清零。
+> **闭环进度**：🟢 已解决 **9** 条（001—009）· 🔴 待处理 **1** 条（**010** —— v0.1 提交物协同审查）。
 >
 > ⚠️ **排雷重点**：
 > - **008（工程主责）**：✅ 已闭环。修复 `ck_points_ledger_target` 对无券退单的拦截死锁，优化 `crud.sql` 退单聚合回冲与采购加权成本除零保护；
-> - **009（文档主责）**：统一 132 字段口径、清理数据字典样例中的 ANY 残留，重构 `schema-design.md` 重复段落。
+> - **009（文档主责）**：✅ 已闭环。统一 132 字段口径、清理数据字典样例中的 ANY 残留，重构 `schema-design.md` 重复段落；
+> - **010（工程主责）**：🔴 **待处理** —— v0.1 六项提交物已完成，需何争霖以独立审查者身份复核（含 3 项任务、可直接复制的 AI 提示词、审查报告模板）。
 
 
 ---
@@ -86,7 +88,7 @@ Issue 是"**提议**"，裁决后标题里的主张**可能被否决**。
 
 ### 当前闭环进度
 
-> **闭环进度**：🎉 **9 条全部已解决**（001—009），看板清零。
+> **闭环进度**：🟢 已解决 **9** 条（001—009）· 🔴 待处理 **1** 条（**010** —— v0.1 提交物协同审查）。
 >
 > | 批次 | Issue | 日期 |
 > |---|---|---|
