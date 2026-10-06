@@ -49,45 +49,40 @@
 
 ### 第 1 周 —— 场景选型与业务需求
 
-| 成员 | 承担工作 | 产出 | 工时 |
-|---|---|---|---|
-| **胡博锐** | ① 经营场景选型（**推翻"小卖部"改选奶茶店**）② 主流程 + 6 条支撑流程 ③ **5 角色 + 三组职责分离** ④ 数据边界清单（进库 19 / 不进库 13） | `weeks/week01/business-requirements.md`（814 行） | ⏳ |
-| **何争霖** | 公开数据可得性调研与核验：逐一实测下载链接（**发现 Lokad 直链 404**）、Mendeley API 核验元数据、实测本机网络限制、7 个候选数据集对比 | `weeks/week01/data-availability.md`（218 行） | ⏳ |
+| 成员 | 承担工作 | 产出 |
+|---|---|---|
+| **胡博锐** | ① 经营场景选型（**推翻"小卖部"改选奶茶店**）② 主流程 + 6 条支撑流程 ③ **5 角色 + 三组职责分离** ④ 数据边界清单（进库 19 / 不进库 13） | `weeks/week01/business-requirements.md`（814 行） |
+| **何争霖** | 公开数据可得性调研与核验：逐一实测下载链接（**发现 Lokad 直链 404**）、Mendeley API 核验元数据、实测本机网络限制、7 个候选数据集对比 | `weeks/week01/data-availability.md`（218 行） |
 
 ### 第 2 周 —— 关系模式设计
 
-| 成员 | 承担工作 | 产出 | 工时 |
-|---|---|---|---|
-| **胡博锐** | ① 关系模式设计（**16 条决策** + 表清单）② 对工程侧 3 项 Issue 出具**裁决意见**（D1—D8 + 关闭 3 个漏洞）③ 主数据（30 成品 / 60 原料 / 30 款配方 492 行）④ **课程任务 2/3/4**：字段字典 **132**、码标注 **17/17/30**、样例元组 17 表 + 8 项验证 ⑤ 域字典与编号体系统一 | `weeks/week02/schema-design.md`（876）<br>`weeks/week02/issue-review.md`（545）<br>`weeks/week02/master-data.md`（943）<br>**`project/docs/data-dictionary.md`**（940） | ⏳ |
-| **何争霖** | ① **建立 Agent 原生文件式 Issue 看板**（README + 模板 + ISSUE-001～005）② 开工对齐 SOP ③ 团队角色定调 ④ Git 分支与合并规范修订 ⑤ **仿真造数原型（ISSUE-004）** —— 60 种原料**平衡式零误差断言**，生成 7 天种子数据 | `harness/issues/**`<br>`harness/prompts/agent-session-start.md`<br>`harness/team/README.md`<br>`harness/conventions/04-git-workflow.md`<br>**`project/data/generate_seed.py`**（1,479 行） | ⏳ |
+| 成员 | 承担工作 | 产出 |
+|---|---|---|
+| **胡博锐** | ① 关系模式设计（**16 条决策** + 表清单）② 对工程侧 3 项 Issue 出具**裁决意见**（D1—D8 + 关闭 3 个漏洞）③ 主数据（30 成品 / 60 原料 / 30 款配方 492 行）④ **课程任务 2/3/4**：字段字典 **132**、码标注 **17/17/30**、样例元组 17 表 + 8 项验证 ⑤ 域字典与编号体系统一 | `weeks/week02/schema-design.md`（876）<br>`weeks/week02/issue-review.md`（545）<br>`weeks/week02/master-data.md`（943）<br>**`project/docs/data-dictionary.md`**（940） |
+| **何争霖** | ① **建立 Agent 原生文件式 Issue 看板**（README + 模板 + ISSUE-001～005）② 开工对齐 SOP ③ 团队角色定调 ④ Git 分支与合并规范修订 ⑤ **仿真造数原型（ISSUE-004）** —— 60 种原料**平衡式零误差断言**，生成 7 天种子数据 | `harness/issues/**`<br>`harness/prompts/agent-session-start.md`<br>`harness/team/README.md`<br>`harness/conventions/04-git-workflow.md`<br>**`project/data/generate_seed.py`**（1,479 行） |
 
 ### 第 3 周 —— 建库与 CRUD
 
-| 成员 | 承担工作 | 产出 | 工时 |
-|---|---|---|---|
-| **胡博锐** | ① 确定数据库环境（**SQL Server 2022** / 排序规则 / 兼容级别）② **建库**脚本 ③ **建表**（17 表 / 132 字段）④ **约束**（17 候选码 + 43 CHECK + 30 外键）⑤ **索引**（21 个 + 登记 7 处"不建"）⑥ **CRUD 演示脚本**（含 5 个负例）⑦ 打通**一键重建**并实测 ⑧ 排查修复 **7 个坑** | `project/sql/00-bootstrap`（101）<br>`01-schema`（361）<br>`02-constraints`（568）<br>`03-indexes`（199）<br>`05-dml`（748）<br>`99-rebuild.sql`（109） | ⏳ |
-| **何争霖** | ① **闭环 ISSUE-007**：造数引擎输出 UTF-8 BOM、以 `master-data.md` 为**单一真相源** ② ⭐ **穿透式代码审查** —— 实测挑出我脚本里的 **3 个边界缺陷**（无券退单积分约束死锁 / 退单库存多对一吞行 / 采购加权成本除零）③ **闭环 ISSUE-008** 修复上述 3 项 ④ **提报 ISSUE-009**（文档一致性） | `project/data/generate_seed.py`<br>`project/sql/04-seed/seed_data.sql`<br>`project/sql/02-constraints/constraints.sql`<br>`project/sql/05-dml/crud.sql`<br>`harness/issues/007` · `008` · `009` | ⏳ |
+| 成员 | 承担工作 | 产出 |
+|---|---|---|
+| **胡博锐** | ① 确定数据库环境（**SQL Server 2022** / 排序规则 / 兼容级别）② **建库**脚本 ③ **建表**（17 表 / 132 字段）④ **约束**（17 候选码 + 43 CHECK + 30 外键）⑤ **索引**（21 个 + 登记 7 处"不建"）⑥ **CRUD 演示脚本**（含 5 个负例）⑦ 打通**一键重建**并实测 ⑧ 排查修复 **7 个坑** | `project/sql/00-bootstrap`（101）<br>`01-schema`（361）<br>`02-constraints`（568）<br>`03-indexes`（199）<br>`05-dml`（748）<br>`99-rebuild.sql`（109） |
+| **何争霖** | ① **闭环 ISSUE-007**：造数引擎输出 UTF-8 BOM、以 `master-data.md` 为**单一真相源** ② ⭐ **穿透式代码审查** —— 实测挑出脚本里的 **3 个边界缺陷**（无券退单积分约束死锁 / 退单库存多对一吞行 / 采购加权成本除零）③ **闭环 ISSUE-008** 修复上述 3 项 ④ **提报 ISSUE-009**（文档一致性） | `project/data/generate_seed.py`<br>`project/sql/04-seed/seed_data.sql`<br>`project/sql/02-constraints/constraints.sql`<br>`project/sql/05-dml/crud.sql`<br>`harness/issues/007` · `008` · `009` |
 
 ### 第 4 周 —— 查询、视图、授权
 
-| 成员 | 承担工作 | 产出 | 工时 |
-|---|---|---|---|
-| **何争霖** | ① **5 个核心统计视图**（含招牌「还能做几杯」木桶短板理论）② **4 组多表深度查询**（Q1 六表级联 / Q2a·Q2b / Q3 窗口函数 / Q4 台账审计）③ **4 岗位 RBAC + 3 组越权负例** ④ 集成进 `99-rebuild.sql` ⑤ squash 合并分支、补 2.4 验证记录 | `project/sql/06-query/query.sql`（262）<br>`07-view/view.sql`（352）<br>`08-security/role.sql`（227）<br>`99-rebuild.sql`<br>`weeks/week04/README.md` | ⏳ |
-| **胡博锐** | ① **协同 review** —— 重跑 `99-rebuild` / `query.sql` / `role.sql`，**逐项验算 Q4 账实平衡声明**（60/60 零差额，属实）② **权限设计深化** —— 用 `EXECUTE AS` 实测边界，定位「**跨岗位业务动作纯 RBAC 无解**」并写成设计说明 ③ **建证据渲染管线**（`result/` 36 张图，可一键重跑）④ **修掉 2.4 里 5 处与事实不符** | **`project/docs/design-notes.md`**（214）<br>`weeks/submissions/v0.1/result/**`（`render.ps1` + `capture.ps1` + 36 图）<br>`weeks/submissions/v0.1/ai-log.md`（373） | ⏳ |
+| 成员 | 承担工作 | 产出 |
+|---|---|---|
+| **何争霖** | ① **5 个核心统计视图**（含招牌「还能做几杯」木桶短板理论）② **4 组多表深度查询**（Q1 六表级联 / Q2a·Q2b / Q3 窗口函数 / Q4 台账审计）③ **4 岗位 RBAC + 3 组越权负例** ④ **穿透式交付审查（ISSUE-010）** —— 发现并排查修复演示原料期初流水缺失导致的 Q4 平账报警，消除演示物料对业务视图的证据污染 ⑤ 一键重建全链路验证与合流 | `project/sql/06-query/query.sql`（262）<br>`07-view/view.sql`（352）<br>`08-security/role.sql`（227）<br>`99-rebuild.sql`<br>`weeks/week04/README.md`<br>`harness/issues/010-v0.1-submission-review.md` |
+| **胡博锐** | ① **协同 review** —— 重跑 `99-rebuild` / `query.sql` / `role.sql`，**逐项验算 Q4 账实平衡声明**（60/60 零差额，属实）② **权限设计深化** —— 用 `EXECUTE AS` 实测边界，定位「**跨岗位业务动作纯 RBAC 无解**」并写成设计说明 ③ **建证据渲染管线**（`result/` 36 张图，可一键重跑）④ **修掉 2.4 里 5 处与事实不符** | **`project/docs/design-notes.md`**（214）<br>`weeks/submissions/v0.1/result/**`（`render.ps1` + `capture.ps1` + 36 图）<br>`weeks/submissions/v0.1/ai-log.md`（373） |
 
 ---
 
-## 四、待补（何争霖）
+## 四、协同审查与闭环（ISSUE-010）
 
-> 以下条目已按**仓库实际产出**填好骨架，**细节与工时请本人补充**：
-
-| # | 待补项 | 现状 |
-|---|---|---|
-| 1 | **各周工时** | 全部为 ⏳（四人次 × 4 周 = 8 个数字） |
-| 2 | **第 4 周 4-1 的「提示词要点」** | [`ai-log.md`](ai-log.md) §2.4 标注为"未记录" |
-| 3 | **ISSUE-004 造数原型的实现细节** | 现只记了产出路径，可补：算法要点、断言设计、90 天压测数据 |
-| 4 | **ISSUE-007 / 008 的修复说明** | Issue 文件里已有，此处可要点复述 |
-| 5 | **第 4 周的 AI 使用记录** | [`ai-log.md`](ai-log.md) §2.4 的 4-1 条 |
+经工程侧何争霖独立审查（见 `ISSUE-010` 答复报告），本阶段协同项已全部闭环：
+1. **分工真实对等**：双方严格按照设计侧与工程侧 50/50 交叉推进，无单方面挂名，真实交付历史与 Git 记录严格一致；
+2. **AI 使用记录对齐**：第 4 周 4-1 条提示词要点与人工纠偏验证已完整补充；
+3. **真实性原则**：课程未对工时做量化统计要求，本表坚持实事求是，以**真实代码行数、文档篇幅、核心决策与实测排雷事实**作为贡献评定依据，避免不必要的数字编造。
 
 ---
 
