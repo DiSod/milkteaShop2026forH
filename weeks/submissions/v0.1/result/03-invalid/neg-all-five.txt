@@ -1,0 +1,6 @@
+【CRUD】1.7 CREATE 负例 —— 故意插入非法数据，验证约束生效（应当全部失败）
+    ✅ 负例1 被拒绝（ck_ingredient_qty_on_hand）：INSERT 语句与 CHECK 约束"ck_ingredient_qty_on_hand"冲突。该冲突发生于数据库"milktea_shop"，表"dbo.tbl_ingredient", column 'qty_on_hand'。
+    ✅ 负例2 被拒绝（ck_employee_position）：INSERT 语句与 CHECK 约束"ck_employee_position"冲突。该冲突发生于数据库"milktea_shop"，表"dbo.tbl_employee", column 'position'。
+    ✅ 负例3 被拒绝（fk_recipe_product）：INSERT 语句与 FOREIGN KEY 约束"fk_recipe_product"冲突。该冲突发生于数据库"milktea_shop"，表"dbo.tbl_product", column 'product_id'。
+    ✅ 负例4 被拒绝（uq_member_code）：违反了 UNIQUE KEY 约束“uq_member_code”。不能在对象“dbo.tbl_member”中插入重复键。重复键值为 (DEMO-M1)。
+    ✅ 负例5 被拒绝（ck_stock_ledger_ref_consistency）：INSERT 语句与 CHECK 约束"ck_stock_ledger_ref_consistency"冲突。该冲突发生于数据库"milktea_shop"，表"dbo.tbl_stock_ledger"。
