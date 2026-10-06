@@ -1,4 +1,4 @@
-# capture.ps1 —— 按 result/README.md 的清单生成 .png + .txt
+﻿# capture.ps1 —— 按 result/README.md 的清单生成 .png + .txt
 #
 #   powershell -ExecutionPolicy Bypass -File capture.ps1              # 全部 35 张
 #   powershell -ExecutionPolicy Bypass -File capture.ps1 -Only 02     # 只跑某一组

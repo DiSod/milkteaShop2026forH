@@ -58,6 +58,17 @@ ORDER BY o.order_time DESC;
 
 > 不使用 `sp_` 之外的系统保留前缀（`sp_` 在 SQL Server 中有特殊查找语义，若需避免可用 `usp_`，本项目统一用 `sp_` 并知悉该语义）。
 
+> ⚠️ **外键命名：`fk_<表>_<列>`，用「外键列名」而不是「目标表名」。**
+>
+> | 写法 | 例子 | 结论 |
+> |---|---|---|
+> | ✅ `fk_<表>_<列>`（列名去掉 `_id`） | `fk_order_detail_cup_spec`（列 `cup_spec_id`） | **本项目的规则** |
+> | ❌ `fk_<表>_<目标表>` | `fk_order_detail_spec_option` | **会撞名** |
+>
+> **为什么不能用目标表名**：`tbl_order_detail` **有 3 个外键都指向 `tbl_spec_option`**
+> （`cup_spec_id` / `sugar_spec_id` / `ice_spec_id`）—— 用目标表名会产生 3 个同名约束。
+> 同理 `tbl_recipe` 也有 3 个指向 `tbl_spec_option` 的外键。
+
 ### 3.2 列名
 
 - 全小写 + 下划线：`order_time`、`unit_price`
@@ -218,6 +229,18 @@ DELETE ... ;   -- ↓ 后面 10 条清理语句全都不执行，而且不再报
 
 **所有含中文的 `.sql` 文件必须保存为「UTF-8 带 BOM」。**
 
+> 🔴 **不止 `.sql` —— `.ps1` 同样适用。**
+> `powershell -File xxx.ps1` 在**文件无 BOM 时也按系统 OEM 代码页（中文 Windows 上是 GBK）读取**，
+> 后果比 SQL 更直接：**中文全部乱码 → 整脚本语法错误 → 根本跑不起来**。
+>
+> **实测踩过两次**：
+> ① 第 4 周写 `render.ps1` 时（`路` / `锛堟埅鍥炬覆鏌?`）；
+> ② 第 4 周同事改 `capture.ps1` 后 BOM 被编辑工具剥掉，报
+> `Unexpected token '[OK]' in expression or statement` —— **报错位置离真正原因很远**。
+>
+> **结论：凡是含中文的文本文件（`.sql` / `.ps1` / `.md`），一律 UTF-8 with BOM。**
+> 编辑工具（含本项目的 AI 工具）**会在写入时剥掉 BOM**，改完必须回补。
+
 ### 为什么 —— 无 BOM 会**静默失效**
 
 `sqlcmd -i` 在文件**没有 BOM** 时，按系统 OEM 代码页读取（中文 Windows 上是 **GBK**）。
@@ -239,6 +262,7 @@ UTF-8 的中文被当成 GBK 解码后，**不报错，而是整个批次静默�
 |---|---|
 | **手写 SQL** | 编辑器另存为 **UTF-8 with BOM**（**首选**） |
 | **脚本生成 SQL**（如造数引擎） | Python 用 `open(path, 'w', encoding='utf-8-sig')` —— `utf-8-sig` 就是带 BOM |
+| **PowerShell 脚本** | 写入时用 `New-Object System.Text.UTF8Encoding $true`（`$true` = 带 BOM） |
 | **执行时的兜底** | `sqlcmd -f 65001 -i xxx.sql` —— **显式指定输入编码，不依赖文件 BOM** |
 
 > **两条路是互补的，不是二选一**：
