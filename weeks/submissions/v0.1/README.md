@@ -19,7 +19,7 @@
 | 2 | **sql 目录** | 建库 / 样例数据 / CRUD / 查询视图 / 约束与角色 —— 五类，**含前几周要求** | **`code/`**（`project/sql/` 快照） | ⬜ 提交时复制 |
 | 3 | ⭐ **结果目录** | 成功建库 · 正常 · 非法 · 越权 · 关键查询 · CRUD · 统计视图 · 角色权限 **的截图** | **`result/`** —— 清单见 [`result/README.md`](result/README.md) | ⬜ **未开始** |
 | 4 | **阶段报告** | 设计思路、实验过程、实验总结 | [`report.md`](report.md) | 🟡 初稿完成（1—4 周全填实） |
-| 5 | **`ai_log`** | 记录 AI 建议、人工修改及验证结论 | **`ai-log.md`** | ⬜ **未建** |
+| 5 | **`ai_log`** | 记录 AI 建议、人工修改及验证结论 | [`ai-log.md`](ai-log.md) | ✅ **已建**（五字段 + 分级 + 13 条纠错案例）；⚠️ 提示词留存有缺口，见其 §5 |
 | 6 | **组内分工** | 小组成员分工与贡献 | `contributions.md` | ⬜ 阶段版未做（累计版在 [`harness/team/contributions.md`](../../../harness/team/contributions.md)） |
 
 ---

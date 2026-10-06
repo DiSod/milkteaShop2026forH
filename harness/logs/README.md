@@ -22,7 +22,7 @@
 周度 AI 使用记录（结构化）        → weeks/weekNN/README.md      进 git
      │  阶段汇总
      ▼
-阶段 AI 使用记录（提交用）        → weeks/submissions/vX.Y/ai-usage.md   进 git
+阶段 AI 使用记录（提交用）        → weeks/submissions/vX.Y/ai-log.md    进 git
      │  提炼成模板
      ▼
 可复用提示词                      → harness/prompts/            进 git

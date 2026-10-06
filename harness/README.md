@@ -42,7 +42,7 @@
 
 | 内容 | 位置 | 进 git |
 |---|---|---|
-| 正式提交用的 AI 使用记录 | `weeks/submissions/vX.Y/ai-usage.md` | ✅ |
+| 正式提交用的 AI 使用记录 | `weeks/submissions/vX.Y/`**`ai-log.md`**（课程叫 `ai_log`） | ✅ |
 | 周度 AI 使用记录 | `weeks/weekNN/README.md` 的「AI 使用记录」小节 | ✅ |
 | 经整理的可复用提示词 | `harness/prompts/` | ✅ |
 | 原始会话日志 / 大段原始对话 | `harness/logs/raw/` | ❌ 已 gitignore |
