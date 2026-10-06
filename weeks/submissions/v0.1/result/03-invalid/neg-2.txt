@@ -1,0 +1,1 @@
+    ✅ 负例2 被拒绝（ck_employee_position）：INSERT 语句与 CHECK 约束"ck_employee_position"冲突。该冲突发生于数据库"milktea_shop"，表"dbo.tbl_employee", column 'position'。

@@ -1,0 +1,4 @@
+【CRUD】1.2 CREATE —— 新增会员 DEMO-M1（初始积分 0）
+member_id|member_code|member_name|points_balance
+---------|-----------|-----------|--------------
+81|DEMO-M1|演示会员|0

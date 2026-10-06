@@ -1,0 +1,1 @@
+    ✅ 负例5 被拒绝（ck_stock_ledger_ref_consistency）：INSERT 语句与 CHECK 约束"ck_stock_ledger_ref_consistency"冲突。该冲突发生于数据库"milktea_shop"，表"dbo.tbl_stock_ledger"。

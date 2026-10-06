@@ -1,0 +1,1 @@
+    ✅ 负例4 被拒绝（uq_member_code）：违反了 UNIQUE KEY 约束“uq_member_code”。不能在对象“dbo.tbl_member”中插入重复键。重复键值为 (DEMO-M1)。

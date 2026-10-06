@@ -1,0 +1,1 @@
+    ✅ 负例3 被拒绝（fk_recipe_product）：INSERT 语句与 FOREIGN KEY 约束"fk_recipe_product"冲突。该冲突发生于数据库"milktea_shop"，表"dbo.tbl_product", column 'product_id'。

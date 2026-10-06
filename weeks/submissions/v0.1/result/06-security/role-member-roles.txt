@@ -1,0 +1,5 @@
+角色 | 测试主体 | 类型
+db_owner | dbo | WINDOWS_USER
+role_cashier | usr_test_cashier | SQL_USER
+role_maker | usr_test_maker | SQL_USER
+role_stocker | usr_test_stocker | SQL_USER

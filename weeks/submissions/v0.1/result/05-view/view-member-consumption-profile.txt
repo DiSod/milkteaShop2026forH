@@ -1,0 +1,8 @@
+消息 207，级别 16，状态 1，服务器 PTEROSAUR15PRO\SQLEXPRESS，第 2 行
+列名 'member_level' 无效。
+消息 207，级别 16，状态 1，服务器 PTEROSAUR15PRO\SQLEXPRESS，第 3 行
+列名 'order_count' 无效。
+消息 207，级别 16，状态 1，服务器 PTEROSAUR15PRO\SQLEXPRESS，第 3 行
+列名 'total_paid' 无效。
+消息 207，级别 16，状态 1，服务器 PTEROSAUR15PRO\SQLEXPRESS，第 4 行
+列名 'total_paid' 无效。

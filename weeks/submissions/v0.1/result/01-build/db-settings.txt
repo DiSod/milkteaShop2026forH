@@ -1,3 +1,2 @@
-库名 排序规则 兼容级别 恢复模式
--- ---- ---- ----
-milktea_shop Chinese_PRC_CI_AS 160 SIMPLE
+库名 | 排序规则 | 兼容级别 | 恢复模式
+milktea_shop | Chinese_PRC_CI_AS | 160 | SIMPLE

@@ -1,0 +1,3 @@
+【CRUD】4.2 DELETE 负例 —— 删除有订单引用的商品（应当失败）
+    ✅ 删除被拒绝（fk_recipe_product / 订单引用）：DELETE 语句与 REFERENCE 约束"fk_recipe_product"冲突。该冲突发生于数据库"milktea_shop"，表"dbo.tbl_recipe", column 'product_id'。
+       → 这就是"**下架用状态、不删行**"的技术理由：历史订单不能被删掉。

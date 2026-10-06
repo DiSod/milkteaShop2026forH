@@ -1,43 +1,42 @@
-角色 对象 权限
--- -- --
-role_cashier tbl_coupon SELECT
-role_cashier tbl_coupon UPDATE
-role_cashier tbl_member INSERT
-role_cashier tbl_member SELECT
-role_cashier tbl_member UPDATE
-role_cashier tbl_order_detail INSERT
-role_cashier tbl_order_detail SELECT
-role_cashier tbl_order_detail_topping INSERT
-role_cashier tbl_order_detail_topping SELECT
-role_cashier tbl_order_header INSERT
-role_cashier tbl_order_header SELECT
-role_cashier tbl_order_header UPDATE
-role_cashier tbl_product SELECT
-role_cashier tbl_product_category SELECT
-role_cashier tbl_spec_option SELECT
-role_cashier tbl_topping SELECT
-role_cashier vw_order_detail_full SELECT
-role_cashier vw_product_stock_availability SELECT
-role_maker tbl_order_detail SELECT
-role_maker tbl_order_detail_topping SELECT
-role_maker tbl_order_header SELECT
-role_maker tbl_order_header UPDATE
-role_maker tbl_product SELECT
-role_maker tbl_recipe SELECT
-role_maker tbl_spec_option SELECT
-role_maker tbl_topping SELECT
-role_maker vw_product_stock_availability SELECT
-role_manager (数据库级) DELETE
-role_manager (数据库级) INSERT
-role_manager (数据库级) SELECT
-role_manager (数据库级) UPDATE
-role_stocker tbl_ingredient SELECT
-role_stocker tbl_ingredient UPDATE
-role_stocker tbl_purchase_order SELECT
-role_stocker tbl_purchase_order UPDATE
-role_stocker tbl_purchase_order_detail SELECT
-role_stocker tbl_purchase_order_detail UPDATE
-role_stocker tbl_stock_ledger INSERT
-role_stocker tbl_stock_ledger SELECT
-role_stocker tbl_supplier SELECT
-role_stocker vw_ingredient_reorder_alert SELECT
+角色 | 对象 | 权限
+role_cashier | tbl_coupon | SELECT
+role_cashier | tbl_coupon | UPDATE
+role_cashier | tbl_member | INSERT
+role_cashier | tbl_member | SELECT
+role_cashier | tbl_member | UPDATE
+role_cashier | tbl_order_detail | INSERT
+role_cashier | tbl_order_detail | SELECT
+role_cashier | tbl_order_detail_topping | INSERT
+role_cashier | tbl_order_detail_topping | SELECT
+role_cashier | tbl_order_header | INSERT
+role_cashier | tbl_order_header | SELECT
+role_cashier | tbl_order_header | UPDATE
+role_cashier | tbl_product | SELECT
+role_cashier | tbl_product_category | SELECT
+role_cashier | tbl_spec_option | SELECT
+role_cashier | tbl_topping | SELECT
+role_cashier | vw_order_detail_full | SELECT
+role_cashier | vw_product_stock_availability | SELECT
+role_maker | tbl_order_detail | SELECT
+role_maker | tbl_order_detail_topping | SELECT
+role_maker | tbl_order_header | SELECT
+role_maker | tbl_order_header | UPDATE
+role_maker | tbl_product | SELECT
+role_maker | tbl_recipe | SELECT
+role_maker | tbl_spec_option | SELECT
+role_maker | tbl_topping | SELECT
+role_maker | vw_product_stock_availability | SELECT
+role_manager | (数据库级) | DELETE
+role_manager | (数据库级) | INSERT
+role_manager | (数据库级) | SELECT
+role_manager | (数据库级) | UPDATE
+role_stocker | tbl_ingredient | SELECT
+role_stocker | tbl_ingredient | UPDATE
+role_stocker | tbl_purchase_order | SELECT
+role_stocker | tbl_purchase_order | UPDATE
+role_stocker | tbl_purchase_order_detail | SELECT
+role_stocker | tbl_purchase_order_detail | UPDATE
+role_stocker | tbl_stock_ledger | INSERT
+role_stocker | tbl_stock_ledger | SELECT
+role_stocker | tbl_supplier | SELECT
+role_stocker | vw_ingredient_reorder_alert | SELECT

@@ -68,10 +68,10 @@
 | `crud-create-order.png` | `crud.sql` §1 下单（含反冲倒扣） | 订单头 + 明细 + 加料写入，总库扣减 |
 | `crud-read-menu.png` | `crud.sql` §2 查菜单 | 在售成品列表 |
 | `crud-read-order-full.png` | `crud.sql` §2 订单全貌 | 订单 → 明细 → 加料多表串联 |
-| `crud-read-ledger-by-type.png` | `crud.sql` §2 台账按类型汇总 | 期初 / 采购 / 销售 / 报损 分列 |
+| `crud-read-ledger.png` | `crud.sql` §2.5 台账按类型汇总并反推期初 | 期初 / 采购 / 销售 / 报损 分列 |
 | `crud-update-price.png` | `crud.sql` §3.1 调价 12.00 → 13.00 | **改动前 12.00、改动后 13.00 同屏** |
 | `crud-update-offsale.png` | `crud.sql` §3.2 下架改状态 | `ON_SALE` → `OFF_SALE`，**历史订单明细完好** |
-| `crud-update-order-state.png` | `crud.sql` §3.3 状态机 | `PENDING → MAKING → READY → COMPLETED` |
+| `crud-update-state.png` | `crud.sql` §3.3 状态机 | `PENDING → MAKING → READY → COMPLETED` |
 | `crud-delete-ok.png` | `crud.sql` §4.1 删除无引用会员 | 删除成功 |
 | `crud-delete-blocked.png` | `crud.sql` §4.2 删除有订单引用的商品 | **被外键拒绝** → "下架不删行"的技术理由 |
 
@@ -81,11 +81,12 @@
 
 | 文件 | 非法数据 | 应被哪条约束拒绝 |
 |---|---|---|
-| `neg-1-qty-negative.png` | 原料库存改为负数 | **`ck_ingredient_qty_on_hand`** |
-| `neg-2-bad-position.png` | 员工岗位填非法枚举 | **`ck_employee_position`** |
-| `neg-3-fk-missing-product.png` | 配方引用不存在的商品 | **`fk_recipe_product`** |
-| `neg-4-duplicate-member-code.png` | 会员号重复 | **`uq_member_code`**（候选码） |
-| `neg-5-ledger-ref-mismatch.png` | 流水来源判别列与真外键不一致 | **`ck_stock_ledger_ref_consistency`**（D-09 判别列） |
+| `neg-1.png` | 原料库存改为负数 | **`ck_ingredient_qty_on_hand`** |
+| `neg-2.png` | 员工岗位填非法枚举 | **`ck_employee_position`** |
+| `neg-3.png` | 配方引用不存在的商品 | **`fk_recipe_product`** |
+| `neg-4.png` | 会员号重复 | **`uq_member_code`**（候选码） |
+| `neg-5.png` | 流水来源判别列与真外键不一致 | **`ck_stock_ledger_ref_consistency`**（D-09 判别列） |
+| `neg-all-five.png` | —— **5 条汇总在一张图** | 一眼看全 5 条都被拦截 |
 
 ## 四、`04-query/` —— 关键查询结果
 
@@ -102,11 +103,11 @@
 
 | 文件 | 命令 | 预期结果 |
 |---|---|---|
-| `view-product-availability.png` | `SELECT TOP 20 * FROM vw_product_stock_availability` | **"还能做几杯"**（木桶短板理论） |
-| `view-ingredient-reorder-alert.png` | `SELECT * FROM vw_ingredient_reorder_alert` | 缺料与采购预警 |
-| `view-daily-business-summary.png` | `SELECT * FROM vw_daily_business_summary` | 每日经营日报 |
-| `view-member-consumption-profile.png` | `SELECT TOP 20 * FROM vw_member_consumption_profile` | 会员消费画像与分级 |
-| `view-order-detail-full.png` | `SELECT TOP 20 * FROM vw_order_detail_full` | 订单全景明细宽表 |
+| `view-product-availability.png` | `SELECT TOP 12 … FROM vw_product_stock_availability ORDER BY theor_makeable_cups` | **"还能做几杯"**（木桶短板理论） |
+| `view-ingredient-reorder-alert.png` | `SELECT TOP 12 … FROM vw_ingredient_reorder_alert` | 缺料与采购预警 |
+| `view-daily-business-summary.png` | `SELECT business_date, total_orders, …, net_revenue FROM vw_daily_business_summary` | 每日经营日报 |
+| `view-member-consumption-profile.png` | `SELECT TOP 12 … FROM vw_member_consumption_profile ORDER BY total_paid DESC` | 会员消费画像与分级 |
+| `view-order-detail-full.png` | `SELECT TOP 10` 关键列 `FROM vw_order_detail_full` | 订单全景明细宽表（**32 列中节选 12 列**，否则图宽 4300px） |
 
 ## 六、`06-security/` —— 角色权限与越权失败 ⭐
 
@@ -119,7 +120,7 @@
 | `neg-1-cashier-alter-recipe.png` | `role.sql` 负例 1 | **收银员**篡改 `tbl_recipe` → ❌ `Error 229` |
 | `neg-2-maker-read-member.png` | `role.sql` 负例 2 | **制作员**窥探 `tbl_member` → ❌ `Error 229` |
 | `neg-3-stocker-delete-order.png` | `role.sql` 负例 3 | **库管员**删除 `tbl_order_header` → ❌ `Error 229` |
-| `role-allow-vs-deny.png` | 同一角色的"允许"与"拒绝"对照 | **最小权限**的正反例同屏 |
+| `role-allow-vs-deny.png` | `role.sql` 的 3 组负例**汇总** | 全部被 `Error 229` 拦截，末尾输出「全部通过」 |
 
 ---
 
@@ -129,11 +130,11 @@
 |---|---:|
 | `01-build/` | 3 |
 | `02-crud/` | 10 |
-| `03-invalid/` | 5 |
+| `03-invalid/` | **6**（5 个单独 + 1 张汇总） |
 | `04-query/` | 6 |
 | `05-view/` | 5 |
 | `06-security/` | 6 |
-| **合计** | **35** |
+| **合计** | **36 张 PNG + 36 份 TXT（1.07 MB）** |
 
 ---
 
@@ -143,8 +144,8 @@
 
 ```powershell
 cd weeks\submissions\v0.1\result
-pwsh -File capture.ps1              # 跑全部并生成 .txt
-pwsh -File capture.ps1 -Only 03     # 只跑某一组
+powershell -ExecutionPolicy Bypass -File capture.ps1              # 全部 36 张
+powershell -ExecutionPolicy Bypass -File capture.ps1 -Only 02     # 只跑某一组
 ```
 
 > `capture.ps1` 做两件事：

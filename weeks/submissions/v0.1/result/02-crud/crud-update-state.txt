@@ -1,0 +1,13 @@
+【CRUD】3.3 UPDATE —— 订单状态流转 PENDING → MAKING → READY → COMPLETED
+订单号|状态
+---|--
+DEMO-O2|PENDING
+订单号|状态
+---|--
+DEMO-O2|MAKING
+订单号|状态
+---|--
+DEMO-O2|READY
+订单号|状态|完成时间
+---|--|----
+DEMO-O2|COMPLETED|2026-10-06 17:26:24.5192052

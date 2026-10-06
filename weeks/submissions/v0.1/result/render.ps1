@@ -163,6 +163,39 @@ function New-TableImage {
 
 # ---------- 文本图（用于 PRINT 叙述、TRY/CATCH 消息、重建日志） ----------
 
+function Format-WrapLine {
+    # 按「显示宽度」折行（不是按字符数）—— 中文占 2 列。
+    # 错误消息经常 200+ 显示列，不折行就会被 MaxWidth 裁掉。
+    # 断点优先取空格或中文标点，避免把标识符从中间劈开。
+    param([string]$Line, [int]$MaxDisp)
+    if ((Get-DispWidth $Line) -le $MaxDisp) { return @($Line) }
+    $out = @()
+    $rest = $Line
+    $indent = '    '
+    $guard = 0
+    while ((Get-DispWidth $rest) -gt $MaxDisp -and $guard -lt 200) {
+        $guard++
+        $w = 0; $cut = -1; $brk = -1
+        for ($i = 0; $i -lt $rest.Length; $i++) {
+            $c = [int]$rest[$i]
+            $cw = if (($c -ge 0x1100 -and $c -le 0x115F) -or ($c -ge 0x2E80 -and $c -le 0xA4CF) -or
+                      ($c -ge 0xAC00 -and $c -le 0xD7A3) -or ($c -ge 0xF900 -and $c -le 0xFAFF) -or
+                      ($c -ge 0xFE30 -and $c -le 0xFE6F) -or ($c -ge 0xFF00 -and $c -le 0xFF60) -or
+                      ($c -ge 0xFFE0 -and $c -le 0xFFE6)) { 2 } else { 1 }
+            if ($w + $cw -gt $MaxDisp) { break }
+            $w += $cw; $cut = $i
+            if ($rest[$i] -eq ' ' -or '，。、；：）】》”·'.IndexOf($rest[$i]) -ge 0) { $brk = $i }
+        }
+        if ($cut -lt 0) { $cut = 0 }
+        # 断点太靠前就不用它（避免每行只放几个字）
+        $at = if ($brk -ge 0 -and $brk -ge [int]($cut * 0.6)) { $brk } else { $cut }
+        $out += $rest.Substring(0, $at + 1).TrimEnd()
+        $rest = $indent + $rest.Substring($at + 1).TrimStart()
+    }
+    if ($rest.Trim()) { $out += $rest }
+    return $out
+}
+
 function New-TextImage {
     param(
         [string[]]$Title,
@@ -183,6 +216,16 @@ function New-TextImage {
     $gp.Dispose(); $probe.Dispose()
 
     $padX = 12; $padY = 8
+    $maxDisp = 0
+    foreach ($l in $Lines) { $d = Get-DispWidth $l; if ($d -gt $maxDisp) { $maxDisp = $d } }
+    foreach ($t in @($Title)) { if ($t) { $d = Get-DispWidth $t; if ($d -gt $maxDisp) { $maxDisp = $d } } }
+
+    # 超长行按显示宽度折行 —— 否则会被 MaxWidth 静默裁掉
+    $wrapCols = [int](($MaxWidth - $padX * 2 - 12) / $charW)
+    if ($wrapCols -lt 40) { $wrapCols = 40 }
+    $wrapped = @()
+    foreach ($l in $Lines) { $wrapped += @(Format-WrapLine -Line $l -MaxDisp $wrapCols) }
+    $Lines = $wrapped
     $maxDisp = 0
     foreach ($l in $Lines) { $d = Get-DispWidth $l; if ($d -gt $maxDisp) { $maxDisp = $d } }
     foreach ($t in @($Title)) { if ($t) { $d = Get-DispWidth $t; if ($d -gt $maxDisp) { $maxDisp = $d } } }
