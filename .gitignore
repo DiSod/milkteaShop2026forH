@@ -29,3 +29,10 @@ Thumbs.db
 /_*.txt
 /_*.ps1
 /_*.sql
+
+# ---- 提交包 / 压缩件（⚠️ 派生件：内容与源目录重复，不入库）----
+# 例：weeks/submissions/第一阶段v0.1 胡博锐 何争霖.zip
+# 源目录 weeks/submissions/v0.1/ 已在库中，zip 只是它的打包副本。
+*.zip
+*.7z
+*.rar
