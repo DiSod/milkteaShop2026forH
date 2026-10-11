@@ -95,6 +95,7 @@ databaseExp/
 │  │  ├─ 08-security/                 #   角色与权限
 │  │  ├─ 09-programmability/          #   存储过程/函数/触发器
 │  │  ├─ 10-transaction/              #   事务与并发控制
+│  │  ├─ 11-migration/                #   ⭐ 第 6 周 ch7 迁移脚本（不接入 99-rebuild，待裁定）
 │  │  └─ 99-rebuild.sql               #   一键重建入口
 │  ├─ data/
 │  │  ├─ README.md                    #   数据来源、下载说明、校验值

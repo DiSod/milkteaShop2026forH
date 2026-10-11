@@ -14,6 +14,9 @@ project/data/generated/*
 # ---- 原始会话日志 ----
 harness/logs/raw/
 
+# ---- 一次性校验脚本与渲染中间件（不提交；结论写进文档，脚本可随时重跑）----
+harness/logs/tmp-*
+
 # ---- 系统与编辑器 ----
 Thumbs.db
 .DS_Store
