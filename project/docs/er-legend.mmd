@@ -1,0 +1,18 @@
+%%{init: {"htmlLabels": false, "flowchart": {"htmlLabels": false, "useMaxWidth": false}} }%%
+%% Crow's Foot 符号图例 —— 自上而下，顺序即读法顺序（先 1 端，后 N 端）
+flowchart LR
+    classDef sn fill:#e8e8f8,stroke:#6666aa,stroke-width:1px,font-weight:bold
+    classDef mie fill:#ffffff,stroke:#cccccc,stroke-width:1px,color:#666666
+    classDef off fill:#f2f2f2,stroke:#bbbbbb,stroke-width:1px,stroke-dasharray:4 3,color:#888888
+
+    B1["实体 A"]:::mie --- S1["写在 1 端：||　恰 1 · 必须存在"]:::sn
+    S1 --- M1["读作：一个订单头 必须对应 0 个或多个明细"]:::mie
+
+    B2["实体 B"]:::mie --- S2["写在 1 端：o|　0 或 1 · 可以没有"]:::sn
+    S2 --- M2["读作：一张券 可以不对应任何订单"]:::mie
+
+    B3["实体 C"]:::mie --- S3["写在 N 端：o{　0 或 N · 可以没有"]:::sn
+    S3 --- M3["读作：一个订单头 可以有多条明细"]:::mie
+
+    B4["实体 D"]:::mie --- S4["写在 N 端：|{　1 或 N · 至少一条"]:::off
+    S4 --- M4["本图未使用 · 见 §1.3"]:::off

@@ -1,0 +1,146 @@
+erDiagram
+    employee {
+        INT employee_id PK
+        VARCHAR employee_code
+        VARCHAR position
+    }
+    member {
+        INT member_id PK
+        VARCHAR member_code
+        VARCHAR member_phone
+        INT points_balance
+    }
+    product_category {
+        INT category_id PK
+        INT parent_category_id FK
+        VARCHAR category_code
+    }
+    spec_option {
+        INT spec_option_id PK
+        VARCHAR spec_type
+        VARCHAR spec_code
+        DECIMAL extra_price
+    }
+    ingredient {
+        INT ingredient_id PK
+        VARCHAR ingredient_code
+        VARCHAR unit
+        DECIMAL qty_on_hand
+        DECIMAL reorder_point
+    }
+    supplier {
+        INT supplier_id PK
+        VARCHAR supplier_code
+        NVARCHAR supplier_name
+    }
+    product {
+        INT product_id PK
+        VARCHAR product_code
+        INT category_id FK
+        DECIMAL base_price
+        VARCHAR product_status
+    }
+    topping {
+        INT topping_id PK
+        VARCHAR topping_code
+        INT ingredient_id FK
+        DECIMAL extra_price
+    }
+    recipe {
+        INT recipe_id PK
+        INT product_id FK
+        INT cup_spec_id FK
+        INT sugar_spec_id FK
+        INT ingredient_id FK
+        DECIMAL qty
+    }
+    purchase_order {
+        INT purchase_order_id PK
+        VARCHAR purchase_no
+        INT supplier_id FK
+        INT ordered_by FK
+        INT received_by FK
+    }
+    purchase_order_detail {
+        INT purchase_order_detail_id PK
+        INT purchase_order_id FK
+        INT ingredient_id FK
+        DECIMAL qty_ordered
+    }
+    coupon {
+        INT coupon_id PK
+        VARCHAR coupon_code
+        INT member_id FK
+        DECIMAL discount_amount
+        VARCHAR status
+    }
+    order_header {
+        INT order_id PK
+        VARCHAR order_no
+        INT member_id FK
+        INT coupon_id FK
+        DECIMAL amount_due
+        VARCHAR order_status
+        INT cashier_id FK
+    }
+    order_detail {
+        INT order_detail_id PK
+        INT order_id FK
+        INT line_no
+        INT product_id FK
+        INT qty
+        INT cup_spec_id FK
+        INT sugar_spec_id FK
+    }
+    order_detail_topping {
+        INT od_topping_id PK
+        INT order_detail_id FK
+        INT topping_id FK
+        INT qty
+    }
+    points_ledger {
+        INT point_ledger_id PK
+        INT member_id FK
+        VARCHAR point_type
+        INT order_id FK
+        INT coupon_id FK
+    }
+    stock_ledger {
+        INT ledger_id PK
+        INT ingredient_id FK
+        VARCHAR ledger_type
+        DECIMAL qty
+        VARCHAR ref_type
+        INT operator_id FK
+    }
+
+    employee ||--o{ order_header : "R01"
+    member ||--o{ order_header : "R02"
+    member ||--o{ coupon : "R03"
+    coupon o|--o{ order_header : "R04"
+    order_header ||--o{ order_detail : "R05"
+    order_detail ||--o{ order_detail_topping : "R06"
+    topping ||--o{ order_detail_topping : "R07"
+    product ||--o{ order_detail : "R08"
+    spec_option ||--o{ order_detail : "R09"
+    spec_option ||--o{ order_detail : "R10"
+    spec_option ||--o{ order_detail : "R11"
+    product_category ||--o{ product : "R12"
+    product_category o|--o{ product_category : "R13"
+    product ||--o{ recipe : "R14"
+    spec_option ||--o{ recipe : "R15"
+    spec_option o|--o{ recipe : "R16"
+    ingredient ||--o{ recipe : "R17"
+    ingredient ||--o{ topping : "R18"
+    supplier ||--o{ purchase_order : "R19"
+    employee ||--o{ purchase_order : "R20"
+    employee o|--o{ purchase_order : "R21"
+    purchase_order ||--o{ purchase_order_detail : "R22"
+    ingredient ||--o{ purchase_order_detail : "R23"
+    ingredient ||--o{ stock_ledger : "R24"
+    purchase_order o|--o{ stock_ledger : "R25"
+    order_header o|--o{ stock_ledger : "R26"
+    employee o|--o{ stock_ledger : "R27"
+    member ||--o{ points_ledger : "R28"
+    order_header o|--o{ points_ledger : "R29"
+    coupon o|--o{ points_ledger : "R30"
