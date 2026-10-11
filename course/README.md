@@ -12,6 +12,8 @@
 | `lecture-week03.md` | 上述原件的 Markdown 版 | 课程提供 |
 | `lecture-week04.docx` | 第四周任务讲解（**原件**） | 课程发布 |
 | `lecture-week04.md` | 上述原件的 Markdown 版 | 课程提供 |
+| `lecture-week05.docx` | **第五周任务讲解（原件）** —— 含**第二阶段（第 5—9 周）完整周次安排** | 课程发布 |
+| `lecture-week05.md` | 上述原件的 Markdown 转写稿 | 本组转写 |
 
 > 转写稿与原件若不一致，**以原件为准**。
 
@@ -22,6 +24,7 @@
 | `lecture-week01.*` | 课程总览 · 四阶段框架 · 评分标准 · **第一阶段第 1 周任务** | 根 `README.md`、`STRUCTURE.md`、`weeks/week01/` |
 | `lecture-week03.*` | **第 3 周任务 ch3**：建库建表 · 表结构定义 · 样例数据 · **CRUD 与执行前后结果** · 复现说明 | `project/sql/00`·`01`·`02`·`04`·`05`、`weeks/week03/` |
 | `lecture-week04.*` | ⭐ **v0.1 阶段作业提交要求**（README / sql 目录 / **result 目录** / 阶段报告 / **`ai_log`** / 组内分工）+ **第 4 周任务 ch4** | `weeks/submissions/README.md`、`project/sql/02`·`06`·`07`·`08` |
+| `lecture-week05.*` | ⭐ **第二阶段（第 5—9 周）周次安排权威表**（ch6 ER → ch7 规范化 + `migration.sql` → ch8 应用开发两段）+ **第 5 周任务 ch6 ER 模型** | `weeks/week05/README.md` §九、`weeks/README.md` 第 6—9 周索引行、`project/docs/er-diagram.md` |
 
 > ⚠️ **分工**：`week03` 管**第 3 周怎么做**；`week04` 管**第 4 周怎么做 + v0.1 到底要交什么**。
 > **v0.1 的提交物清单以 `lecture-week04.md` 的「阶段作业：可运行的数据库原型（v0.1）」一节为准** ——
