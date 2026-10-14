@@ -117,3 +117,4 @@ WHERE ABS(subtotal - expected_subtotal) > 0.001;
 - **分支与提交**：
   - 本次反馈文档与定案由 `main` 提交并推送到远端，保证队友可见；
   - 随后从 `main` 切出特性分支 `feat/week06-normalization-and-migration` 并推送到远端，开启第 6 周规范化分析与模式迁移实现。
+

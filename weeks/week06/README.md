@@ -36,17 +36,17 @@
 
 ---
 
-## 三、本周任务拆解（草案，待课程第 6 周材料到位后校准）
+## 三、本周任务拆解（已全面闭环）
 
 | # | 任务 | 落点 | 状态 |
 |---|---|---|---|
-| 1 | **函数依赖分析** —— 逐表列出 FD，找候选码与传递依赖 | `project/docs/normalization.md` | ⬜ |
-| 2 | **更新异常识别** —— 插入 / 删除 / 修改异常各举一例 | 同上 | ⬜ |
-| 3 | **范式判定** —— 各表当前满足到第几范式（1NF/2NF/3NF/BCNF） | 同上 | ⬜ |
-| 4 | **⭐ 反规范化取舍论证** —— 对**有意保留**的冗余做正式论证 | 同上 | ⬜ |
-| 5 | **分解方案** —— 需要拆的表给出分解后模式 | 同上 | ⬜ |
-| 6 | **写 `migration.sql`** —— 真实 DDL 变更 + 数据迁移 | `project/sql/11-migration/migration.sql` | ⬜ |
-| 7 | **回归测试** —— 迁移**前后**语义保持的证据 | `project/tests/` | ⬜ |
+| 1 | **函数依赖分析** —— 逐表列出 FD，找候选码与传递依赖 | [`project/docs/normalization.md`](../../project/docs/normalization.md) | ✅ 已完成 |
+| 2 | **更新异常识别** —— 插入 / 删除 / 修改异常各举一例 | 同上 | ✅ 已完成 |
+| 3 | **范式判定** —— 各表当前满足到第几范式（1NF/2NF/3NF/BCNF） | 同上 | ✅ 已完成 |
+| 4 | **⭐ 反规范化取舍论证** —— 对**有意保留**的冗余做正式论证 | 同上 | ✅ 已完成 |
+| 5 | **分解方案** —— 需要拆的表给出分解后模式 | 同上 | ✅ 已完成 |
+| 6 | **写 `migration.sql`** —— 真实 DDL 变更 + 数据迁移 | [`project/sql/11-migration/migration.sql`](../../project/sql/11-migration/migration.sql) | ✅ 已完成 |
+| 7 | **回归测试** —— 迁移**前后**语义保持的证据 | [`project/tests/01-migration-verification.md`](../../project/tests/01-migration-verification.md) | ✅ 已完成 |
 
 ### 3.1 ⭐ 第 4 项已经准备好 4 个现成的论证素材
 
@@ -85,9 +85,12 @@
 
 ## 五、文件对照
 
-| 文件 | 中文标题 |
-|---|---|
-| `README.md` | 第 6 周周报（本文件） |
+| 文件 | 中文标题 | 说明 |
+|---|---|---|
+| `README.md` | 第 6 周周报（本文件） | 本周任务与执行看板 |
+| [`project/docs/normalization.md`](../../project/docs/normalization.md) | 函数依赖、规范化分析与模式演进报告 | 本周理论分析核心资产（17 表 FD/异常消除/范式判定/5大反规范化取舍） |
+| [`project/sql/11-migration/migration.sql`](../../project/sql/11-migration/migration.sql) | 第 6 周模式迁移与完整性重构脚本 | 幂等下沉 `ck_coupon_used_time_range`，已接入 `99-rebuild.sql` |
+| [`project/tests/01-migration-verification.sql`](../../project/tests/01-migration-verification.sql) | 迁移回归测试脚本 | 正反例验证（合法放行、越界拦截） |
+| [`project/tests/01-migration-verification.md`](../../project/tests/01-migration-verification.md) | 迁移回归测试报告 | 4/4 测试用例全绿与重建集成证据 |
 
-> 本周产出的 `normalization.md` 与 `migration.sql` **直接进 `project/`**，
-> 按升级路径在本表补一行说明 + 相对路径链接，**不在 `weeks/` 下留副本**。
+> 按升级路径约定，本周产出**直接进 `project/`**，本表提供相对路径导航，**不在 `weeks/` 下留代码副本**。
