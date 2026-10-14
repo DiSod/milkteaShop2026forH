@@ -23,16 +23,16 @@
 
 ---
 
-## 二、⚠️ 开工前必须裁定的两项（承接 week05 §9.4）
+## 二、✅ 开工两项裁定（已双人定案，见 ISSUE-011）
 
-> 这两项**尚未裁定**，直接阻塞本周的目录与脚本形态：
+> 开工前裁定已闭环，指导本周目录与脚本形态：
 
-| # | 待裁定 | 倾向 | 说明 |
+| # | 裁定项 | 结论 | 说明 |
 |---|---|---|---|
-| 1 | **`migration.sql` 是否接入 `99-rebuild.sql`** | **不接入** | 保留 v0.1 可复现基线，迁移过程本身是可演示产物；接入会与已冻结的 `weeks/submissions/v0.1/code/` 产生漂移 |
-| 2 | **SQL 落点 = `project/sql/11-migration/`** | 采用 | 编号紧随 `10-transaction`，**不占用阶段三（11—13 周）的预留位** |
+| 1 | **`migration.sql` 是否接入 `99-rebuild.sql`** | **确定接入** | ① **单一基准（Single Source of Truth）**：主工程 `project/` 必须始终保持最新可用基准，避免后续第 7—9 周开发 App 时团队环境与代码漂移；② **历史已有独立物理冻结**：v0.1 历史已归档至 `weeks/submissions/v0.1/code/` 100% 独立可跑；③ **兼顾迁移测试**：`migration.sql` 既可独立在老库上演示数据平滑迁移与语义保持，又作为全新重建的标准演进流水线。 |
+| 2 | **SQL 落点 = `project/sql/11-migration/`** | **采用** | 编号紧随 `10-transaction`，**不占用阶段三（11—13 周）的预留位**。 |
 
-📌 **裁定后须回写**：[`weeks/week05/README.md`](../week05/README.md) §9.4、`project/sql/README.md` 执行顺序表、`STRUCTURE.md` §3 目录树。
+📌 **已回写对照**：[`weeks/week05/README.md`](../week05/README.md) §9.4、[`project/docs/v0.1-issues.md`](../../project/docs/v0.1-issues.md) §4、`project/sql/README.md` 执行顺序表、`STRUCTURE.md` §3 目录树。
 
 ---
 
@@ -45,25 +45,26 @@
 | 3 | **范式判定** —— 各表当前满足到第几范式（1NF/2NF/3NF/BCNF） | 同上 | ⬜ |
 | 4 | **⭐ 反规范化取舍论证** —— 对**有意保留**的冗余做正式论证 | 同上 | ⬜ |
 | 5 | **分解方案** —— 需要拆的表给出分解后模式 | 同上 | ⬜ |
-| 6 | **写 `migration.sql`** —— 真实 DDL 变更 + 数据迁移 | `project/sql/11-migration/`（待裁定） | ⬜ |
+| 6 | **写 `migration.sql`** —— 真实 DDL 变更 + 数据迁移 | `project/sql/11-migration/migration.sql` | ⬜ |
 | 7 | **回归测试** —— 迁移**前后**语义保持的证据 | `project/tests/` | ⬜ |
 
-### 3.1 ⭐ 第 4 项已经准备好 3 个现成的论证素材
+### 3.1 ⭐ 第 4 项已经准备好 4 个现成的论证素材
 
-第 5 周已把「有意保留的取舍」整理成清单，本周直接展开论证即可：
+第 5 周已把「有意保留的取舍」整理成清单，外加本轮实测定案的明细派生列，本周直接展开论证即可：
 
 | 素材 | 出处 |
 |---|---|
 | `tbl_recipe.sugar_spec_id IS NULL` 表达「与糖度无关」—— 域语义 vs 范式 | `v0.1-issues.md` §2 第 1 条 |
 | `tbl_stock_ledger` 多态来源（判别列 + 3 真外键） | `v0.1-issues.md` §1.2 问题 4 |
 | `tbl_member.points_balance` 冗余积分余额（D-12） | `v0.1-issues.md` §2 第 3 条 |
+| `tbl_order_detail.subtotal` 冗余金额与跨表小料一致性 | `v0.1-issues.md` §1.1 问题 2（实测证实已含加料，否决单表 CHECK） |
 
 ### 3.2 第 6 周的候选迁移项（第 5 周已识别）
 
 | 候选 | 成本 | 出处 |
 |---|---|---|
 | 券核销时间必须落在 `[valid_from, valid_to]` 内 | **低**（1 条 `CHECK`） | `v0.1-issues.md` §1.1 问题 1 |
-| 明细 `subtotal = qty × unit_price` | **低**（**需先确认加料加价是否计入**） | `v0.1-issues.md` §1.1 问题 2 |
+| 明细 `subtotal = qty × unit_price` | **否决单表 CHECK**（实测证实加料已计入，0 差额） | 转入 §3.1 反规范化论证（ISSUE-011） |
 | 券状态机不可逆（`UNUSED → USED` 只能一次） | **高**（需触发器，属阶段三） | `v0.1-issues.md` §1.1 问题 3 |
 | 补建 `tbl_stocktake` / `tbl_stocktake_detail` + `STOCKTAKE` 流水类型 | **高** | `project/data/README.md` §五 |
 
@@ -76,7 +77,7 @@
 | 1 | **禁止同一份内容在两处各自演化** —— 表结构以 `data-dictionary.md` 为准 | [`01-layout-and-naming.md`](../../harness/conventions/01-layout-and-naming.md) §5 |
 | 2 | **含中文的 `.sql` 必须 UTF-8 with BOM** —— 改完必须回补，否则 `sqlcmd` 静默失效 | [`02-sql-style.md`](../../harness/conventions/02-sql-style.md) §9 |
 | 3 | **`project/sql/**` 走分支**（`feat/`）；合并前必须跑通 `99-rebuild.sql` | [`04-git-workflow.md`](../../harness/conventions/04-git-workflow.md) §2.1、§2.2 |
-| 4 | ⚠️ **`migration.sql` 改的是结构** —— 若采用「不接入 99」方案，需**另立一条验证命令**，不能只靠 `99-rebuild` | 本周新增，待裁定后写入规范 |
+| 4 | **双重验证机制** —— `migration.sql` 既要编入 `99-rebuild.sql` 确保新库可一键重构拉起，又要支持在历史旧库上独立运行验证前后语义保持与数据无损 | ISSUE-011 双人定案 |
 | 5 | **强断言必须自己实测** | [`agent-session-start.md`](../../harness/prompts/agent-session-start.md) |
 | 6 | **AI 给出的函数依赖 / 分解方案需逐项核实** | 课程第 5 周原文同款提示 |
 
