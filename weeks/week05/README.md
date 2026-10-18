@@ -33,7 +33,7 @@
 | 对既有产出的态度 | 建立 | ⭐ **反思与重构** —— 允许推翻阶段一的设计 |
 
 > ⚠️ **本阶段的核心动作是「重构」** —— 阶段一的 17 张表**不是圣旨**。
-> 第 6 周的 ER 图与第 7 周的范式分析，**就是要找出阶段一模式设计中的问题**。
+> 第 5 周的 ER 图与第 6 周的范式分析，**就是要找出阶段一模式设计中的问题**。
 > 阶段一里那些"**有意的延后**"（见 §四）正是为这里准备的素材。
 
 ---
@@ -59,10 +59,10 @@
 
 | 周 | 理论 | 产出 | 计划落点 | 状态 |
 |---|---|---|---|---|
-| 6 | ch5 ER 模型 | **ER 图** | `project/docs/er-diagram.*` | ⬜ |
-| 7 | ch6 规范化 | **范式分析与改进** | `project/docs/normalization.md` | ⬜ |
-| 8 | ch7 模式重构 | **迁移脚本** | `project/docs/migration.md` + `project/sql/` | ⬜ |
-| 9 | ch8 数据库应用 | **应用界面** | `project/app/` | ⬜ |
+| 5 | ch6 ER 模型 | **ER 图、业务规则、问题清单** | `project/docs/er-diagram.*` | ✅ |
+| 6 | ch7 规范化 | **范式分析与改进** | `project/docs/normalization.md` | ✅ |
+| 6 | ch7 模式重构 | **迁移脚本** | `project/sql/11-migration/migration.sql` | ✅ |
+| 7—9 | ch8 数据库应用 | **应用界面** | `project/app/` | ⬜ |
 | 10 | — | **v1.0 提交 + 展示** | `weeks/submissions/v1.0/` | ⬜ |
 
 > **落点依据**：[`project/docs/README.md`](../../project/docs/README.md) 早已为三份文档占好位。
@@ -78,8 +78,8 @@
 
 | # | 事项 | 出处 | 阶段二可能怎么用 |
 |---|---|---|---|
-| 1 | **`tbl_recipe` 用 `sugar_spec_id IS NULL` 表达"与糖度无关"** | `data-dictionary` / D-05a | 第 7 周规范化时的**可讨论重构点** —— "把全集塞进一个域"本身就不规范 |
-| 2 | **`tbl_stock_ledger` 的"来源"用判别列 + 3 个真外键**（D-09） | `schema-design` D-09 | 第 7 周讨论**多态外键算不算范式问题** |
+| 1 | **`tbl_recipe` 用 `sugar_spec_id IS NULL` 表达"与糖度无关"** | `data-dictionary` / D-05a | 第 6 周规范化时的**可讨论重构点** —— "把全集塞进一个域"本身就不规范 |
+| 2 | **`tbl_stock_ledger` 的"来源"用判别列 + 3 个真外键**（D-09） | `schema-design` D-09 | 第 6 周讨论**多态外键算不算范式问题** |
 | 3 | **`OPENING` 期初行的 `ledger_type` 借用了 `PURCHASE_IN`** | `design-notes` §二 | v1.0 补 `STOCKTAKE` 类型（**`tbl_stocktake` 两张表也在延后清单里**） |
 
 ### 4.2 阶段一**明确未做**的事
@@ -189,7 +189,7 @@
 | 周 | 理论内容 | 当周产出（课程原文） | 落点 |
 |---|---|---|---|
 | **5** | **ch6 ER模型** | ER图、规则清单、v0.1 问题清单 | ✅ `project/docs/er-diagram.md`<br>✅ `project/docs/business-rules.md`<br>✅ `project/docs/v0.1-issues.md` |
-| **6** | **ch7 函数依赖与规范化** | 依赖分析、分解方案、**迁移语句 `migration.sql`**、回归测试 | `project/docs/normalization.md`<br>⚠️ `project/sql/11-migration/`（**待裁定**，见 §9.4） |
+| **6** | **ch7 函数依赖与规范化** | 依赖分析、分解方案、**迁移语句 `migration.sql`**、回归测试 | `project/docs/normalization.md`<br>✅ `project/sql/11-migration/`（**已定案**，见 §9.4） |
 | **7—9** | **ch8 应用开发（一）** | 连接配置、DAO/API、登录与基础 CRUD 界面 | `project/app/` |
 | **7—9** | **ch8 应用开发（二）** | 可运行应用、测试脚本、**操作手册** | `project/app/` + `project/tests/` |
 
