@@ -28,8 +28,12 @@
 | 实现层 | 条数 | 说明 |
 |---|---|---|
 | ① 数据库约束 | **52** | 43 `CHECK` + 30 `FK`（含基数方向）+ 17 `UNIQUE` 中的业务码部分 |
-| ② 应用代码 | **7** | 见 §4 —— **其中 3 条是数据库表达不了的** |
+| ② 应用代码 | **9** | 见 §4 —— 其中 A1—A6 是完整性缺口，A8—A10 是口径类规则（口径问题加约束也解决不了） |
 | ③ 人工检查 | **2** | 见 §5 |
+
+> 条数变化留痕：初版 ② 层记 7 条（A1—A7）；第 6 周 A7 用 `ck_coupon_used_time_range` 下沉到 ① 层（−1），
+> 同时新增 A8/A9/A10 三条口径类规则（+3），故现为 9 条。① 层的 52 条未把新 `CHECK` 计入
+> —— 那是 `migration.sql` 加的，本表只统计 `02-constraints/constraints.sql` 的基线。
 
 ---
 
@@ -128,7 +132,30 @@
 | **A4** | **`tbl_member.points_balance` = Σ 积分流水** | 同上（冗余字段，D-12 有意保留） | 事务维护 | 同上 |
 | **A5** | **一券只能用一次** | `status`/`used_time` 有 `CHECK` 保证**取值合法**，但「只能改一次」是**状态转换**约束 | 应用逻辑 | 第 6 周 |
 | **A6** | **`tbl_ingredient.qty_on_hand` = 期初 + Σ 流水** | 同上，跨行聚合 | 造数引擎保证 + 审计查询验证 | v1.0 校准 |
-| **A7** | **券核销时间必须落在有效期内** | `used_time` 与 `valid_from/valid_to` 的跨列关系**未建 CHECK** | 应用逻辑 | ⭐ **可低成本补 `CHECK`**，建议第 6 周加 |
+| **A7** | **券核销时间必须落在有效期内** | `used_time` 与 `valid_from/valid_to` 的跨列关系**未建 CHECK** | 应用逻辑 | ✅ **已实施**，见下「第 6 周增补」 |
+| **A8** | **`order_status = 'COMPLETED'` ⇒ `pay_status = 'SUCCESS'`** | 两个字段的**跨列蕴含**没有 `CHECK`；且 `COMPLETED` 与否还受"已取件"这个**库外事件**影响 | 造数程序自觉保证（实测 1,894 单全部满足） | 可补 `CHECK (NOT (order_status='COMPLETED' AND pay_status<>'SUCCESS'))`；**但不建议**——真实业务里"已取件"由店员操作，硬约束会把操作卡死 |
+| **A9** | **退款是整单退，退款额 = `SUM(amount_paid) WHERE pay_status='FAILED'`** | 库里**没有退款表**，也没有退款时间、原因、退款单号；`tbl_order_header` 的 `pay_status` 只有 `SUCCESS`/`FAILED` 两值，无法区分"从未支付"与"已退款" | 造数程序把 `CANCELLED` 单写成 `FAILED` 并保留**退款前原值** | **本轮明确不建退款表**（第 6 周裁定）。退款额只能反推，**不可审计**；写进报告作为已知边界 |
+| **A10** | **求销售额必须带 `pay_status = 'SUCCESS'` 过滤** | 这不是库的问题，而是**口径问题**：`vw_daily_business_summary.net_revenue` 是 `SUM(amount_paid)` 且视图**整体无 WHERE**，把 37 张已退款单的 446.00 元也算进了收入 | 视图现状即如此，**本轮不改视图** | 口径写进 [`data-dictionary.md`](data-dictionary.md) §五；`regression.sql` 断言"视图合计 = 销售额 + 退款额"这个**已知偏差**，而不是断言"视图等于销售额" |
+
+### 第 6 周增补（A7 已落地，A8—A10 为新增口径类规则）
+
+**A7 已实施**：`project/sql/11-migration/migration.sql` 新增
+
+```sql
+ALTER TABLE tbl_coupon WITH CHECK ADD CONSTRAINT ck_coupon_used_time_range
+    CHECK (used_time IS NULL OR (used_time >= valid_from AND used_time <= valid_to));
+```
+
+并已接入 `99-rebuild.sql`（接通顺序 `00→01→02→03→04→07→08→11`）。
+迁移脚本自带违例预检与事务回滚，独立可重放（幂等）。
+
+**A8—A10 的性质和 A1—A7 不同**：A1—A6 是"库里应该能拦但没拦"的**完整性缺口**；
+A8—A10 是**业务口径的定义问题**，其中 A9 是**有意接受的边界**（不建退款表），
+A10 是"同一份库里存在两套口径"的提醒 —— 二者都不是靠加约束能解决的。
+
+> ⚠️ **口径不一致是真实存在的**：`vw_daily_business_summary`（`view.sql:169`）用 `SUM(amount_paid)` 且不带状态过滤；
+> `vw_member_consumption_profile`（`view.sql:227`）却带了 `o.order_status = 'COMPLETED'`。
+> 同一份数据库里两套口径并存，**用之前必须看清楚**。本轮选择不统一视图、只统一文档口径。
 
 ### ⚠️ 一个值得单独记录的教训
 
