@@ -29,8 +29,9 @@
 | [**009**](009-documentation-consistency-and-cleanup.md) | **交付文档全量一致性清扫与历史残留消除（132 字段定案、ANY 样例清除、D-05a 去重）** | 文档维护 / 一致性排雷 | 文档主编 (DiSod) | 🟢 **已解决** | [`report.md`](../../weeks/submissions/v0.1/report.md), [`data-dictionary.md`](../../project/docs/data-dictionary.md), [`schema-design.md`](../../weeks/week02/schema-design.md) |
 | [**010**](010-v0.1-submission-review.md) | ⭐ **v0.1 提交物协同审查** —— 内容合理性 / 文档合理性 / 协同补充（含给 AI 的提示词与审查清单） | 交付审查 / 协同 | **核心工程 (hezhlin5)** | 🟢 **已解决** | [`weeks/submissions/v0.1/`](../../weeks/submissions/v0.1/) 全部 |
 | [**011**](011-week06-migration-and-subtotal-alignment.md) | **第 6 周迁移接入策略定案与订单明细 subtotal 加料一致性实测反馈** | 架构决策 / 完整性约束实测 | 双人共同讨论 / 核心工程 (hezhlin5) | 🟢 **已解决** | [`project/docs/v0.1-issues.md`](../../project/docs/v0.1-issues.md), [`weeks/week06/README.md`](../../weeks/week06/README.md) |
+| [**012**](012-normalization-paradigm-count-inconsistency.md) | **`normalization.md` 范式判定数字自相矛盾**：§0 写 12 BCNF + 5 反规范化，§3 判定表实为 14 BCNF + 3 张 2NF；并请作者确认标 2NF 的口径 | 文档一致性 / 范式判定口径 | **核心工程 (hezhlin5)** | 🔴 **待处理** | [`project/docs/normalization.md`](../../project/docs/normalization.md) §0 与 §3 |
 
-> **闭环进度**：🟢 已解决 **11** 条（001—011）· 🔴 待处理 **0** 条（看板清空）。
+> **闭环进度**：🟢 已解决 **11** 条（001—011）· 🔴 待处理 **1** 条（012，等 hezhlin5 定口径）。
 >
 > ⚠️ **排雷重点**：
 > - **008（工程主责）**：✅ 已闭环。修复 `ck_points_ledger_target` 对无券退单的拦截死锁，优化 `crud.sql` 退单聚合回冲与采购加权成本除零保护；
@@ -92,7 +93,7 @@ Issue 是"**提议**"，裁决后标题里的主张**可能被否决**。
 
 ### 当前闭环进度
 
-> **闭环进度**：🟢 已解决 **11** 条（001—011）· 🔴 待处理 **0** 条。
+> **闭环进度**：🟢 已解决 **11** 条（001—011）· 🔴 待处理 **1** 条（012，等 hezhlin5 定口径）。
 >
 > | 批次 | Issue | 日期 |
 > |---|---|---|
