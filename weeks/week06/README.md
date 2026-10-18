@@ -94,3 +94,77 @@
 | [`project/tests/01-migration-verification.md`](../../project/tests/01-migration-verification.md) | 迁移回归测试报告 | 4/4 测试用例全绿与重建集成证据 |
 
 > 按升级路径约定，本周产出**直接进 `project/`**，本表提供相对路径导航，**不在 `weeks/` 下留代码副本**。
+
+---
+
+## 六、⭐ 本周裁定与口径（2026-10-15 定案）
+
+> §二 的两条是**开工前**定案（ISSUE-011）。本节 6 条是**执行中**定案，
+> 已回写到 [`business-rules.md`](../../project/docs/business-rules.md) §4、
+> [`data-dictionary.md`](../../project/docs/data-dictionary.md) §五 与 [`project/tests/baseline/`](../../project/tests/baseline/README.md)。
+
+### 6.1 销售额口径（后果最大的一条）
+
+同一份库里"销售额"有三个不同的数，**报数前必须声明用哪个**：
+
+| 口径 | 筛选条件 | 订单数 | 小计合计 | 实付金额 |
+|---|---|---|---|---|
+| A 全量 | 无 | 1,963 | 24,328.00 | 24,208.00 |
+| **D 已收款** ⭐ | `pay_status = 'SUCCESS'` | **1,926** | **23,882.00** | **23,762.00** |
+| B 已完成 | `order_status = 'COMPLETED'` | 1,894 | 23,473.00 | 23,363.00 |
+
+包含关系 **A ⊃ D ⊃ B**。完整口径表见 `data-dictionary.md` §五。
+
+### 6.2 六条裁定一览
+
+| # | 裁定项 | 结论 | 理由 / 后果 |
+|---|---|---|---|
+| 1 | 销售额主口径 | **D = `pay_status='SUCCESS'` 的 `SUM(amount_paid)` = 23,762.00** | B 口径漏掉 32 张已付款的弃单 |
+| 2 | `ABANDONED`（已付款未取件）是否计入销售额 | **计入** | 32 单 / 44 杯 / 实付 399.00；钱已收、原料已耗 |
+| 3 | `CANCELLED` 单的 `amount_paid` 存什么 | **保留退款前原值**（合计 446.00） | 库里没有退款金额字段，存 0 会丢信息 |
+| 4 | 是否建退款表 | **不建** | 退款额只能靠 `pay_status='FAILED'` 反推；**已知边界，不可审计** |
+| 5 | 是否支持部分退款 | **不支持**，模型只考虑整单退 | 与 `pay_status` 两值枚举一致；支持部分退款要重构支付模型 |
+| 6 | 是否改 `vw_daily_business_summary` 的口径 | **不改视图，只写文档** | 视图无 WHERE，`net_revenue` = 24,208.00 含退款 446.00；改视图会牵动第 4 周已验收的查询结果 |
+
+### 6.3 由此新增的三条业务规则
+
+写入 `business-rules.md` §4（原 A1—A7，现 A1—A10）：
+
+| # | 规则 | 库能不能拦 |
+|---|---|---|
+| **A8** | `order_status = 'COMPLETED'` ⇒ `pay_status = 'SUCCESS'` | 能加 `CHECK`，但**不建议** —— "已取件"是库外事件，硬约束会卡住操作 |
+| **A9** | 退款 = 整单退，金额 = `SUM(amount_paid) WHERE pay_status='FAILED'` | ❌ 拦不住也查不到：无退款表 |
+| **A10** | 求销售额必须带 `pay_status = 'SUCCESS'` | ❌ 这不是约束问题，是口径问题 |
+
+### 6.4 任务 ①「保存迁移前结果」的落点
+
+新建 [`project/tests/baseline/`](../../project/tests/baseline/README.md)：三个快照脚本 + 迁移前实测结果。
+
+| 脚本 | 覆盖 | 迁移前指纹 |
+|---|---|---|
+| `01-order-detail.sql` | 34 单 / 59 行明细 / 17 行加料 | `-1674015621` |
+| `02-product-sales.sql` | 29 商品行 × 三口径 | `436093178` |
+| `03-stock-query.sql` | 60 原料 + 57 视图行 | 原料 `1517769285` / 视图 `394430658` |
+
+**快照 ≠ 回归测试**：快照给人看、建基线；`regression.sql` 给机器判、能失败。本周只做前者。
+
+### 6.5 一条方法论教训
+
+[`normalization.md`](../../project/docs/normalization.md) §0 写「标准 BCNF **12 张** + 有意反规范化 **5 张**」，
+而 §3 的 17 行判定表实际是「**14 张 BCNF + 3 张 2NF**」（`tbl_member` / `tbl_order_header` / `tbl_order_detail`）。
+两套口径互斥（`12+5=17` vs `14+3=17`），且 §0 同处还写「**无任何部分依赖与传递依赖**」，与 §3 的 3 张 2NF 直接冲突。
+**同一份文档里同一个结论出现两个数字，必须回头统一** —— 否则答辩时被任选一处追问就自相矛盾。
+本轮**未修改**该文件（作者 hezhlin5，已按"按他的来"处理判定口径），只登记待办。
+
+---
+
+## 七、待办（本周未完成）
+
+| # | 待办 | 状态 | 说明 |
+|---|---|---|---|
+| 1 | `normalization.md` §0 与 §3 的范式判定数字不一致（12+5 vs 14+3） | ⬜ **未修** | 见 §6.5；属事实性矛盾，非口径分歧 |
+| 2 | `normalization.md` §5 只有"无损连接且保持依赖"的断言，无证明步骤 | ⬜ **未修** | 课程作业 ② 要求"无损连接与依赖保持分析" |
+| 3 | `migration.sql` 未含课程要求的 6 要素 | ⬜ **未做** | 现只加了 1 条 `CHECK`；缺新表创建 / 字段调整 / 码设置 / 数据迁移 / 重复数据检查 / 旧表处理说明 |
+| 4 | `regression.sql` 尚未编写 | ⬜ **未做** | 现有 `01-migration-verification.sql` 是 4 个券用例，且**失败不返回非零退出码** |
+| 5 | 券表拆分（`tbl_coupon` → `tbl_coupon_template` + `tbl_coupon`） | ⬜ **未做** | 建议方案，见 `normalization.md` §5；实测依据 24 张券只有 2 个券种、字段重复 12 行 |
+| 6 | `weeks/submissions/v1.0/report.md` 报告素材 | ⬜ **未起稿** | 目录目前只有 `.gitkeep` |
