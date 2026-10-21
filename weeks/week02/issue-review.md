@@ -13,6 +13,13 @@ D1—D8 已由 **DiSod 侧定案**，但 ISSUE-001/002/003 按看板规则属"**
 - week1 原始决策依据 → [`../week01/business-requirements.md`](../week01/business-requirements.md)
 - 第一阶段评分要点 → [`../../course/lecture-week01.md`](../../course/lecture-week01.md)
 
+> ### ⚠️ 周次引用订正（2026-10-21）
+>
+> 本文件 L309（D1 交叉检查表的「1:1」行）写「第 7 周规范化必然要求合并」，
+> 该周次沿用了第 2 周当时的排期。**实际排期为第 6 周（ch7 函数依赖与规范化）**。
+> 权威周次表见 [`weeks/README.md`](../README.md)；按 [`03-documentation.md`](../../harness/conventions/03-documentation.md) §6，正文保留原样。
+>
+
 ---
 
 ## 一、三条裁决原则
