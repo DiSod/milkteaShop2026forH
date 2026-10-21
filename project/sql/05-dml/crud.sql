@@ -133,15 +133,15 @@ PRINT N'【CRUD】1.3 CREATE —— 给会员发一张 5 元券 DEMO-CP1';
 GO
 
 INSERT INTO tbl_coupon
-    (coupon_code, member_id, coupon_name, source, discount_amount, min_order_amount, valid_from, valid_to)
+    (coupon_code, member_id, template_id, valid_from, valid_to)
 VALUES
     (N'DEMO-CP1',
      (SELECT member_id FROM tbl_member WHERE member_code = 'DEMO-M1'),
-     N'5 元无门槛券', N'POINTS_EXCHANGE', 5.00, 0.00,
+     (SELECT template_id FROM tbl_coupon_template WHERE template_code = 'TPL_POINTS_5'),
      '2026-10-04 00:00:00', '2026-11-04 23:59:59');
 
 SELECT coupon_id, coupon_code, coupon_name, discount_amount, status
-FROM   tbl_coupon WHERE coupon_code = 'DEMO-CP1';
+FROM   vw_coupon_legacy WHERE coupon_code = 'DEMO-CP1';
 GO
 
 /* ---------- 1.4 新增原料 + 成品 + 配方 ---------- */
