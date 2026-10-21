@@ -1,12 +1,13 @@
 # 数据字典（表 / 字段 / 域 / 码）
 
 **项目**：奶茶店经营数据库（茶颜小铺 · 单店）
-**阶段**：第一阶段（第 1—4 周）· v0.1
-**状态**：✅ **四项任务全部完成**（字段字典 / 码标注 / 样例元组）
+**阶段**：第二阶段（第 5—6 周）· v1.0
+**状态**：✅ **第 6 周规范化拆分重构完成（18 表形态，彻底消除优惠券传递冗余）**
 **关联**：
+- 规范化分析与数学证明 → [`normalization.md`](normalization.md)
+- 第 6 周迁移实施脚本 → [`../sql/11-migration/migration.sql`](../sql/11-migration/migration.sql)
 - 表结构与设计决策 → [`../../weeks/week02/schema-design.md`](../../weeks/week02/schema-design.md)
-- 裁决后的定案（**17 张表**、D1—D8） → [`../../weeks/week02/issue-review.md`](../../weeks/week02/issue-review.md)
-- 主数据（成品 / 原料 / 配方） → [`../../weeks/week02/master-data.md`](../../weeks/week02/master-data.md)
+- 裁决后的定案（D1—D8） → [`../../weeks/week02/issue-review.md`](../../weeks/week02/issue-review.md)
 
 > ⚠️ **本文件的表结构以 `issue-review.md` 的 17 张表为准**（ISSUE-001/002/003 的裁决），
 > 尚待与 hezhlin5 讨论确认；确认前若有调整，本文件随之修订。
@@ -523,35 +524,56 @@ PK      : point_ledger_id
 
 ---
 
-#### 14. `tbl_coupon`（券 · **发放 + 核销合一**）
+#### 14. `tbl_coupon_template`（优惠券模板表 · **第 6 周规范化拆分新增**）
 
-> **原 `tbl_coupon_template` 已合并进本表**（ISSUE-002 的 2.3，我们采纳）——
-> v0.1 的券只有"5 元券"一种形态，**不存在"模板"概念**，也就没有快照问题。
-> 第 2 阶段引入多种券种时再拆，**正好是第 6 周规范化的素材**（D8）。
+> **规范化演进落地（ch7 迁移 6 要素）**：
+> 承接前期设计预留（"第 2 阶段引入多种券种时再拆，正好是第 6 周规范化的素材"），本表将券公共元数据从原 `tbl_coupon` 中剥离出来独立建模，彻底消除 24 张历史券中 12 行冗余数据，消解传递依赖与修改异常。
+
+| 字段名 | 类型 | 长度/精度 | 允许空 | 默认值 | 域 | 含义 | 码 |
+|---|---|---|---|---|---|---|---|
+| `template_id` | INT | — | 否 | IDENTITY | 正整数 | **代理主码** | **PK** |
+| `template_code` | VARCHAR | 20 | 否 | — | 形如 `TPL_CAMP_5` | 模板业务编码 | **UNIQUE**（候选码） |
+| `template_name` | NVARCHAR | 20 | 否 | — | — | 模板显示名称（如 `5元无门槛券`） | |
+| `source` | VARCHAR | 16 | 否 | — | **DOM-07 券来源** | 积分兑换 / 活动赠与 | |
+| `discount_amount` | DECIMAL | (10,2) | 否 | — | > 0 | **面值抵扣金额** | |
+| `min_order_amount` | DECIMAL | (10,2) | 否 | `0` | ≥ 0 | **使用门槛金额** | |
+| `is_active` | BIT | — | 否 | `1` | 0/1 | 是否启用该券种模板 | |
+| `created_at` | DATETIME2 | — | 否 | `SYSDATETIME()` | — | 模板创建时间 | |
+
+**码标注**
+```
+PK      : template_id
+候选码  : template_code
+外码    : 无
+```
+
+---
+
+#### 14a. `tbl_coupon`（优惠券实例表 · **发放与核销**）
+
+> 经第 6 周迁移重构，原表 4 个模板属性（`coupon_name`, `source`, `discount_amount`, `min_order_amount`）已安全移除，新增 `template_id` 关联 `tbl_coupon_template`。
+> 系统同时提供向后兼容全景视图 `vw_coupon_legacy`，确保历史报表查询与上层应用平滑无感过渡。
 
 | 字段名 | 类型 | 长度/精度 | 允许空 | 默认值 | 域 | 含义 | 码 |
 |---|---|---|---|---|---|---|---|
 | `coupon_id` | INT | — | 否 | IDENTITY | 正整数 | **代理主码** | **PK** |
 | `coupon_code` | VARCHAR | 20 | 否 | — | 形如 `CP20260923001` | 券号 | **UNIQUE**（候选码） |
+| `template_id` | INT | — | 否 | — | `tbl_coupon_template.template_id` | 券种模板引用 | **FK** |
 | `member_id` | INT | — | 否 | — | `tbl_member.member_id` | 持券会员 | **FK** |
-| `coupon_name` | NVARCHAR | 20 | 否 | — | — | 券名（`5 元无门槛券`） | |
-| `source` | VARCHAR | 16 | 否 | — | **DOM-07 券来源** | 积分兑换 / 活动赠与 | |
-| `discount_amount` | DECIMAL | (10,2) | 否 | — | > 0 | **面值**（发放时快照） | |
-| `min_order_amount` | DECIMAL | (10,2) | 否 | `0` | ≥ 0 | **使用门槛**（发放时快照） | |
 | `valid_from` | DATETIME2 | — | 否 | — | — | 生效时间 | |
 | `valid_to` | DATETIME2 | — | 否 | — | > valid_from | 失效时间 | |
 | `status` | VARCHAR | 8 | 否 | `'UNUSED'` | **DOM-08 券状态** | 未使用 / 已核销 / 已过期 | |
-| `used_time` | DATETIME2 | — | **是** | — | — | 核销时间；订单取消时**清空**（D-11b 券退回） | |
+| `used_time` | DATETIME2 | — | **是** | — | **[valid_from, valid_to]** | 核销时间（受 `ck_coupon_used_time_range` 硬约束） | |
 
-> **不存 `used_order_id`**（D-11）：反向引用由 `tbl_order_header.coupon_id` 单向承担，
-> 两边都存就是**双向冗余**。
-> **券退回后历史轨迹不会丢** —— 被取消的订单**仍指向这张券**。
+> **向后兼容全景视图 `vw_coupon_legacy`**：
+> `SELECT c.coupon_id, c.coupon_code, c.member_id, t.template_name AS coupon_name, t.source, t.discount_amount, t.min_order_amount, c.valid_from, c.valid_to, c.status, c.used_time, c.template_id, t.template_code, t.is_active FROM tbl_coupon c INNER JOIN tbl_coupon_template t ON c.template_id = t.template_id;`
 
 **码标注**
 ```
 PK      : coupon_id
 候选码  : coupon_code
-外码    : member_id → tbl_member.member_id
+外码    : template_id → tbl_coupon_template.template_id
+          member_id   → tbl_member.member_id
           （订单 → 券 的方向由 tbl_order_header.coupon_id 承担）
 ```
 
@@ -640,7 +662,8 @@ PK      : purchase_order_detail_id
 | 11 | `tbl_order_detail` | `order_detail_id` | `(order_id, line_no)` | `order_id` → `tbl_order_header`<br>`product_id` → `tbl_product`<br>`cup_spec_id`、`sugar_spec_id`、`ice_spec_id` → `tbl_spec_option` |
 | 12 | `tbl_order_detail_topping` | `od_topping_id` | `(order_detail_id, topping_id)` | `order_detail_id` → `tbl_order_detail`<br>`topping_id` → `tbl_topping` |
 | 13 | `tbl_points_ledger` | `point_ledger_id` | **无** | `member_id` → `tbl_member`<br>`order_id` → `tbl_order_header`<br>`coupon_id` → `tbl_coupon` |
-| 14 | `tbl_coupon` | `coupon_id` | `coupon_code` | `member_id` → `tbl_member` |
+| 14 | `tbl_coupon_template` | `template_id` | `template_code` | **无** |
+| 14a | `tbl_coupon` | `coupon_id` | `coupon_code` | `template_id` → `tbl_coupon_template`<br>`member_id` → `tbl_member` |
 | 15 | `tbl_purchase_order` | `purchase_order_id` | `purchase_no` | `supplier_id` → `tbl_supplier`<br>`ordered_by`、`received_by` → `tbl_employee` |
 | 16 | `tbl_purchase_order_detail` | `purchase_order_detail_id` | `(purchase_order_id, ingredient_id)` | `purchase_order_id` → `tbl_purchase_order`<br>`ingredient_id` → `tbl_ingredient` |
 | 17 | `tbl_supplier` | `supplier_id` | `supplier_code` | **无** |
@@ -649,11 +672,11 @@ PK      : purchase_order_detail_id
 
 | 项 | 数量 |
 |---|---|
-| 表 | **17** |
-| 主码 | **17**（**全部为代理键**） |
-| 候选码 | **17** 个（其中 **6 个是复合候选码**） |
-| 外码 | **30** 个 |
-| 无外码的表 | **5 张** —— `tbl_employee` / `tbl_member` / `tbl_spec_option` / `tbl_ingredient` / `tbl_supplier` |
+| 表 | **18** |
+| 主码 | **18**（**全部为代理键**） |
+| 候选码 | **18** 个（其中 **6 个是复合候选码**） |
+| 外码 | **31** 个 |
+| 无外码的表 | **6 张** —— `tbl_employee` / `tbl_member` / `tbl_spec_option` / `tbl_ingredient` / `tbl_supplier` / `tbl_coupon_template` |
 
 **约定**
 
@@ -843,13 +866,20 @@ PK      : purchase_order_detail_id
 > **第 2 行 −500**：用 500 积分兑换了券 1 —— **这一行与 `tbl_coupon` 的券 1 通过 `coupon_id` 对应**。
 > **这就是"积分必须流水化"的意义**：余额只告诉你"有多少"，流水才告诉你"怎么来的、怎么去的"。
 
-### 14. `tbl_coupon`
+### 14. `tbl_coupon_template`
 
-| coupon_id | coupon_code | member_id | coupon_name | source | discount_amount | min_order_amount | valid_from | valid_to | status | used_time |
-|---:|---|---:|---|---|---:|---:|---|---|---|---|
-| 1 | CP20260920001 | 1 | 5 元无门槛券 | POINTS_EXCHANGE | 5.00 | 0.00 | 2026-09-20 14:30:00 | 2026-10-20 23:59:59 | **USED** | 2026-09-23 10:05:10 |
-| 2 | CP20260901002 | 3 | 5 元无门槛券 | CAMPAIGN | 5.00 | 0.00 | 2026-09-01 00:00:00 | 2026-12-31 23:59:59 | UNUSED | NULL |
-| 3 | CP20260801003 | 2 | 3 元券（满 15 可用） | CAMPAIGN | 3.00 | 15.00 | 2026-08-01 00:00:00 | 2026-08-31 23:59:59 | **EXPIRED** | NULL |
+| template_id | template_code | template_name | source | discount_amount | min_order_amount | is_active | created_at |
+|---:|---|---|---|---:|---:|---:|---|
+| 1 | TPL_CAMP_5 | 5元无门槛券 | CAMPAIGN | 5.00 | 0.00 | 1 | 2026-09-01 00:00:00 |
+| 2 | TPL_POINTS_5 | 5元无门槛券 | POINTS_EXCHANGE | 5.00 | 0.00 | 1 | 2026-09-01 00:00:00 |
+
+### 14a. `tbl_coupon`
+
+| coupon_id | coupon_code | template_id | member_id | valid_from | valid_to | status | used_time |
+|---:|---|---:|---:|---|---|---|---|
+| 1 | CP20260912001 | 2 | 11 | 2026-09-12 00:00:00 | 2026-10-12 23:59:59 | **USED** | 2026-09-17 21:01:03 |
+| 2 | CP20260912002 | 1 | 23 | 2026-09-12 00:00:00 | 2026-10-12 23:59:59 | **USED** | 2026-09-17 10:02:49 |
+| 3 | CP20260912003 | 2 | 36 | 2026-09-12 00:00:00 | 2026-10-12 23:59:59 | **USED** | 2026-09-18 15:27:46 |
 
 > 三种状态各一行。**券 1 与积分流水第 2 行、订单 1 三处对得上**：
 > 兑换 → 核销 → 抵扣 5 元。

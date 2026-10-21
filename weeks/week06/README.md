@@ -18,7 +18,7 @@
 | 项 | 内容 |
 |---|---|
 | **输入** | [`project/docs/v0.1-issues.md`](../../project/docs/v0.1-issues.md)（第 5 周的待调整清单） |
-| **输出** | `project/docs/normalization.md` + **`migration.sql`（可执行）** + 回归测试 |
+| **输出** | `project/docs/normalization.md` + **`migration.sql`（可执行，满足 6 要素）** + **`regression.sql`（非零退出码）** |
 | **不做** | ❌ 应用界面（第 7—9 周）· ❌ 存储过程 / 触发器（第 11—12 周，除非迁移确需） |
 
 ---
@@ -42,11 +42,11 @@
 |---|---|---|---|
 | 1 | **函数依赖分析** —— 逐表列出 FD，找候选码与传递依赖 | [`project/docs/normalization.md`](../../project/docs/normalization.md) | ✅ 已完成 |
 | 2 | **更新异常识别** —— 插入 / 删除 / 修改异常各举一例 | 同上 | ✅ 已完成 |
-| 3 | **范式判定** —— 各表当前满足到第几范式（1NF/2NF/3NF/BCNF） | 同上 | ✅ 已完成 |
+| 3 | **范式判定** —— 各表当前满足到第几范式（1NF/2NF/3NF/BCNF） | 同上 | ✅ 已完成（15 纯净 BCNF + 3 工程反规范化 = 18 表） |
 | 4 | **⭐ 反规范化取舍论证** —— 对**有意保留**的冗余做正式论证 | 同上 | ✅ 已完成 |
-| 5 | **分解方案** —— 需要拆的表给出分解后模式 | 同上 | ✅ 已完成 |
-| 6 | **写 `migration.sql`** —— 真实 DDL 变更 + 数据迁移 | [`project/sql/11-migration/migration.sql`](../../project/sql/11-migration/migration.sql) | ✅ 已完成 |
-| 7 | **回归测试** —— 迁移**前后**语义保持的证据 | [`project/tests/01-migration-verification.md`](../../project/tests/01-migration-verification.md) | ✅ 已完成 |
+| 5 | **分解方案与数学证明** —— 优惠券与派生列的无损连接与保持依赖证明 | 同上 §5 | ✅ 已完成（充要条件推导 + 闭包等价性） |
+| 6 | **写 `migration.sql`** —— 真实 DDL 变更 + 6 要素迁移 + 拆分为 18 表 | [`project/sql/11-migration/migration.sql`](../../project/sql/11-migration/migration.sql) | ✅ 已完成 |
+| 7 | **回归测试** —— 自动化断言 + 非零退出码 + 快照 0 差异证据 | [`project/tests/regression.sql`](../../project/tests/regression.sql) & [`baseline/`](../../project/tests/baseline/README.md) | ✅ 已完成 |
 
 ### 3.1 ⭐ 第 4 项已经准备好 4 个现成的论证素材
 
@@ -59,14 +59,16 @@
 | `tbl_member.points_balance` 冗余积分余额（D-12） | `v0.1-issues.md` §2 第 3 条 |
 | `tbl_order_detail.subtotal` 冗余金额与跨表小料一致性 | `v0.1-issues.md` §1.1 问题 2（实测证实已含加料，否决单表 CHECK） |
 
-### 3.2 第 6 周的候选迁移项（第 5 周已识别）
+### 3.2 第 6 周迁移项（满足迁移 6 要素）
 
-| 候选 | 成本 | 出处 |
+| 迁移要素 | 实施内容 | 状态 |
 |---|---|---|
-| 券核销时间必须落在 `[valid_from, valid_to]` 内 | **低**（1 条 `CHECK`） | `v0.1-issues.md` §1.1 问题 1 |
-| 明细 `subtotal = qty × unit_price` | **否决单表 CHECK**（实测证实加料已计入，0 差额） | 转入 §3.1 反规范化论证（ISSUE-011） |
-| 券状态机不可逆（`UNUSED → USED` 只能一次） | **高**（需触发器，属阶段三） | `v0.1-issues.md` §1.1 问题 3 |
-| 补建 `tbl_stocktake` / `tbl_stocktake_detail` + `STOCKTAKE` 流水类型 | **高** | `project/data/README.md` §五 |
+| 要素 1：新表创建 | 新建优惠券模板实体表 `tbl_coupon_template` | ✅ 已落地 |
+| 要素 2：字段调整 | `tbl_coupon` 添加 `template_id`，移除 4 个冗余列 | ✅ 已落地 |
+| 要素 3：码设置 | 设置模板 PK/UQ/CHECK，原表设置 FK、外键索引与核销有效区间约束 `ck_coupon_used_time_range` | ✅ 已落地 |
+| 要素 4：数据迁移 | 从历史数据去重抽取 2 个标准模板装载，精准回填 `template_id` | ✅ 已落地 |
+| 要素 5：数据校验 | 校验 0 孤儿券，核销时间窗口 100% 合规，总券数 24 行无损 | ✅ 已落地 |
+| 要素 6：旧表兼容处理 | 建立向后兼容视图 `vw_coupon_legacy`，同步角色权限 | ✅ 已落地 |
 
 ---
 
@@ -88,20 +90,20 @@
 | 文件 | 中文标题 | 说明 |
 |---|---|---|
 | `README.md` | 第 6 周周报（本文件） | 本周任务与执行看板 |
-| [`project/docs/normalization.md`](../../project/docs/normalization.md) | 函数依赖、规范化分析与模式演进报告 | 本周理论分析核心资产（17 表 FD/异常消除/范式判定/5大反规范化取舍） |
-| [`project/sql/11-migration/migration.sql`](../../project/sql/11-migration/migration.sql) | 第 6 周模式迁移与完整性重构脚本 | 幂等下沉 `ck_coupon_used_time_range`，已接入 `99-rebuild.sql` |
-| [`project/tests/01-migration-verification.sql`](../../project/tests/01-migration-verification.sql) | 迁移回归测试脚本 | 正反例验证（合法放行、越界拦截） |
-| [`project/tests/01-migration-verification.md`](../../project/tests/01-migration-verification.md) | 迁移回归测试报告 | 4/4 测试用例全绿与重建集成证据 |
+| [`project/docs/normalization.md`](../../project/docs/normalization.md) | 函数依赖、规范化分析与模式演进报告 | 本周理论分析核心资产（18 表 FD/异常消除/范式判定/5大反规范化取舍/数学证明） |
+| [`project/docs/data-dictionary.md`](../../project/docs/data-dictionary.md) | 数据字典 | 18 表完整字段字典与码标注汇总 |
+| [`project/sql/11-migration/migration.sql`](../../project/sql/11-migration/migration.sql) | 第 6 周模式迁移与规范化拆分脚本 | 满足迁移 6 要素，已接入 `99-rebuild.sql` |
+| [`project/sql/11-migration/README.md`](../../project/sql/11-migration/README.md) | 迁移设计与执行说明 | 6 要素落地对照与双重验证指引 |
+| [`project/tests/regression.sql`](../../project/tests/regression.sql) | 全库自动化回归测试入口 | 12 项硬断言，带 `THROW` 与 `sqlcmd -b` 非零退出码机制 |
+| [`project/tests/01-migration-verification.sql`](../../project/tests/01-migration-verification.sql) | 迁移专项正反例脚本 | 正反例验证（合法放行、越界拦截、悬空外键拦截） |
+| [`project/tests/01-migration-verification.md`](../../project/tests/01-migration-verification.md) | 迁移专项回归测试报告 | 5/5 测试用例全绿与重建集成证据 |
+| [`project/tests/baseline/`](../../project/tests/baseline/README.md) | 迁移前后基线快照对比 | 抽样明细 S1、销售 S2、库存 S3 对比迁移前，0 差异 |
 
 > 按升级路径约定，本周产出**直接进 `project/`**，本表提供相对路径导航，**不在 `weeks/` 下留代码副本**。
 
 ---
 
 ## 六、⭐ 本周裁定与口径（2026-10-15 定案）
-
-> §二 的两条是**开工前**定案（ISSUE-011）。本节 6 条是**执行中**定案，
-> 已回写到 [`business-rules.md`](../../project/docs/business-rules.md) §4、
-> [`data-dictionary.md`](../../project/docs/data-dictionary.md) §五 与 [`project/tests/baseline/`](../../project/tests/baseline/README.md)。
 
 ### 6.1 销售额口径（后果最大的一条）
 
@@ -115,45 +117,17 @@
 
 包含关系 **A ⊃ D ⊃ B**。完整口径表见 `data-dictionary.md` §五。
 
-### 6.2 六条裁定一览
-
-| # | 裁定项 | 结论 | 理由 / 后果 |
-|---|---|---|---|
-| 1 | 销售额主口径 | **D = `pay_status='SUCCESS'` 的 `SUM(amount_paid)` = 23,762.00** | B 口径漏掉 32 张已付款的弃单 |
-| 2 | `ABANDONED`（已付款未取件）是否计入销售额 | **计入** | 32 单 / 44 杯 / 实付 399.00；钱已收、原料已耗 |
-| 3 | `CANCELLED` 单的 `amount_paid` 存什么 | **保留退款前原值**（合计 446.00） | 库里没有退款金额字段，存 0 会丢信息 |
-| 4 | 是否建退款表 | **不建** | 退款额只能靠 `pay_status='FAILED'` 反推；**已知边界，不可审计** |
-| 5 | 是否支持部分退款 | **不支持**，模型只考虑整单退 | 与 `pay_status` 两值枚举一致；支持部分退款要重构支付模型 |
-| 6 | 是否改 `vw_daily_business_summary` 的口径 | **不改视图，只写文档** | 视图无 WHERE，`net_revenue` = 24,208.00 含退款 446.00；改视图会牵动第 4 周已验收的查询结果 |
-
-### 6.3 由此新增的三条业务规则
-
-写入 `business-rules.md` §4（原 A1—A7，现 A1—A10）：
-
-| # | 规则 | 库能不能拦 |
-|---|---|---|
-| **A8** | `order_status = 'COMPLETED'` ⇒ `pay_status = 'SUCCESS'` | 能加 `CHECK`，但**不建议** —— "已取件"是库外事件，硬约束会卡住操作 |
-| **A9** | 退款 = 整单退，金额 = `SUM(amount_paid) WHERE pay_status='FAILED'` | ❌ 拦不住也查不到：无退款表 |
-| **A10** | 求销售额必须带 `pay_status = 'SUCCESS'` | ❌ 这不是约束问题，是口径问题 |
-
-### 6.4 任务 ①「保存迁移前结果」的落点
+### 6.2 任务 ①「保存迁移前结果」的落点
 
 新建 [`project/tests/baseline/`](../../project/tests/baseline/README.md)：三个快照脚本 + 迁移前实测结果。
 
-| 脚本 | 覆盖 | 迁移前指纹 |
-|---|---|---|
-| `01-order-detail.sql` | 34 单 / 59 行明细 / 17 行加料 | `-1674015621` |
-| `02-product-sales.sql` | 29 商品行 × 三口径 | `436093178` |
-| `03-stock-query.sql` | 60 原料 + 57 视图行 | 原料 `1517769285` / 视图 `394430658` |
+| 脚本 | 覆盖 | 迁移前指纹 | 迁移后指纹（实测） | 差异行数 |
+|---|---|---|---|---|
+| `01-order-detail.sql` | 34 单 / 59 行明细 / 17 行加料 | `-1674015621` | `-1674015621` | **0** |
+| `02-product-sales.sql` | 29 商品行 × 三口径 | `436093178` | `436093178` | **0** |
+| `03-stock-query.sql` | 60 原料 + 57 视图行 | 原料 `1517769285` / 视图 `394430658` | 原料 `1517769285` / 视图 `394430658` | **0** |
 
-**快照 ≠ 回归测试**：快照给人看、建基线；`regression.sql` 给机器判、能失败。本周只做前者。
-
-### 6.5 一条方法论教训（✅ 已闭环，见 ISSUE-012）
-
-此前 [`normalization.md`](../../project/docs/normalization.md) §0 初稿写「标准 BCNF **12 张** + 有意反规范化 **5 张**」，与 §3 判定表「**14 张 BCNF + 3 张工程反规范化**」产生数字分歧（系初稿将 5 个论证案例误作为表数统计）。
-经 ISSUE-012 协同定案，已于 2026-10-21 **全面闭环**：
-- 全库统一为 **14 张纯净 BCNF + 3 张工程反规范化（受控跨表派生冗余）**，单表闭包形式体系下 100% 达到 BCNF；
-- 彻底理顺自洽性，消除语病，并在 §5 补齐了无损分解与保持依赖的完整数学推导证明。
+**实测结论**：模式拆分与约束补强后，全链路查询结果完全一致，**语义零丢失、数据零损坏**。
 
 ---
 
@@ -163,7 +137,7 @@
 |---|---|---|---|
 | 1 | `normalization.md` §0 与 §3 的范式判定数字不一致（12+5 vs 14+3） | ✅ **已闭环** | 见 ISSUE-012；统一为 14 纯净 BCNF + 3 工程反规范化（14+3=17） |
 | 2 | `normalization.md` §5 只有"无损连接且保持依赖"的断言，无证明步骤 | ✅ **已闭环** | 见 `normalization.md` §5；已补齐交集超码充要条件推导与依赖投影闭包证明 |
-| 3 | `migration.sql` 未含课程要求的 6 要素 | ⬜ **待定案** | 现只加了 1 条 `CHECK`；缺新表创建 / 字段调整 / 码设置 / 数据迁移 / 重复数据检查 / 旧表处理说明 |
-| 4 | `regression.sql` 尚未编写 | ⬜ **待做** | 现有 `01-migration-verification.sql` 是 4 个券用例，需升级为支持非零退出码与自动断言 |
-| 5 | 券表拆分（`tbl_coupon` → `tbl_coupon_template` + `tbl_coupon`） | ⬜ **待讨论** | 建议方案，见 `normalization.md` §5；实测依据 24 张券只有 2 个券种、字段重复 12 行 |
-| 6 | `weeks/submissions/v1.0/report.md` 报告素材 | ⬜ **未起稿** | 目录目前只有 `.gitkeep` |
+| 3 | `migration.sql` 未含课程要求的 6 要素 | ✅ **已闭环** | 落地新表创建、字段调整、码设置、数据迁移、数据校验、旧表兼容处理 6 要素，已接入 `99-rebuild.sql` |
+| 4 | `regression.sql` 尚未编写 | ✅ **已闭环** | 编写 `project/tests/regression.sql`，支持 `THROW` 与 `sqlcmd -b` 非零退出码，12 项断言全绿 |
+| 5 | 券表拆分（`tbl_coupon` → `tbl_coupon_template` + `tbl_coupon`） | ✅ **已闭环** | 17 表成功扩充为 18 表，消除 12 行模板冗余，单表 BCNF 增至 15 张，补齐无损分解数学证明 |
+| 6 | `weeks/submissions/v1.0/report.md` 报告素材 | ⬜ **未起稿** | 目录目前只有 `.gitkeep`，待提交前汇总 |

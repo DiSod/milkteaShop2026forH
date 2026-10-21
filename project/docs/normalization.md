@@ -14,13 +14,13 @@
 
 | 评估维度 | 统计结果 | 核心结论与学术评价 |
 |---|---|---|
-| **全库表总数** | **17 张** | 覆盖主数据、采购、营销、交易、库存/积分流水 5 大核心业务域 |
-| **纯净 BCNF 关系** | **14 张** | 决定因素全为超码，无任何部分依赖与传递依赖，完全杜绝三类更新异常 |
+| **全库表总数** | **18 张** | 经第 6 周规范化拆分，由 17 表升级为 18 表，覆盖 5 大核心业务域 |
+| **纯净 BCNF 关系** | **15 张** | 决定因素全为超码，无任何部分依赖与传递依赖，完全杜绝三类更新异常（含新拆分之 `tbl_coupon_template`） |
 | **严格 3NF 但非 BCNF 关系** | **0 张** | 全库不存在候选码交叉重叠导致的非主属性依赖边缘情况 |
 | **⭐ 工程反规范化关系（受控派生冗余）** | **3 张** | `tbl_member`、`tbl_order_header`、`tbl_order_detail`；单表闭包形式上满足 BCNF，但因承载跨表聚合派生值（`points_balance`, `amount_due`, `subtotal`），在系统架构上定性为受控反规范化 |
-| **更新异常防御** | **完全杜绝** | 基础主数据与单据明细通过正规关系投影彻底解耦；3 处受控派生冗余由 ACID 事务与阶段三触发器闭环兜底 |
+| **更新异常防御** | **完全杜绝** | 优惠券模板元数据与实例通过 6 要素迁移彻底解耦；3 处受控派生冗余由 ACID 事务与阶段三触发器闭环兜底 |
 
-> **核心哲学**：**全库单表形式体系下 100% 满足 BCNF。在单店物理边界下，以交易高频读取性能为第一优先，特许 3 处受控跨表派生冗余，将数据一致性交由数据库约束、显式事务与阶段三触发器硬性维护；不做脱离业务场景的过度拆表。**
+> **核心哲学**：**全库单表形式体系下 100% 满足 BCNF。第 6 周成功将优惠券解耦为模板与实例两张纯净 BCNF 表；在单店物理边界下，以交易高频读取性能为第一优先，特许 3 处受控跨表派生冗余，将数据一致性交由数据库约束、显式事务与阶段三触发器硬性维护；不做脱离业务场景的过度拆表。**
 
 ---
 
@@ -155,17 +155,28 @@
 
 ---
 
-### 1.3 C 域：会员营销（1 张）
+### 1.3 C 域：会员营销（2 张 · 第 6 周规范化拆分完成）
 
-#### 12. `tbl_coupon`（优惠券表 · 发放与核销合一）
-- **属性全集**：`{coupon_id, coupon_code, member_id, coupon_name, source, discount_amount, min_order_amount, valid_from, valid_to, status, used_time}`
+#### 12. `tbl_coupon_template`（优惠券模板表 · 字典实体）
+- **属性全集**：`{template_id, template_code, template_name, source, discount_amount, min_order_amount, is_active, created_at}`
+- **码**：
+  - 主码：`{template_id}`
+  - 候选码：`{template_code}`（`uq_coupon_template_code`）
+- **函数依赖集 $F_1$**：
+  - $template\_id \leftrightarrow template\_code \to template\_name, source, discount\_amount, min\_order\_amount, is\_active, created\_at$
+- **范式判定**：**纯净 BCNF**
+  - 所有非平凡函数依赖的决定因素皆为超码，完全消除了模板层面的修改与插入异常。
+
+#### 12a. `tbl_coupon`（优惠券实例表 · 发放与核销）
+- **属性全集**：`{coupon_id, coupon_code, template_id, member_id, valid_from, valid_to, status, used_time}`
 - **码**：
   - 主码：`{coupon_id}`
   - 候选码：`{coupon_code}`（`uq_coupon_code`）
-- **函数依赖集 $F$**：
-  - $coupon\_id \leftrightarrow coupon\_code \to member\_id, coupon\_name, source, discount\_amount, min\_order\_amount, valid\_from, valid\_to, status, used\_time$
-- **范式判定**：**BCNF（单店轻量级合并设计）**
-  - 虽然券名称与门槛在多张券间重复，但在单店场景下未设立独立模板字典表，每张已发放的券为独立实例，由唯一券码决定全属性。
+  - 外码：`template_id` $\to$ `tbl_coupon_template.template_id`；`member_id` $\to$ `tbl_member.member_id`
+- **函数依赖集 $F_2$**：
+  - $coupon\_id \leftrightarrow coupon\_code \to template\_id, member\_id, valid\_from, valid\_to, status, used\_time$
+- **范式判定**：**纯净 BCNF**
+  - 剥离模板字段后，每张券实例仅记录发放归属、有效区间与核销状态，唯一券码决定全属性，决定因素均为超码。
 
 ---
 
@@ -282,14 +293,15 @@ flowchart TD
 | 9 | `tbl_recipe` | `recipe_id` | `(product, cup, sugar, ingredient)` | **纯净 BCNF** | 决定因素均为超码（含 `sugar_spec_id IS NULL` 特许域语义） |
 | 10 | `tbl_purchase_order` | `purchase_order_id` | `purchase_no` | **纯净 BCNF** | 采购单头单据，决定因素均为超码 |
 | 11 | `tbl_purchase_order_detail` | `purchase_order_detail_id` | `(purchase_order_id, ingredient_id)` | **纯净 BCNF** | 采购明细，采购单价完全依赖复合候选码 |
-| 12 | `tbl_coupon` | `coupon_id` | `coupon_code` | **纯净 BCNF** | 优惠券实例，唯一券码决定全属性 |
+| 12 | `tbl_coupon_template` | `template_id` | `template_code` | **纯净 BCNF** | 券种元数据字典，决定因素均为超码 |
+| 12a | `tbl_coupon` | `coupon_id` | `coupon_code` | **纯净 BCNF** | 优惠券实例，外键关联模板，唯一券码决定全属性 |
 | 13 | `tbl_order_header` | `order_id` | `order_no`, `(business_date, pickup_no)` | **BCNF / 工程反规范化** | 单表形式上满足 BCNF；保留受控跨表派生列 `amount_due`（免明细扫描对账） |
 | 14 | `tbl_order_detail` | `order_detail_id` | `(order_id, line_no)` | **BCNF / 工程反规范化** | 单表形式上满足 BCNF；保留受控跨表派生列 `subtotal`（含加料汇总快照） |
 | 15 | `tbl_order_detail_topping` | `od_topping_id` | `(order_detail_id, topping_id)` | **纯净 BCNF** | 快照单价完全依赖于复合候选码 |
 | 16 | `tbl_points_ledger` | `point_ledger_id` | 无业务候选码 | **纯净 BCNF** | 纯净只增追加账本 |
 | 17 | `tbl_stock_ledger` | `ledger_id` | 无业务候选码 | **纯净 BCNF** | 纯净流水账本（含外码互斥约束） |
 
-> **口径汇总（严密闭环）**：全库 17 张表中，**14 张为纯净 BCNF**，**3 张为含受控跨表派生冗余列的工程反规范化表**（在单表封闭体系下亦完全满足 BCNF）。全库合计 14 + 3 = 17。
+> **口径汇总（严密闭环）**：全库 18 张表中，**15 张为纯净 BCNF**，**3 张为含受控跨表派生冗余列的工程反规范化表**（在单表封闭体系下亦完全满足 BCNF）。全库合计 15 + 3 = 18。
 
 ---
 
@@ -403,23 +415,65 @@ flowchart TD
 
 ---
 
-## 6. 第 6 周模式迁移实施方案（`migration.sql`）
+### 5.3 优惠券表模板化规范化分解方案与数学证明（Coupon Template Decomposition）
 
-### 6.1 真实 DDL 改进项：券核销时间窗口约束下沉
-在第 5 周识别的缺口中，问题 1（`tbl_coupon` 券核销时间未约束在有效期内）属于典型的**可由数据库 CHECK 硬性兜底的规则**。
+#### 模式与更新异常背景
+- **原模式**：$R_{Coupon}(U)$，其中属性全集：
+  $$U = \{coupon\_id, coupon\_code, member\_id, coupon\_name, source, discount\_amount, min\_order\_amount, valid\_from, valid\_to, status, used\_time\}$$
+- **潜在依赖与更新异常**：在业务上，券名称、券来源、抵扣面额与门槛属于券种模板级元数据。虽然单表以 $coupon\_id$ 为主码使得单表形式上满足 BCNF，但存在模板属性间的实质依赖：
+  $$(coupon\_name, source) \to discount\_amount, min\_order\_amount$$
+  由此产生典型更新异常：
+  1. **修改异常**：若修改某类券的门槛，必须逐行更新所有已发放但未使用的券，极易造成数据不一致；
+  2. **插入异常**：若运营企划新增了一种券模板但尚未发放给任何会员，由于缺少 $coupon\_id$ 和 $member\_id$，无法在原表中入库；
+  3. **删除异常**：若某批次券实例被清空，该券种的模板定义也将永久丢失。
 
-- **迁移 DDL 语句**：
-  ```sql
-  ALTER TABLE tbl_coupon
-      ADD CONSTRAINT ck_coupon_used_time_range
-          CHECK (used_time IS NULL OR (used_time >= valid_from AND used_time <= valid_to));
-  ```
-- **数据兼容性验证**：已在生产级种子数据（全库优惠券）上实测验证，非法记录数为 **0**，完全满足无损下沉条件。
+#### 分解方案定义
+将 $R_{Coupon}$ 规范化分解为 $\rho = (R_1, R_2)$：
+1. **模板子模式 $R_1(U_1)$（`tbl_coupon_template`）**：
+   $$U_1 = \{template\_id, template\_code, template\_name, source, discount\_amount, min\_order\_amount, is\_active, created\_at\}$$
+   候选码：$K_1 = \{template\_id\}$，备选候选码 $\{template\_code\}$。
+2. **实例子模式 $R_2(U_2)$（`tbl_coupon`）**：
+   $$U_2 = \{coupon\_id, coupon\_code, template\_id, member\_id, valid\_from, valid\_to, status, used\_time\}$$
+   候选码：$K_2 = \{coupon\_id\}$，备选候选码 $\{coupon\_code\}$，外码 $template\_id$ 引用 $R_1$。
+
+#### 证明一：无损连接性证明（Lossless Join Proof）
+1. 计算属性交集与差集：
+   $$U_1 \cap U_2 = \{template\_id\}$$
+   $$U_1 - U_2 = \{template\_code, template\_name, source, discount\_amount, min\_order\_amount, is\_active, created\_at\}$$
+2. 检验依赖关系：
+   由于在子模式 $R_1$ 中 $template\_id$ 是超码（主码），显然在原模式与分解约束下存在：
+   $$(U_1 \cap U_2) \to (U_1 - U_2) \in F^+$$
+3. **结论**：公共属性集构成子关系 $R_1$ 的超码，根据关系模式分解基本定理，分解 $\rho = (R_1, R_2)$ **严格具备无损连接性**。$\blacksquare$
+
+#### 证明二：保持函数依赖性证明（Dependency Preservation Proof）
+1. 考察投影依赖集：
+   - $\pi_{U_1}(F)$ 涵盖模板内部全部属性函数依赖 $template\_id \leftrightarrow template\_code \to template\_name, source, \dots$；
+   - $\pi_{U_2}(F)$ 涵盖持券实例的核心依赖 $coupon\_id \leftrightarrow coupon\_code \to template\_id, member\_id, valid\_from, \dots$；
+2. 跨表依赖保持：
+   券实例与模板属性之间的语义联系由外码约束 `fk_coupon_template`（$R_2.template\_id \subseteq R_1.template\_id$）硬性保障；
+3. 闭包等价性：
+   $$(\pi_{U_1}(F) \cup \pi_{U_2}(F))^+ = F^+$$
+4. **结论**：原模式中所有非平凡函数依赖均被投影覆盖，分解 $\rho = (R_1, R_2)$ **保持函数依赖**。$\blacksquare$
+
+---
+
+## 6. 第 6 周模式迁移实施方案（`migration.sql` 迁移 6 要素）
+
+根据课程要求，本周重构落地于 [`project/sql/11-migration/migration.sql`](../sql/11-migration/migration.sql)，全面闭环**迁移 6 要素**：
+
+| # | 课程迁移 6 要素 | 落地实施内容 | 工程保障 |
+|---|---|---|---|
+| **要素 1** | **新表创建** | 创建 `tbl_coupon_template` 实体表，承载面额、门槛、来源等元数据 | 幂等建表，配置 PK/UQ/CHECK/DEFAULT |
+| **要素 2** | **字段调整** | `tbl_coupon` 添加外键列 `template_id`；数据回填后安全移除 4 个冗余列（`coupon_name`, `source`, `discount_amount`, `min_order_amount`） | `ALTER TABLE ... ADD template_id`<br>`ALTER TABLE ... DROP COLUMN` |
+| **要素 3** | **码与约束设置** | 设置模板主码与业务候选码；在 `tbl_coupon` 建立外键 `fk_coupon_template`、索引 `ix_coupon_template_id` 及有效区间约束 `ck_coupon_used_time_range` | 外键、索引、CHECK 均为硬约束兜底 |
+| **要素 4** | **数据迁移** | 从历史 24 张券中去重抽取生成 2 个标准券模板（`TPL_CAMP_5`, `TPL_POINTS_5`）；多列联查精准回填 `template_id` | 去重装载，0 丢失 |
+| **要素 5** | **数据校验** | 校验孤儿数据（`template_id IS NULL` = 0）；校验时间窗口合法性（违规数 = 0）；校验全库 24 张券总数 100% 保持 | 任何断言失败立即抛错并回滚 |
+| **要素 6** | **旧表处理与平滑过渡** | 建立向后兼容视图 `vw_coupon_legacy`（连接两表还原旧字段）；同步赋予 `role_cashier` 与 `role_manager` 访问权限 | 历史报表与查询无感平滑兼容 |
 
 ### 6.2 迁移脚本执行与双重验证规范
 `project/sql/11-migration/migration.sql` 严格遵守以下工程规范：
 1. **显式事务包装**：整个变更处于 `BEGIN TRANSACTION ... COMMIT` 块内，发生任何异常立即 `ROLLBACK`，避免出现半迁移脏状态；
-2. **幂等性机制**：添加约束前先探测 `sys.check_constraints`，若存在同名约束先清理再添加，确保支持无限次可重复执行；
+2. **幂等性机制**：动态探测表、列、约束状态，支持重复安全执行；
 3. **双重运行验证**：
-   - **全新重建验证**：纳入 `project/sql/99-rebuild.sql`，一键拉起即为最新重构库；
-   - **历史重放验证**：可直接在 v0.1 历史库副本上执行，验证数据无损与前后语义保持。
+    - **全新重建流水线**：纳入 `project/sql/99-rebuild.sql`，一键拉起即为最新 18 表重构形态；
+    - **自动化回归测试**：由 `project/tests/regression.sql` 提供 12 项硬断言，失败返回非零退出码，基线指纹 0 差异比对。
