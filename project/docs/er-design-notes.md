@@ -273,11 +273,11 @@ npx -y @mermaid-js/mermaid-cli@11 -i project\docs\er-legend.mmd -o project\docs\
 > 另：`puppeteer.json` 的 `executablePath` **是本机绝对路径，不可提交**，故两个配置文件都留在 gitignore 区。
 
 
-### 4.5 尚未验证 / 待办
+### 4.5 验证状态与遗留事项
 
-| 项 | 为什么没做 |
+| 项 | 状态 / 说明 |
 |---|---|
-| **`99-rebuild.sql` 在本机实跑** | 本会话沙箱**无法连接实例**（实例只听命名管道，沙箱打不开命名管道）→ 见 [`week05/README.md`](../../weeks/week05/README.md) 的环境说明。**未跑过就不记为"已验证"** |
+| **`99-rebuild.sql` 在本机实跑** | ✅ **已补跑通过**（2026-10-19，文件策略放开为 danger-full-access 后）：`exit=0`，回显 **17 表 / 132 字段 / 30 外键 / 44 CHECK / 21 索引 / 5 视图 / 4 安全角色**，逐表行数合计 **20,979**；另实测约束行为与 `migration.sql` 连续两次幂等执行均 `exit=0`。原记「沙箱无法连接实例（实例只听命名管道）」是第 5 周当时的真实限制，现已不适用 |
 | 校验脚本未入库 | `tmp-verify-naming.py` / `tmp-count-cols.py` 是一次性校验脚本，放在 `harness/logs/` 且已被 `.gitignore` 的 `harness/logs/tmp-*` 排除。**结论已写进本文档**，脚本可随时重跑；若要长期回归，应移入 `project/tests/` 并走代码分支（那段路要过 `99-rebuild.sql` 合并底线） |
 | 图中属性摘录 vs 数据字典全量 | **有意为之**（§1.3 取舍二），非缺陷 |
 
