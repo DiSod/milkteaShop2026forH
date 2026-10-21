@@ -30,8 +30,9 @@
 | [**010**](010-v0.1-submission-review.md) | ⭐ **v0.1 提交物协同审查** —— 内容合理性 / 文档合理性 / 协同补充（含给 AI 的提示词与审查清单） | 交付审查 / 协同 | **核心工程 (hezhlin5)** | 🟢 **已解决** | [`weeks/submissions/v0.1/`](../../weeks/submissions/v0.1/) 全部 |
 | [**011**](011-week06-migration-and-subtotal-alignment.md) | **第 6 周迁移接入策略定案与订单明细 subtotal 加料一致性实测反馈** | 架构决策 / 完整性约束实测 | 双人共同讨论 / 核心工程 (hezhlin5) | 🟢 **已解决** | [`project/docs/v0.1-issues.md`](../../project/docs/v0.1-issues.md), [`weeks/week06/README.md`](../../weeks/week06/README.md) |
 | [**012**](012-normalization-paradigm-count-inconsistency.md) | **`normalization.md` 范式判定数字自相矛盾**：§0 写 12 BCNF + 5 反规范化，§3 判定表实为 14 BCNF + 3 张 2NF；并请作者确认标 2NF 的口径 | 文档一致性 / 范式判定口径 | **核心工程 (hezhlin5)** | 🟢 **已解决** | [`project/docs/normalization.md`](../../project/docs/normalization.md) §0 与 §3 |
+| [**013**](013-coupon-branch-verification-and-er-sync.md) | **券拆分分支验证环境存疑 + 18 表未回写设计文档**：分支声称 12 项断言全绿，但本机 `milktea_shop` 仍是 17 表；`er-diagram.mmd` 仍 17 实体、业务规则仍 30 外码 | 协同验证 / 文档一致性 | **核心工程 (hezhlin5)** | 🔴 **待处理** | [`migration.sql`](../../project/sql/11-migration/migration.sql)、[`er-diagram.mmd`](../../project/docs/er-diagram.mmd) |
 
-> **闭环进度**：🟢 已解决 **12** 条（001—012）· 🔴 待处理 **0** 条（看板清空）。
+> **闭环进度**：🟢 已解决 **12** 条（001—012）· 🔴 待处理 **1** 条（013，合并前待对齐）。
 >
 > ⚠️ **排雷重点**：
 > - **008（工程主责）**：✅ 已闭环。修复 `ck_points_ledger_target` 对无券退单的拦截死锁，优化 `crud.sql` 退单聚合回冲与采购加权成本除零保护；
@@ -91,7 +92,7 @@ Issue 是"**提议**"，裁决后标题里的主张**可能被否决**。
 
 ### 当前闭环进度
 
-> **闭环进度**：🟢 已解决 **12** 条（001—012）· 🔴 待处理 **0** 条。
+> **闭环进度**：🟢 已解决 **12** 条（001—012）· 🔴 待处理 **1** 条（013，合并前待对齐）。
 >
 > | 批次 | Issue | 日期 |
 > |---|---|---|
