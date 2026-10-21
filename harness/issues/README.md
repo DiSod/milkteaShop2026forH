@@ -29,18 +29,16 @@
 | [**009**](009-documentation-consistency-and-cleanup.md) | **交付文档全量一致性清扫与历史残留消除（132 字段定案、ANY 样例清除、D-05a 去重）** | 文档维护 / 一致性排雷 | 文档主编 (DiSod) | 🟢 **已解决** | [`report.md`](../../weeks/submissions/v0.1/report.md), [`data-dictionary.md`](../../project/docs/data-dictionary.md), [`schema-design.md`](../../weeks/week02/schema-design.md) |
 | [**010**](010-v0.1-submission-review.md) | ⭐ **v0.1 提交物协同审查** —— 内容合理性 / 文档合理性 / 协同补充（含给 AI 的提示词与审查清单） | 交付审查 / 协同 | **核心工程 (hezhlin5)** | 🟢 **已解决** | [`weeks/submissions/v0.1/`](../../weeks/submissions/v0.1/) 全部 |
 | [**011**](011-week06-migration-and-subtotal-alignment.md) | **第 6 周迁移接入策略定案与订单明细 subtotal 加料一致性实测反馈** | 架构决策 / 完整性约束实测 | 双人共同讨论 / 核心工程 (hezhlin5) | 🟢 **已解决** | [`project/docs/v0.1-issues.md`](../../project/docs/v0.1-issues.md), [`weeks/week06/README.md`](../../weeks/week06/README.md) |
-| [**012**](012-normalization-paradigm-count-inconsistency.md) | **`normalization.md` 范式判定数字自相矛盾**：§0 写 12 BCNF + 5 反规范化，§3 判定表实为 14 BCNF + 3 张 2NF；并请作者确认标 2NF 的口径 | 文档一致性 / 范式判定口径 | **核心工程 (hezhlin5)** | 🔴 **待处理** | [`project/docs/normalization.md`](../../project/docs/normalization.md) §0 与 §3 |
+| [**012**](012-normalization-paradigm-count-inconsistency.md) | **`normalization.md` 范式判定数字自相矛盾**：§0 写 12 BCNF + 5 反规范化，§3 判定表实为 14 BCNF + 3 张 2NF；并请作者确认标 2NF 的口径 | 文档一致性 / 范式判定口径 | **核心工程 (hezhlin5)** | 🟢 **已解决** | [`project/docs/normalization.md`](../../project/docs/normalization.md) §0 与 §3 |
 
-> **闭环进度**：🟢 已解决 **11** 条（001—011）· 🔴 待处理 **1** 条（012，等 hezhlin5 定口径）。
+> **闭环进度**：🟢 已解决 **12** 条（001—012）· 🔴 待处理 **0** 条（看板清空）。
 >
 > ⚠️ **排雷重点**：
 > - **008（工程主责）**：✅ 已闭环。修复 `ck_points_ledger_target` 对无券退单的拦截死锁，优化 `crud.sql` 退单聚合回冲与采购加权成本除零保护；
 > - **009（文档主责）**：✅ 已闭环。统一 132 字段口径、清理数据字典样例中的 ANY 残留，重构 `schema-design.md` 重复段落；
 > - **010（工程主责）**：✅ 已闭环（2026-10-06）。v0.1 六项提交物经何争霖以独立审查者身份复核，结论见 [`010-v0.1-submission-review.md`](010-v0.1-submission-review.md) §5；
-> - **011（双人定案 / 工程实测）**：✅ 已闭环（2026-10-14）。穿透实测加料 100% 吻合否决单表 CHECK，定案 `project/sql/11-migration/` 并接入 `99-rebuild.sql`。
->
-> ℹ️ **本行索引此前长期显示 010 为 🔴，与正文已闭环状态不一致** —— 已于 2026-10-10 随第 5 周文档订正一并修正（索引行 + §闭环进度 + §当前闭环进度三处口径统一）。
-
+> - **011（双人定案 / 工程实测）**：✅ 已闭环（2026-10-14）。穿透实测加料 100% 吻合否决单表 CHECK，定案 `project/sql/11-migration/` 并接入 `99-rebuild.sql`；
+> - **012（工程主责）**：✅ 已闭环（2026-10-21）。统一全库 14 纯净 BCNF + 3 受控派生冗余口径（14+3=17），采纳单表超码视角学术定性，补齐无损分解数学证明。
 
 ---
 
@@ -93,7 +91,7 @@ Issue 是"**提议**"，裁决后标题里的主张**可能被否决**。
 
 ### 当前闭环进度
 
-> **闭环进度**：🟢 已解决 **11** 条（001—011）· 🔴 待处理 **1** 条（012，等 hezhlin5 定口径）。
+> **闭环进度**：🟢 已解决 **12** 条（001—012）· 🔴 待处理 **0** 条。
 >
 > | 批次 | Issue | 日期 |
 > |---|---|---|
@@ -105,4 +103,4 @@ Issue 是"**提议**"，裁决后标题里的主张**可能被否决**。
 > | 第 6 批 | **008 积分退单约束死锁与 CRUD 健壮性**（工程侧已闭环）<br>**009 文档全量一致性清扫**（文档侧已闭环） | 2026-10-04 |
 > | 第 7 批 | **010 v0.1 提交物协同审查**（工程侧以独立审查者身份复核） | 2026-10-06 |
 > | 第 8 批 | **011 第 6 周迁移接入定案与加料一致性实测**（工程侧实测与双人定案） | 2026-10-14 |
-
+> | 第 9 批 | **012 范式判定口径与数字自洽闭环**（工程侧统一定案） | 2026-10-21 |

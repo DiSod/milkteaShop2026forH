@@ -4,7 +4,7 @@
 > **课程依据**：[`course/lecture-week05.md`](../../course/lecture-week05.md) —— 第 6 周任务：  
 > 「识别更新异常与函数依赖，完成规范化、反规范化取舍和迁移设计。当周产出：依赖分析、分解方案、迁移语句 migration.sql、回归测试。展示重点：迁移前后语义保持；重复与异常得到解释。」  
 > **配套**：[`data-dictionary.md`](data-dictionary.md)（数据字典）· [`business-rules.md`](business-rules.md)（业务规则）· [`v0.1-issues.md`](v0.1-issues.md)（问题清单）· [`project/sql/11-migration/migration.sql`](../sql/11-migration/migration.sql)  
-> **协作定案**：[`harness/issues/011-week06-migration-and-subtotal-alignment.md`](../../harness/issues/011-week06-migration-and-subtotal-alignment.md)
+> **协作定案**：[`harness/issues/011-week06-migration-and-subtotal-alignment.md`](../../harness/issues/011-week06-migration-and-subtotal-alignment.md) · [`harness/issues/012-normalization-paradigm-count-inconsistency.md`](../../harness/issues/012-normalization-paradigm-count-inconsistency.md)
 
 ---
 
@@ -15,12 +15,12 @@
 | 评估维度 | 统计结果 | 核心结论与学术评价 |
 |---|---|---|
 | **全库表总数** | **17 张** | 覆盖主数据、采购、营销、交易、库存/积分流水 5 大核心业务域 |
-| **标准 BCNF 关系** | **12 张** | 决定因素全为超码，无任何部分依赖与传递依赖，完全杜绝三类更新异常 |
-| **3NF 关系** | **0 张** | 无仅满足 3NF 而不满足 BCNF 的边缘情况（不存在候选码交叉重叠导致的非主属性依赖） |
-| **⭐ 有意的反规范化（2NF+）** | **5 张** | 包含工程特许的**派生计算冗余**、**单店维度多合一**与**快照归档**；在牺牲微小学术纯净度的代价下，换取了收银结账与进销存审计的吞吐量 |
-| **更新异常防御** | **完全杜绝** | 基础主数据与单据明细通过正规关系投影彻底解耦，无插入/删除/修改异常 |
+| **纯净 BCNF 关系** | **14 张** | 决定因素全为超码，无任何部分依赖与传递依赖，完全杜绝三类更新异常 |
+| **严格 3NF 但非 BCNF 关系** | **0 张** | 全库不存在候选码交叉重叠导致的非主属性依赖边缘情况 |
+| **⭐ 工程反规范化关系（受控派生冗余）** | **3 张** | `tbl_member`、`tbl_order_header`、`tbl_order_detail`；单表闭包形式上满足 BCNF，但因承载跨表聚合派生值（`points_balance`, `amount_due`, `subtotal`），在系统架构上定性为受控反规范化 |
+| **更新异常防御** | **完全杜绝** | 基础主数据与单据明细通过正规关系投影彻底解耦；3 处受控派生冗余由 ACID 事务与阶段三触发器闭环兜底 |
 
-> **核心哲学**：**在单店物理边界下，以交易高频读取性能为第一优先，将数据一致性交由数据库约束、显式事务与阶段三触发器硬性维护；不做脱离业务场景的过度拆表。**
+> **核心哲学**：**全库单表形式体系下 100% 满足 BCNF。在单店物理边界下，以交易高频读取性能为第一优先，特许 3 处受控跨表派生冗余，将数据一致性交由数据库约束、显式事务与阶段三触发器硬性维护；不做脱离业务场景的过度拆表。**
 
 ---
 
@@ -54,11 +54,11 @@
   - 主码：`{member_id}`
   - 候选码：`{member_code}`, `{member_phone}`（手机号唯一，由 `uq_member_phone` 保障）
 - **函数依赖集 $F$**：
-  - $member\_id \to member\_code, member\_phone, member\_name, register\_date$
-  - $member\_phone \to member\_id, member\_code, member\_name, register\_date$
-  - 存在派生依赖：$\sum(tbl\_points\_ledger.point\_change) \to points\_balance$
-- **范式判定**：**2NF（含派生反规范化列）**
-  - 严格理论上，`points_balance` 是由积分流水表聚合计算的派生属性，存在跨表传递依赖。若剔除该列，则纯净满足 **BCNF**；工程上保留此列作为反规范化缓存（详见 §4 案例三）。
+  - $member\_id \to member\_code, member\_phone, member\_name, register\_date, points\_balance$
+  - $member\_phone \to member\_id, member\_code, member\_name, register\_date, points\_balance$
+  - 跨表物理派生依赖：$\sum(tbl\_points\_ledger.point\_change) \to points\_balance$
+- **范式判定**：**BCNF（单表纯函数依赖视角） / 工程反规范化（受控跨表派生列视角）**
+  - 在关系内部，候选码直接函数决定 `points_balance`，单表闭包不存在部分依赖与关系内传递依赖（单表形式上满足 BCNF）；但在全局系统架构中，`points_balance` 属于跨实体聚合缓存，工程上作为受控反规范化冗余处理（详见 §4 案例三）。
 
 #### 3. `tbl_product_category`（商品品类表，自引用层级树）
 - **属性全集**：`{category_id, parent_category_id, category_code, category_name, sort_no, is_active}`
@@ -78,7 +78,7 @@
 - **函数依赖集 $F$**：
   - $spec\_option\_id \leftrightarrow (spec\_type, spec\_code) \to spec\_name, extra\_price, sort\_no$
 - **范式判定**：**BCNF**
-  - 不存在对复合候选码的部分函数依赖（例如单凭 `spec_code` 无法决定 `spec_name`，因为 `REGULAR` 可以是标准杯也可以是正常冰），所有非主属性均完全函数依赖于候选码。
+  - 不存在对复合候选码的部分函数依赖（单凭 `spec_code` 无法决定 `spec_name`，例如 `REGULAR` 可以是标准杯也可以是正常冰），所有非主属性均完全函数依赖于候选码。
 
 #### 5. `tbl_ingredient`（原料表 · 三表合一）
 - **属性全集**：`{ingredient_id, ingredient_code, ingredient_name, unit, spec, qty_on_hand, reorder_point, target_level, moving_avg_cost, is_sold_out, is_active}`
@@ -116,7 +116,7 @@
   - 主码：`{topping_id}`
   - 候选码：`{topping_code}`（`uq_topping_code`）
 - **函数依赖集 $F$**：
-  - $topping\_id \leftrightarrow topping\_code \to topping\_name, ingredient_id, extra\_price, qty\_per\_serving, is\_active$
+  - $topping\_id \leftrightarrow topping\_code \to topping\_name, ingredient\_id, extra\_price, qty\_per\_serving, is\_active$
 - **范式判定**：**BCNF**
   - 加料项通过外键 `ingredient_id` 关联原料，自身无原料名称/单位冗余，决定因素皆为超码。
 
@@ -178,9 +178,9 @@
   - 候选码：`{order_no}`, `{business_date, pickup_no}`（取餐号按日唯一）
 - **函数依赖集 $F$**：
   - $order\_id \leftrightarrow order\_no \leftrightarrow (business\_date, pickup\_no) \to member\_id, coupon\_id, discount\_amount, amount\_due, amount\_paid, \dots$
-  - 派生依赖：$\sum(tbl\_order\_detail.subtotal) - discount\_amount \to amount\_due$
-- **范式判定**：**2NF（含派生应付总金额）**
-  - `amount_due` 是由明细小计聚合后减去优惠券抵扣得出的派生金额；保留此列是为了避免收银端和报表端进行频繁的全明细聚合查询。
+  - 跨表物理派生依赖：$\sum(tbl\_order\_detail.subtotal) - discount\_amount \to amount\_due$
+- **范式判定**：**BCNF（单表纯函数依赖视角） / 工程反规范化（受控跨表派生列视角）**
+  - 候选码直接函数决定 `amount_due`，单表内无部分依赖与传递依赖；`amount_due` 是由明细聚合后扣除优惠得出的派生值，为避免收银高频全表扫描而作工程物化。
 
 #### 14. `tbl_order_detail`（订单明细表）
 - **属性全集**：`{order_detail_id, order_id, line_no, product_id, qty, unit_price, cup_spec_id, sugar_spec_id, ice_spec_id, subtotal}`
@@ -192,7 +192,7 @@
 - **学术辨析（价格快照 vs 传递依赖）**：
   - 表面上看：$product\_id \to base\_price$。但明细表中的 `unit_price` 是**交易发生时刻的快照价格**（基准价 + 杯型加价），历史订单价格不可随商品菜单改价而变更。因此在时间维度上 $product\_id \not\to unit\_price$，$unit\_price$ 是订单明细固有的历史事实属性，不构成传递依赖；
   - 派生冗余：$subtotal = (qty \times unit\_price) + \sum(加料)$ 属于跨表派生属性。
-- **范式判定**：**2NF（含派生小计列）**
+- **范式判定**：**BCNF（单表纯函数依赖视角） / 工程反规范化（受控跨表派生列视角）**
 
 #### 15. `tbl_order_detail_topping`（明细加料表）
 - **属性全集**：`{od_topping_id, order_detail_id, topping_id, qty, unit_extra_price}`
@@ -269,25 +269,27 @@ flowchart TD
 
 ## 3. 全库范式判定汇总表
 
-| 序号 | 关系表名 | 主码 (PK) | 候选码 (CK) | 判定范式 | 偏离 BCNF 的原因与性质 |
+| 序号 | 关系表名 | 主码 (PK) | 候选码 (CK) | 单表范式 / 工程定性 | 结构设计与取舍说明 |
 |:---:|---|---|---|:---:|---|
-| 1 | `tbl_employee` | `employee_id` | `employee_code` | **BCNF** | 纯净 BCNF |
-| 2 | `tbl_member` | `member_id` | `member_code`, `member_phone` | **2NF** | 有意保留反规范化冗余列 `points_balance`（交易性能取舍） |
-| 3 | `tbl_product_category` | `category_id` | `category_code` | **BCNF** | 纯净 BCNF（自引用层级结构） |
-| 4 | `tbl_spec_option` | `spec_option_id` | `(spec_type, spec_code)` | **BCNF** | 复合候选码，非主属性完全依赖 |
-| 5 | `tbl_ingredient` | `ingredient_id` | `ingredient_code` | **BCNF** | 单店 1:1 三表合一，决定因素均为超码 |
-| 6 | `tbl_supplier` | `supplier_id` | `supplier_code` | **BCNF** | 纯净 BCNF |
-| 7 | `tbl_product` | `product_id` | `product_code` | **BCNF** | 纯净 BCNF |
-| 8 | `tbl_topping` | `topping_id` | `topping_code` | **BCNF** | 纯净 BCNF |
-| 9 | `tbl_recipe` | `recipe_id` | `(product, cup, sugar, ingredient)` | **BCNF** | 纯净 BCNF（含工程特许的 `sugar_spec_id IS NULL` 域语义） |
-| 10 | `tbl_purchase_order` | `purchase_order_id` | `purchase_no` | **BCNF** | 纯净 BCNF |
-| 11 | `tbl_purchase_order_detail` | `purchase_order_detail_id` | `(purchase_order_id, ingredient_id)` | **BCNF** | 纯净 BCNF |
-| 12 | `tbl_coupon` | `coupon_id` | `coupon_code` | **BCNF** | 纯净 BCNF（单店场景免模板宽表） |
-| 13 | `tbl_order_header` | `order_id` | `order_no`, `(business_date, pickup_no)` | **2NF** | 有意保留派生聚合列 `amount_due`（免明细扫描对账） |
-| 14 | `tbl_order_detail` | `order_detail_id` | `(order_id, line_no)` | **2NF** | 有意保留派生小计列 `subtotal`（含加料汇总快照） |
-| 15 | `tbl_order_detail_topping` | `od_topping_id` | `(order_detail_id, topping_id)` | **BCNF** | 快照单价完全依赖于复合候选码 |
-| 16 | `tbl_points_ledger` | `point_ledger_id` | 无业务候选码 | **BCNF** | 纯净只增追加账本 |
-| 17 | `tbl_stock_ledger` | `ledger_id` | 无业务候选码 | **BCNF** | 纯净流水账本（含外码互斥约束） |
+| 1 | `tbl_employee` | `employee_id` | `employee_code` | **纯净 BCNF** | 决定因素全为超码，无部分或传递依赖 |
+| 2 | `tbl_member` | `member_id` | `member_code`, `member_phone` | **BCNF / 工程反规范化** | 单表形式上满足 BCNF；保留受控跨表派生冗余列 `points_balance`（交易性能取舍） |
+| 3 | `tbl_product_category` | `category_id` | `category_code` | **纯净 BCNF** | 自引用树形结构，分类自身决定全属性 |
+| 4 | `tbl_spec_option` | `spec_option_id` | `(spec_type, spec_code)` | **纯净 BCNF** | 复合候选码，非主属性完全依赖 |
+| 5 | `tbl_ingredient` | `ingredient_id` | `ingredient_code` | **纯净 BCNF** | 单店 1:1 三表合一，决定因素均为超码 |
+| 6 | `tbl_supplier` | `supplier_id` | `supplier_code` | **纯净 BCNF** | 极简实体，决定因素均为超码 |
+| 7 | `tbl_product` | `product_id` | `product_code` | **纯净 BCNF** | 决定因素均为超码，品类仅以外码关联 |
+| 8 | `tbl_topping` | `topping_id` | `topping_code` | **纯净 BCNF** | 决定因素均为超码，原料仅以外码关联 |
+| 9 | `tbl_recipe` | `recipe_id` | `(product, cup, sugar, ingredient)` | **纯净 BCNF** | 决定因素均为超码（含 `sugar_spec_id IS NULL` 特许域语义） |
+| 10 | `tbl_purchase_order` | `purchase_order_id` | `purchase_no` | **纯净 BCNF** | 采购单头单据，决定因素均为超码 |
+| 11 | `tbl_purchase_order_detail` | `purchase_order_detail_id` | `(purchase_order_id, ingredient_id)` | **纯净 BCNF** | 采购明细，采购单价完全依赖复合候选码 |
+| 12 | `tbl_coupon` | `coupon_id` | `coupon_code` | **纯净 BCNF** | 优惠券实例，唯一券码决定全属性 |
+| 13 | `tbl_order_header` | `order_id` | `order_no`, `(business_date, pickup_no)` | **BCNF / 工程反规范化** | 单表形式上满足 BCNF；保留受控跨表派生列 `amount_due`（免明细扫描对账） |
+| 14 | `tbl_order_detail` | `order_detail_id` | `(order_id, line_no)` | **BCNF / 工程反规范化** | 单表形式上满足 BCNF；保留受控跨表派生列 `subtotal`（含加料汇总快照） |
+| 15 | `tbl_order_detail_topping` | `od_topping_id` | `(order_detail_id, topping_id)` | **纯净 BCNF** | 快照单价完全依赖于复合候选码 |
+| 16 | `tbl_points_ledger` | `point_ledger_id` | 无业务候选码 | **纯净 BCNF** | 纯净只增追加账本 |
+| 17 | `tbl_stock_ledger` | `ledger_id` | 无业务候选码 | **纯净 BCNF** | 纯净流水账本（含外码互斥约束） |
+
+> **口径汇总（严密闭环）**：全库 17 张表中，**14 张为纯净 BCNF**，**3 张为含受控跨表派生冗余列的工程反规范化表**（在单表封闭体系下亦完全满足 BCNF）。全库合计 14 + 3 = 17。
 
 ---
 
@@ -333,25 +335,71 @@ flowchart TD
 
 ---
 
-## 5. 学术规范化分解方案（Theoretical Decompositions）
+## 5. 学术规范化分解方案与数学证明（Theoretical Decompositions & Proofs）
 
-为了在课程答辩中展现扎实的关系理论推导能力，针对上述包含反规范化冗余的关系模式，给出严格追求 BCNF 的**无损连接（Lossless Join）且保持函数依赖（Dependency Preserving）**的理论分解方案：
+为了在课程答辩中展现扎实的关系理论推导能力，针对上述包含受控反规范化冗余的关系模式，给出严格追求 BCNF 的**无损连接（Lossless Join）且保持函数依赖（Dependency Preserving）**的理论分解方案与数学证明。
 
-### 5.1 会员与积分模式的理论分解
-- **原模式**：$R_{Member}(member\_id, member\_code, member\_phone, member\_name, register\_date, points\_balance)$
-- **规范化分解为**：
-  - $\rho_1 = R_{MemberPure}(member\_id, member\_code, member\_phone, member\_name, register\_date)$，码为 $member\_id$；
-  - $\rho_2 = tbl\_points\_ledger(\dots)$，通过视图动态求和：
-    $$\text{CREATE VIEW v\_member\_balance AS SELECT member\_id, SUM(point\_change) AS points\_balance \dots}$$
-- **工程裁决**：保留原模式，论证高频点单场景下物化列优于动态聚合。
+### 关系模式分解基本定理
+> **定理（无损连接充要条件）**：设关系模式 $R(U)$，函数依赖集为 $F$。$\rho = (R_1, R_2)$ 是 $R$ 的一个分解，$U = U_1 \cup U_2$。则分解 $\rho$ 相对于 $F$ 具有无损连接性的**充要条件**是：
+> $$(R_1 \cap R_2) \to (R_1 - R_2) \in F^+ \quad \text{或} \quad (R_1 \cap R_2) \to (R_2 - R_1) \in F^+$$
+> （即：公共属性集必须是其中至少一个子关系的超码）。
 
-### 5.2 订单与明细小计模式的理论分解
-- **原模式**：$R_{Detail}(order\_detail\_id, order\_id, line\_no, product\_id, qty, unit\_price, \dots, subtotal)$
-- **规范化分解为**：
-  - $\rho_1 = R_{DetailPure}(order\_detail\_id, order\_id, line\_no, product\_id, qty, unit\_price, cup\_spec\_id, sugar\_spec\_id, ice\_spec\_id)$；
-  - $\rho_2 = tbl\_order\_detail\_topping(\dots)$；
-  - 小计通过计算列（Computed Column）或只读视图按需派生。
-- **工程裁决**：保留原模式，通过阶段三触发器维持账实相符。
+---
+
+### 5.1 会员与积分模式的理论分解与严格证明
+
+#### 模式与分解定义
+- **原模式**：$R_{Member}(U)$，其中属性全集 $U = \{member\_id, member\_code, member\_phone, member\_name, register\_date, points\_balance\}$
+- **函数依赖集**：$F = \{member\_id \to member\_code, member\_phone, member\_name, register\_date, points\_balance\}$
+- **分解方案** $\rho = (R_1, R_2)$：
+  - $R_1(U_1) = R_{MemberPure}(member\_id, member\_code, member\_phone, member\_name, register\_date)$
+  - $R_2(U_2) = R_{PointsCache}(member\_id, points\_balance)$（或通过视图 $\text{v\_member\_balance}$ 动态替代物化表）
+
+#### 证明一：无损连接性证明
+1. 计算属性交集与差集：
+   $$U_1 \cap U_2 = \{member\_id\}$$
+   $$U_1 - U_2 = \{member\_code, member\_phone, member\_name, register\_date\}$$
+2. 检验依赖关系：
+   由于在原模式中 $member\_id$ 是候选码，显然存在函数依赖：
+   $$member\_id \to member\_code, member\_phone, member\_name, register\_date \in F^+$$
+   即 $(U_1 \cap U_2) \to (U_1 - U_2) \in F^+$ 成立。
+3. **结论**：根据分解定理，分解 $\rho = (R_1, R_2)$ **具有无损连接性**。$\blacksquare$
+
+#### 证明二：保持函数依赖性证明
+1. 考察 $F$ 在 $U_1$ 上的投影 $F_1 = \pi_{U_1}(F)$：
+   $$F_1 = \{member\_id \leftrightarrow member\_code \leftrightarrow member\_phone \to member\_name, register\_date\}$$
+2. 考察 $F$ 在 $U_2$ 上的投影 $F_2 = \pi_{U_2}(F)$：
+   $$F_2 = \{member\_id \to points\_balance\}$$
+3. 闭包等价性验证：
+   $$(F_1 \cup F_2)^+ = F^+$$
+   原模式中所有的非平凡函数依赖均被投影后的依赖集并集所覆盖。
+4. **结论**：分解 $\rho = (R_1, R_2)$ **保持函数依赖**。$\blacksquare$
+
+---
+
+### 5.2 订单明细小计模式的理论分解与严格证明
+
+#### 模式与分解定义
+- **原模式**：$R_{Detail}(U)$，其中属性全集 $U = \{order\_detail\_id, order\_id, line\_no, product\_id, qty, unit\_price, cup\_spec\_id, sugar\_spec\_id, ice\_spec\_id, subtotal\}$
+- **函数依赖集**：$F = \{order\_detail\_id \leftrightarrow (order\_id, line\_no) \to product\_id, qty, unit\_price, cup\_spec\_id, sugar\_spec\_id, ice\_spec\_id, subtotal\}$
+- **分解方案** $\rho = (R_1, R_2)$：
+  - $R_1(U_1) = R_{DetailPure}(order\_detail\_id, order\_id, line\_no, product\_id, qty, unit\_price, cup\_spec\_id, sugar\_spec\_id, ice\_spec\_id)$
+  - $R_2(U_2) = R_{DetailSubtotal}(order\_detail\_id, subtotal)$（或由计算列/视图动态按需派生）
+
+#### 证明一：无损连接性证明
+1. 计算属性交集与差集：
+   $$U_1 \cap U_2 = \{order\_detail\_id\}$$
+   $$U_1 - U_2 = \{order\_id, line\_no, product\_id, qty, unit\_price, cup\_spec\_id, sugar\_spec\_id, ice\_spec\_id\}$$
+2. 检验依赖关系：
+   $order\_detail\_id$ 是 $R_1$ 的超码，故显然有：
+   $$(U_1 \cap U_2) \to (U_1 - U_2) \in F^+$$
+3. **结论**：分解 $\rho = (R_1, R_2)$ **具有无损连接性**。$\blacksquare$
+
+#### 证明二：保持函数依赖性证明
+1. 考察 $F$ 在 $U_1$ 上的投影 $F_1 = \pi_{U_1}(F)$ 包含了明细单据的所有基础属性依赖；
+2. 考察 $F$ 在 $U_2$ 上的投影 $F_2 = \pi_{U_2}(F)$ 包含了 $order\_detail\_id \to subtotal$；
+3. 显然 $(F_1 \cup F_2)^+ = F^+$，没有丢失任何函数依赖。
+4. **结论**：分解 $\rho = (R_1, R_2)$ **保持函数依赖**。$\blacksquare$
 
 ---
 
