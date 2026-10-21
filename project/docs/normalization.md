@@ -320,8 +320,8 @@ flowchart TD
 ### 4.4 案例四：`tbl_order_detail.subtotal` 冗余金额与跨表小料一致性
 - **争议焦点**：明细小计本可通过公式计算，是否应在数据库中加行级 `CHECK (subtotal = qty * unit_price)` 或直接删掉该列？
 - **实测与反转证据（ISSUE-011 关键定案）**：
-  - 工程侧穿透实测：全库 2,630 行明细中，615 行加料明细的 $subtotal \ne qty \times unit\_price$；
-  - 联合检验恒等式：$subtotal = (qty \times unit\_price) + \sum(topping\_qty \times topping\_unit\_price)$，实测 **2,630 行 100% 严丝合缝匹配，0 差额**！
+  - 工程侧穿透实测：全库 2,629 行明细中，614 行加料明细的 $subtotal \ne qty \times unit\_price$；
+  - 联合检验恒等式：$subtotal = (qty \times unit\_price) + \sum(topping\_qty \times topping\_unit\_price)$，实测 **2,629 行 100% 严丝合缝匹配，0 差额**！
 - **取舍论证**：
   1. **坚决否决单表 CHECK**：若盲目加行级 CHECK 将直接打崩 23.4% 的合法加料订单；
   2. **对账与打印吞吐**：收银小票打印与日结对账无需每次对加料表明细执行 `LEFT JOIN` 与 `SUM()`，显著提升单据拉取速度；
