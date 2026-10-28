@@ -27,13 +27,14 @@
 
 | 实现层 | 条数 | 说明 |
 |---|---|---|
-| ① 数据库约束 | **52** | 43 `CHECK` + 30 `FK`（含基数方向）+ 17 `UNIQUE` 中的业务码部分 |
+| ① 数据库约束 | **53** | 44 `CHECK` + 31 `FK`（含基数方向）+ 18 `UNIQUE` 中的业务码部分 |
 | ② 应用代码 | **9** | 见 §4 —— 其中 A1—A6 是完整性缺口，A8—A10 是口径类规则（口径问题加约束也解决不了） |
 | ③ 人工检查 | **2** | 见 §5 |
 
 > 条数变化留痕：初版 ② 层记 7 条（A1—A7）；第 6 周 A7 用 `ck_coupon_used_time_range` 下沉到 ① 层（−1），
-> 同时新增 A8/A9/A10 三条口径类规则（+3），故现为 9 条。① 层的 52 条未把新 `CHECK` 计入
-> —— 那是 `migration.sql` 加的，本表只统计 `02-constraints/constraints.sql` 的基线。
+> 同时新增 A8/A9/A10 三条口径类规则（+3），故现为 9 条。
+> 第 6 周券表拆分又带来 1 条由外码强制的规则（券必属某模板，`fk_coupon_template`），故 ① 层 52 → **53**。
+> 注意：① 层的条数是**规则条数**，不是约束条数（44+31+18 = 93 个约束对象承载了 53 条规则）。
 
 ---
 
@@ -54,6 +55,7 @@
 | 8 | 归类 | 品类 — 商品 | (0,N) | **(1,1)** | `tbl_product.category_id` → `fk_product_category` | |
 | 9 | 上级（自引用） | 品类 — 品类 | (0,N) | **(0,1)** | `tbl_product_category.parent_category_id` → `fk_product_category_parent_category` | **顶级品类为空** |
 | 10 | 持有 | 会员 — 券 | (0,N) | **(1,1)** | `tbl_coupon.member_id` → `fk_coupon_member` | **本店不发匿名券** |
+| 10b | 发行 | 券模板 — 券 | (0,N) | **(1,1)** | `tbl_coupon.template_id` → `fk_coupon_template` | **第 6 周新增**；模板可暂时没有券 |
 | 11 | 用券 | 券 — 订单 | (0,N) | **(0,1)** | `tbl_order_header.coupon_id` → `fk_order_header_coupon` | 可不用券 |
 | 12 | 配方 | 商品 — 配方 | (0,N) | **(1,1)** | `tbl_recipe.product_id` → `fk_recipe_product` | 有配方才有行 |
 | 13 | 杯型维 | 规格选项 — 配方 | (0,N) | **(1,1)** | `tbl_recipe.cup_spec_id` → `fk_recipe_cup_spec` | **NOT NULL**：配方必须绑定杯型 |
@@ -73,14 +75,14 @@
 | 27 | 积分来源单 | 订单 — 积分流水 | (0,N) | **(0,1)** | `tbl_points_ledger.order_id` → `fk_points_ledger_order` | REDEEM 类可能无来源单 |
 | 28 | 兑换所得券 | 券 — 积分流水 | (0,N) | **(0,1)** | `tbl_points_ledger.coupon_id` → `fk_points_ledger_coupon` | |
 
-> **合计**：本节 28 段**业务联系** ↔ 全库 **30 个外码**。
+> **合计**：本节 29 段**业务联系** ↔ 全库 **31 个外码**。
 > 差异来源：第 7 行把「订单明细的杯型 / 糖度 / 冰量」**三个独立外码合并成 1 段**规格联系
 > （业务上是一个"选规格"动作，物理上是 3 个 FK）。
-> **ER 图上按物理外码画 30 条线**，逐条对应见 [`er-diagram.md`](er-diagram.md) §2.1。
+> **ER 图上按物理外码画 31 条线**，逐条对应见 [`er-diagram.md`](er-diagram.md) §2.1。
 
 ---
 
-## 3. 全部 30 个外码（可逐条追溯到 DDL）
+## 3. 全部 31 个外码（可逐条追溯到 DDL）
 
 | # | 约束名 | 表.列 → 目标 | 列可空 | 决定的最小基数 |
 |---|---|---|---|---|
@@ -114,8 +116,9 @@
 | 28 | `fk_recipe_cup_spec` | `tbl_recipe.cup_spec_id` → `tbl_spec_option` | 否 | 配方必有杯型 |
 | 29 | `fk_recipe_sugar_spec` | `tbl_recipe.sugar_spec_id` → `tbl_spec_option` | **是** | ⭐ 空 = 与糖度无关 |
 | 30 | `fk_recipe_ingredient` | `tbl_recipe.ingredient_id` → `tbl_ingredient` | 否 | 配方必有原料 |
+| 31 | `fk_coupon_template` | `tbl_coupon.template_id` → `tbl_coupon_template` | 否 | ⭐ 第 6 周新增；券必属模板 |
 
-> **验证**：30 个约束名**全部符合** `fk_<表>_<列>` 命名规范（`02-sql-style.md` §3.1）。
+> **验证**：31 个约束名**全部符合** `fk_<表>_<列>` 命名规范（`02-sql-style.md` §3.1）。
 
 ---
 
@@ -176,7 +179,7 @@ A10 是"同一份库里存在两套口径"的提醒 —— 二者都不是靠加
 
 ---
 
-## 6. 数据库约束全量清单（43 个 `CHECK`）
+## 6. 数据库约束全量清单（44 个 `CHECK`）
 
 > 供逐条核对「规则是否真的在库里生效」。分三类。
 
@@ -191,7 +194,7 @@ A10 是"同一份库里存在两套口径"的提醒 —— 二者都不是靠加
 | `ck_stock_ledger_ref_type` | `tbl_stock_ledger` | `ref_type IN ('PURCHASE','ORDER','MANUAL','OPENING')` |
 | `ck_order_header_pay_method` | `tbl_order_header` | `pay_method IS NULL OR IN (4 值)` |
 | `ck_order_header_pay_status` | `tbl_order_header` | `pay_status IS NULL OR IN ('SUCCESS','FAILED')` |
-| `ck_coupon_source` | `tbl_coupon` | `source IN ('POINTS_EXCHANGE','CAMPAIGN')` |
+| `ck_coupon_template_source` | `tbl_coupon_template` | `source IN ('POINTS_EXCHANGE','CAMPAIGN')`（第 6 周随券表拆分改名并迁表） |
 | `ck_coupon_status` | `tbl_coupon` | `status IN ('UNUSED','USED','EXPIRED')` |
 | `ck_points_ledger_point_type` | `tbl_points_ledger` | `point_type IN ('EARN','REDEEM')` |
 | `ck_spec_option_spec_type` | `tbl_spec_option` | `spec_type IN ('CUP','SUGAR','ICE')` |
@@ -201,7 +204,7 @@ A10 是"同一份库里存在两套口径"的提醒 —— 二者都不是靠加
 > ℹ️ `ck_spec_option_code_by_type` 形式上是「跨字段」，**实质是域约束** ——
 > 它保证的是「规格码这个域的取值**依赖于**规格类型」，属 DOM-11/12/13 的完整落地。
 
-### 6.2 跨字段一致性约束（5 个 —— 业务规则的硬核部分）
+### 6.2 跨字段一致性约束（6 个 —— 业务规则的硬核部分）
 
 | 约束名 | 表 | 保证的业务规则 |
 |---|---|---|
@@ -209,7 +212,8 @@ A10 是"同一份库里存在两套口径"的提醒 —— 二者都不是靠加
 | `ck_points_ledger_target` | `tbl_points_ledger` | ⭐ **EARN 必有来源单；REDEEM 必有券或订单**（ISSUE-008 修复的死锁点） |
 | `ck_order_header_finish_time` | `tbl_order_header` | 完成时间 ≥ 下单时间 |
 | `ck_purchase_order_arrival_date` | `tbl_purchase_order` | 到货日期 ≥ 下单日期 |
-| `ck_coupon_valid_period` | `tbl_coupon` | 有效期 `valid_to > valid_from` ⚠️ **不含 `used_time`，见 §4 规则 A7** |
+| `ck_coupon_valid_period` | `tbl_coupon` | 有效期 `valid_to > valid_from` |
+| `ck_coupon_used_time_range` | `tbl_coupon` | ⭐ **核销时间必须落在有效期内**：`used_time IS NULL OR (used_time >= valid_from AND used_time <= valid_to)`（第 6 周迁移新增，即 §4 规则 A7 的落地） |
 
 ### 6.3 非负 / 非零约束（25 个，逐条列名以保证可核对）
 
@@ -233,8 +237,8 @@ A10 是"同一份库里存在两套口径"的提醒 —— 二者都不是靠加
 | 16 | `ck_order_header_discount_amount` | `tbl_order_header` | `discount_amount >= 0` |
 | 17 | `ck_order_header_amount_due` | `tbl_order_header` | `amount_due >= 0` |
 | 18 | `ck_order_header_amount_paid` | `tbl_order_header` | `amount_paid >= 0` |
-| 19 | `ck_coupon_discount_amount` | `tbl_coupon` | `discount_amount > 0` |
-| 20 | `ck_coupon_min_order_amount` | `tbl_coupon` | `min_order_amount >= 0` |
+| 19 | `ck_coupon_template_discount_amount` | `tbl_coupon_template` | `discount_amount > 0` |
+| 20 | `ck_coupon_template_min_order_amount` | `tbl_coupon_template` | `min_order_amount >= 0` |
 | 21 | `ck_purchase_order_detail_qty_ordered` | `tbl_purchase_order_detail` | `qty_ordered > 0` |
 | 22 | `ck_purchase_order_detail_qty_received` | `tbl_purchase_order_detail` | `qty_received >= 0` |
 | 23 | `ck_purchase_order_detail_unit_price` | `tbl_purchase_order_detail` | `unit_price >= 0` |
@@ -253,7 +257,7 @@ A10 是"同一份库里存在两套口径"的提醒 —— 二者都不是靠加
 
 | 检查项 | 结果 |
 |---|---|
-| ER 图上的每条线都能追到外码？ | ✅ **30 条线 ↔ 30 个外码，一一对应**（`er-diagram.md` §2.1 有编号映射表） |
-| 每个外码都有 (min,max)？ | ✅ §2 覆盖 28 段业务联系 / 30 个外码 |
+| ER 图上的每条线都能追到外码？ | ✅ **31 条线 ↔ 31 个外码，一一对应**（`er-diagram.md` §2.1 有编号映射表） |
+| 每个外码都有 (min,max)？ | ✅ §2 覆盖 29 段业务联系 / 31 个外码 |
 | 每条规则都有实现层？ | ✅ ① 52 条 / ② 7 条 / ③ 2 条 |
 | 有没有「写在文档里但库里不生效」的规则？ | ⚠️ **有 7 条**，全部列在 §4 —— **这正是第 6 周迁移的输入** |
