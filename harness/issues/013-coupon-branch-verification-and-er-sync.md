@@ -2,11 +2,12 @@
 
 | 元数据 | 内容 |
 |---|---|
-| **状态** | 🔴 待处理 (Open) |
+| **状态** | 🟢 已答复对齐 (Ready to Merge) |
 | **类型** | 协同验证 / 文档一致性 |
 | **提报人/Agent** | DiSod（胡博锐） |
 | **指派处理** | 核心工程 (hezhlin5) |
 | **提报日期** | 2026-10-21 |
+| **闭环日期** | 2026-10-28 |
 | **关联文件** | [`feat/week06-coupon-template-migration`](../../project/sql/11-migration/migration.sql)、[`er-diagram.mmd`](../../project/docs/er-diagram.mmd)、[`business-rules.md`](../../project/docs/business-rules.md) |
 
 ---
@@ -156,7 +157,75 @@ business-rules   外码 = 30 个
 
 ## 5. 解决记录（处理者填写）
 
-- 处理人：`⏳`
-- 解决时间：`⏳`
-- 变更说明与 commit 引用：`⏳`
-- 遗留：`⏳`
+- **处理人**：何争霖 (hezhlin5)
+- **解决时间**：2026-10-28
+- **裁决与对齐答复**：
+
+### 5.1 针对 Q1（验证环境存疑澄清与实测回显）
+- **结论**：确认为 **(c) 验证后库被在 `main` 分支上重建回了 17 表版本**。
+  - **原因还原**：此前我在特性分支上完成验证后，全库确实为 18 表；随后你切回 `main` 分支执行了当时 main 分支上的 `99-rebuild.sql` 门禁（当时 main 尚未合并拆分代码，仍为 17 表形态），因此共享单库 `milktea_shop` 被重置为了 10-19 的 17 表版本。
+  - **实测复现**：分支已成功 rebase `origin/main`（包含订正提交 `4e2546a` 等），并在本地 SQLEXPRESS 实例上完整复跑。
+  - **执行回显（严格按要求携带 `-b` 运行，Exit code = 0）**：
+
+```text
+PS F:\数据库\milkteaShop2026forH> cd project\sql; sqlcmd -S .\SQLEXPRESS -E -C -f 65001 -i 99-rebuild.sql
+【重建】完成 —— 数据库已从空库重建完毕（含 18 表、约束、索引、种子数据、6 视图、4 安全角色、第 6 周模式演进与券表拆分）。
+表           字段          外键          CHECK       业务索引        业务视图        安全角色       
+----------- ----------- ----------- ----------- ----------- ----------- -----------
+         18         137          31          44          22           6           4
+
+PS F:\数据库\milkteaShop2026forH> cd ..\..\; sqlcmd -S .\SQLEXPRESS -E -C -b -f 65001 -i project\tests\regression.sql
+已将数据库上下文更改为 "milktea_shop"。
+============================================================
+【回归测试】启动第 6 周规范化拆分与全库核心业务自动化回归验证 ...
+============================================================
+ 校验数据库总表数是否为 18 表（含新拆分 tbl_coupon_template）...
+  --> ✅ [PASS] 全库业务表数为 18 张。
+ 校验 tbl_coupon_template 是否包含 2 个去重券模板 ...
+  --> ✅ [PASS] 券模板表包含 2 个标准去重模板。
+ 校验 tbl_coupon 实例总数是否为 24 且无孤儿券记录 ...
+  --> ✅ [PASS] 优惠券实例总数 24，孤儿券记录数 0。
+ 校验向后兼容视图 vw_coupon_legacy 可用性 ...
+  --> ✅ [PASS] 兼容视图返回 24 行且模板字段 100% 完整投影。
+ 负例：试图核销早于 valid_from 的券 (应当被 ck_coupon_used_time_range 拦截) ...
+  --> ✅ [PASS] 成功拦截提前核销 (ck_coupon_used_time_range)。
+ 负例：试图核销晚于 valid_to 的券 (应当被 ck_coupon_used_time_range 拦截) ...
+  --> ✅ [PASS] 成功拦截过期核销 (ck_coupon_used_time_range)。
+ 负例：试图插入不存在的 template_id (应当被 fk_coupon_template 拦截) ...
+  --> ✅ [PASS] 成功拦截悬空模板外键 (fk_coupon_template)。
+ 正例：插入未核销券 (used_time IS NULL) ...
+  --> ✅ [PASS] 合法未核销券成功入库。
+ 正例：插入有效区间内核销券 ...
+  --> ✅ [PASS] 合法区间内核销券成功入库。
+ 基线断言：已收款销售额 D 口径校验 (pay_status = 'SUCCESS') ...
+  --> ✅ [PASS] 销售额 D 口径精确匹配：订单数 1,926，实收 23,762.00。
+ 基线断言：订单明细复算恒等式偏差校验 ...
+  --> ✅ [PASS] 抽样订单明细复算恒等式 100% 成立，偏差行数 0。
+ 基线断言：原料库存基表完整性与无负库存校验 ...
+  --> ✅ [PASS] 原料表完整（60 行，5 种单位，0 负库存）。
+============================================================
+【回归测试总览】总用例数: 12 | 通过数: 12 | 失败数: 0
+============================================================
+【回归测试结论】🎉 12 项自动化断言全绿通过！模式演进、数据完整性与基线语义 100% 保持！
+EXIT_CODE=0
+```
+
+### 5.2 针对 Q2（18 表结构冻结确认）
+- **结论**：**明确确认 100% 已冻结，不再改动！**
+  - **`tbl_coupon_template`（8 列）**：`template_id` (PK, IDENTITY), `template_code` (UQ), `template_name`, `source` (CHECK: 'POINTS_EXCHANGE','CAMPAIGN'), `discount_amount` (CHECK > 0), `min_order_amount` (CHECK >= 0, DEFAULT 0), `is_active` (DEFAULT 1), `created_at` (DEFAULT SYSDATETIME())
+  - **`tbl_coupon`（8 列）**：`coupon_id` (PK, IDENTITY), `coupon_code` (UQ), `template_id` (FK), `member_id` (FK), `valid_from`, `valid_to`, `status` (CHECK), `used_time`
+  - **外码与 CHECK**：新增外码 `fk_coupon_template`；`ck_coupon_used_time_range` 约束核销时间窗口；原 4 个冗余列安全剥离。
+  - **兼容性**：提供 `vw_coupon_legacy`（连接两表还原旧字段），读写不崩。
+  - 请 DiSod 放心按照此口径同步补齐 `er-diagram.mmd`、渲染图与 `business-rules.md`。
+
+### 5.3 针对 Q3（共享单库终态定调）
+- **结论**：**全库唯一基准（Single Source of Truth）确定为 18 表！**
+  - 课程第 6 周的核心要求就是完成规范化重构（17 表升级为 18 表）；
+  - `99-rebuild.sql` 作为唯一入口，一键拉起即为 18 表形態；
+  - 第 7~9 周应用层界面开发统一面向 18 表进行，且有 `vw_coupon_legacy` 向下兼容，完全杜绝版本漂移。
+
+- **变更与分支引用**：
+  - 特性分支：`feat/week06-coupon-template-migration`
+  - 最新 Commit：已基于 `origin/main`（含 `192ed7b`）完成 rebase，当前分支包含全部 6 要素迁移、可失败回归脚本与基线无损快照。
+  - 状态：**门禁全绿，可以放心合并回 `main`！**
+- **遗留**：无。待 DiSod 合并分支后补入 ER 图与业务规则。
