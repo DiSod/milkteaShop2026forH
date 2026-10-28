@@ -38,7 +38,7 @@ project/sql/NN-xxx/ 正式脚本
 | 4 | ch4 连接、视图、完整性、授权 | 5 业务视图 + 4 组深度查询 + 4 岗位 RBAC 与负例拦截，一键重建 17 秒闭环 | ✅ | [`week04/`](week04/) |
 | 5 | ch6 ER 模型 | **ER 图、业务规则与映射清单、v0.1 问题清单**；兼**阶段一 v0.1 交付**（交接见 [`week05/README.md`](week05/README.md)） | ✅ | [`week05/`](week05/) → `project/docs/` |
 | 6 | ch7 函数依赖与规范化 | 依赖分析、分解方案、`migration.sql`、回归测试 | ✅ | [`week06/`](week06/) → `project/docs/normalization.md`、`project/sql/11-migration/` |
-| 7 | ch8 应用开发（一） | 连接配置、DAO/API、登录与基础 CRUD 界面 | ⬜ | `project/app/` |
+| 7 | ch8 应用开发（一） | **三层技术选型候选清单**（页面/业务/数据访问各自的子问题与候选，含成套方案 A/B/C）；连接配置、DAO/API、登录与基础 CRUD 界面**待选型定案后开工** | 🟡 | [`week07/`](week07/) → `project/app/` |
 | 8 | ch8 应用开发（二） | 可运行应用、测试脚本、操作手册 | ⬜ | `project/app/` + `project/tests/` |
 | 9 | ch8 应用开发（二·续） | 角色界面、事务边界、集成测试 | ⬜ | — |
 | 10 | — | **阶段二提交 v1.0** + 展示（第 10 周） | ⬜ | — |
