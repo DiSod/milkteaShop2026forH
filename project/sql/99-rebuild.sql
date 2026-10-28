@@ -34,7 +34,7 @@
  *   08-security        角色与权限（4 岗位 RBAC 与负例测试）
  *   09-programmability 存储过程 / 函数 / 触发器（待第 11—12 周）
  *   10-transaction     事务与并发控制（待第 13 周）
- *   11-migration       模式演进与规范化重构（第 6 周 DDL 约束补强）
+ *   11-migration       模式演进与规范化重构（第 6 周券表拆分 + 第 7 周登录凭据）
  *
  * 【⚠️ 两条 sqlcmd 坑（见 harness/conventions/02-sql-style.md §9）】
  *   1. 本文件必须存为「UTF-8 带 BOM」，否则中文会被按 GBK 解码 → **静默失效**
@@ -89,10 +89,15 @@ PRINT N'【重建】=== 07-view ===';
 PRINT N'【重建】=== 08-security ===';
 :r .\08-security\role.sql
 
-PRINT N'【重建】=== 11-migration ===';
+PRINT N'【重建】=== 11-migration / 01 券表拆分 ===';
 :r .\11-migration\migration.sql
 
-PRINT N'【重建】完成 —— 数据库已从空库重建完毕（含 18 表、约束、索引、种子数据、6 视图、4 安全角色、第 6 周模式演进与券表拆分）。';
+-- ⏸ 迁移 02（登录凭据列）在 feat/week07-login-credentials 分支上起草，尚未合并进 main。
+--    待核心工程 hezhlin5 确认后再随分支合并；合并前本行与其下的 :r 只在分支上存在。
+PRINT N'【重建】=== 11-migration / 02 登录凭据 ===';
+:r .\11-migration\migration-02-login-credentials.sql
+
+PRINT N'【重建】完成 —— 数据库已从空库重建完毕（含 18 表、约束、索引、种子数据、6 视图、4 安全角色、第 6 周券表拆分、第 7 周登录凭据列）。';
 GO
 
 /* ---------- 重建结果总览 ---------- */
