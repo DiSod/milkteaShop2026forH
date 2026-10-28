@@ -67,11 +67,18 @@ erDiagram
         INT ingredient_id FK
         DECIMAL qty_ordered
     }
+    coupon_template {
+        INT template_id PK
+        VARCHAR template_code
+        VARCHAR source
+        DECIMAL discount_amount
+        DECIMAL min_order_amount
+    }
     coupon {
         INT coupon_id PK
         VARCHAR coupon_code
+        INT template_id FK
         INT member_id FK
-        DECIMAL discount_amount
         VARCHAR status
     }
     order_header {
@@ -144,3 +151,4 @@ erDiagram
     member ||--o{ points_ledger : "R28"
     order_header o|--o{ points_ledger : "R29"
     coupon o|--o{ points_ledger : "R30"
+    coupon_template ||--o{ coupon : "R31"

@@ -2,7 +2,9 @@
 
 > **产出周**：第 5 周（ch6 ER 模型）
 > **课程依据**：[`course/lecture-week05.md`](../../course/lecture-week05.md) —— 第五周任务 ch6 ER 模型
-> **建模对象**：`v0.1` 数据库设计（**17 张表 / 132 字段 / 30 外码**），**不改结构**，只做逆向梳理
+> **建模对象**：`v1.0` 数据库设计（**18 张表 / 137 字段 / 31 外码**）。
+> 前 17 张表与 132 字段来自对 `v0.1` 的逆向梳理；第 18 张 `tbl_coupon_template`
+> 与第 31 个外码 `fk_coupon_template` 由**第 6 周券表拆分迁移**新增（ISSUE-013 定案）。
 > **配套**：[`business-rules.md`](business-rules.md)（基数与规则清单）· [`v0.1-issues.md`](v0.1-issues.md)（问题清单）
 > **命名对应**：图中每个实体名与属性名**逐一对应 [`data-dictionary.md`](data-dictionary.md)**，无自造命名
 
@@ -29,11 +31,11 @@
 > **原表错在哪**：
 >
 > 1. **左右端排反** —— 原表把 `o{` 记在**左端**，但 `er-diagram.mmd` 里**左端出现 0 次**；
->    30 条关系的 `o{` **全部在右端**。
+>    31 条关系的 `o{` **全部在右端**。
 > 2. **漏了左端符号 `o|`** —— 它在左端出现 **9 次**，原表未列。
 > 3. **列了出现 0 次的符号** —— `|{` 全文出现 **0 次**，原表当成右端符号列出，未说明它为何不用。
 >
-> **更正依据**：对 `er-diagram.mmd` **全部 30 条关系**做符号统计（脚本 `harness/logs/tmp-verify-naming.py`），
+> **更正依据**：对 `er-diagram.mmd` **全部 31 条关系**做符号统计（脚本 `harness/logs/tmp-verify-naming.py`），
 > 结果即下表「本图实际」列。**判定为真实错误而非表述差异**，因为原表会让人把读法读反。
 >
 > **原表（保留，已失效）**：
@@ -55,7 +57,7 @@
 | `\|{` | **1 或 N**（至少一条） | ⚠️ **本图未使用** —— 见 §1.3 |
 
 **书写规则**：`A ⟨左端符号⟩--⟨右端符号⟩ B`。**左端**是该关系的「1 端」，**右端**是「N 端」。
-本图**全部 30 条关系都是 `X--o{` 形状**，即每一个「1 端」都是 `||` 或 `o|`。
+本图**全部 31 条关系都是 `X--o{` 形状**，即每一个「1 端」都是 `||` 或 `o|`。
 
 **读法**：`order_header ||--o{ order_detail : "R05"` 读作
 「**一个订单头必须对应 0 个或多个订单明细**」；`coupon o|--o{ order_header : "R04"` 读作
@@ -91,7 +93,7 @@
 
 ## 2. ER 图
 
-> 图为**全 17 个实体**。每个实体只画**码 + 关键业务属性**（画不下 132 列）；
+> 图为**全 18 个实体**。每个实体只画**码 + 关键业务属性**（画不下 137 列）；
 > 完整字段、类型精度、允许空、默认值一律以 [`data-dictionary.md`](data-dictionary.md) 为准。
 
 ```mermaid
@@ -164,11 +166,18 @@ erDiagram
         INT ingredient_id FK
         DECIMAL qty_ordered
     }
+    coupon_template {
+        INT template_id PK
+        VARCHAR template_code
+        VARCHAR source
+        DECIMAL discount_amount
+        DECIMAL min_order_amount
+    }
     coupon {
         INT coupon_id PK
         VARCHAR coupon_code
+        INT template_id FK
         INT member_id FK
-        DECIMAL discount_amount
         VARCHAR status
     }
     order_header {
@@ -241,15 +250,17 @@ erDiagram
     member ||--o{ points_ledger : "R28"
     order_header o|--o{ points_ledger : "R29"
     coupon o|--o{ points_ledger : "R30"
+    coupon_template ||--o{ coupon : "R31"
 ```
 
-> **关系标签用 `R01` — `R30` 编号**，不是外码名 —— 因为在 4298 px 宽的画布上，
+> **关系标签用 `R01` — `R31` 编号**，不是外码名 —— 因为在 4298 px 宽的画布上，
 > 33 字符的约束名（如 `fk_purchase_order_detail_purchase_order`）会被渲染器**折行截断**，
 > 反而看不见。**编号是稳定的**（按外码名排序生成），完整映射见下表。
 
-### 2.1 关系编号 → 外码约束名（**30 条，全覆盖**）
+### 2.1 关系编号 → 外码约束名（**31 条，全覆盖**）
 
-> 校验：图中 30 条关系 ↔ `02-constraints/constraints.sql` 中 **30 个外码**，
+> 校验：图中 31 条关系 ↔ 全库 **31 个外码**（`02-constraints/constraints.sql` 30 个 +
+> `11-migration/migration.sql` 幂等创建的 `fk_coupon_template` 1 个），
 > **一一对应，无遗漏、无多余**（机器比对通过）。
 
 | 编号 | 图中关系 | 完整外码约束名 |
@@ -284,11 +295,13 @@ erDiagram
 | **R28** | `member ||--o{ points_ledger` | `fk_points_ledger_member` |
 | **R29** | `order_header o|--o{ points_ledger` | `fk_points_ledger_order` |
 | **R30** | `coupon o|--o{ points_ledger` | `fk_points_ledger_coupon` |
+| **R31** | `coupon_template ||--o{ coupon` | `fk_coupon_template` |
 
-> ⚠️ **为什么是 30 条而不是 27 条**：`tbl_order_detail` 的杯型 / 糖度 / 冰量是**三个独立的真外码**，
+> ⚠️ **为什么 `tbl_order_detail` 的杯型 / 糖度 / 冰量要各画一条**：它们是**三个独立的真外码**，
 > 各自对应 `tbl_spec_option` 的不同域，因此**各画一条** —— 这与 `tbl_recipe` 的杯型 / 糖度同理。
+> 若合并成 1 条，关系数会少 2 条，但就与 31 个外码对不上了。
 
-## 3. 实体与表的对应（17 ↔ 17，全一对一）
+## 3. 实体与表的对应（18 ↔ 18，全一对一）
 
 > 课程要求：「说明**哪些表对应哪些实体**，哪些联系需要通过**中间实体**表示」。
 
@@ -305,15 +318,18 @@ erDiagram
 | 9 | 配方 | `tbl_recipe` | BOM，成品 ↔ 原料的桥 | 一条「某成品·某杯型·某糖度 用某原料」 |
 | 10 | 采购单 | `tbl_purchase_order` | 采购单头 | 一次采购 |
 | 11 | 采购明细 | `tbl_purchase_order_detail` | 采购单的物料行 | 该次采购的一种原料 |
-| 12 | 券 | `tbl_coupon` | 会员券，**发放 + 核销合一** | 一张券 |
+| 12 | 券 | `tbl_coupon` | 会员持有的一张券**实例**（核销状态、有效期、归属） | 一张已发放的券 |
 | 13 | 订单 | `tbl_order_header` | 订单单头 **+ 支付** | 一笔交易 |
 | 14 | 订单明细 | `tbl_order_detail` | 订单的一行饮品 | 一笔交易中的一行饮品 |
 | 15 | 明细加料 | `tbl_order_detail_topping` | 某行饮品所加小料 | 某行饮品加的一种小料 |
 | 16 | 积分流水 | `tbl_points_ledger` | 积分累积 / 兑换记录 | 一次积分变动 |
 | 17 | 库存流水 | `tbl_stock_ledger` | 原料出入库记录 | 一次原料出入库 |
+| 18 | 券模板 | `tbl_coupon_template` | 券的**票面定义**（面额 / 门槛 / 来源），同类券共用一行 | 一种券的票面 |
 
-> **结论：v0.1 的 17 张表全部对应独立实体，没有一张是「纯冗余表」**。
+> **结论：全部 18 张表都对应独立实体，没有一张是「纯冗余表」**。
 > 其中 **5 张是联系实体（中间表）**，见下节。
+> 第 18 张 `tbl_coupon_template` 是第 6 周为消除「券面四个字段重复 12 行」而拆出的票面定义，
+> 它同时把「一种券」与「一张券」这两个原本混在一张表里的概念分开了。
 
 ---
 
@@ -374,8 +390,9 @@ erDiagram
 | 16 | 原料 — 承载 — 库存流水 | 原料 **(0,N)** / 流水 **(1,1)** | `ingredient_id NOT NULL` |
 | 17 | 会员 — 归属 — 积分流水 | 会员 **(0,N)** / 流水 **(1,1)** | `member_id NOT NULL` |
 | 18 | 订单 — 作为积分来源 — 积分流水 | 订单 **(0,N)** / 流水 **(0,1)** | `order_id` 可 NULL（REDEEM 类可能无来源单） |
+| 19 | 券模板 — 发行 — 券 | 模板 **(0,N)** / 券 **(1,1)** | `coupon.template_id NOT NULL` → **每张券必属于某个模板**；模板可暂时没有券 |
 
-> **完整 30 个外码的逐条 (min,max) 见** [`business-rules.md`](business-rules.md) §3。
+> **完整 31 个外码的逐条 (min,max) 见** [`business-rules.md`](business-rules.md) §3。
 
 ---
 
@@ -399,9 +416,9 @@ erDiagram
 
 | 课程要求回答的问题 | 结论 |
 |---|---|
-| 哪些表对应哪些实体？ | **17 表 ↔ 17 实体，全一对一**（§3） |
+| 哪些表对应哪些实体？ | **18 表 ↔ 18 实体，全一对一**（§3） |
 | 哪些联系需中间实体？ | **5 张中间表**，化解 4 段 M:N + 1 张带属性联系（§4） |
-| 实体有遗漏吗？ | **无**。§2.1 的 **30 条关系覆盖了全部 30 个外码**（机器比对通过） |
+| 实体有遗漏吗？ | **无**。§2.1 的 **31 条关系覆盖了全部 31 个外码**（机器比对通过）。<br>第 6 周发现原设计缺「券模板」这个实体，已随迁移补上（ISSUE-013） |
 | 属性有重复吗？ | **无重复属性**。唯一冗余是 `tbl_member.points_balance`（D-12，有意的性能取舍，一致性由事务维护） |
 | 联系表达不清吗？ | **1 处**：订单→明细的最小基数无法在库中表达（§6 问题 1） |
 
@@ -416,7 +433,7 @@ erDiagram
 | **可编辑源（主）** | 本文件（`.md` 内的 Mermaid 代码块） | 纯文本、可 diff、可在任意 Mermaid 编辑器打开 |
 | **可编辑源（渲染用）** | `er-diagram.mmd` | 与本文档代码块**逐行一致**（已机器校验）；`.mmd` 后缀是 mermaid-cli 的输入格式要求 |
 | **清晰导出图（矢量）** | `er-diagram.svg` | **纯 `<text>` 标签，零 `<foreignObject>`** —— 可在浏览器 / Word / 矢量编辑器中正常显示与再次编辑 |
-| **清晰导出图（位图）** | `er-diagram.png` | 高分辨率（5715 × 2292），供不支持 SVG 的场合使用 |
+| **清晰导出图（位图）** | `er-diagram.png` | 高分辨率（6537 × 2511），供不支持 SVG 的场合使用 |
 
 > ⭐ **为什么特意做成"纯文本 SVG"**：mermaid 默认用 `<foreignObject>` + XHTML 渲染标签，
 > **Word / PowerPoint / 多数非浏览器看图器无法解析**，导出图会显示成空白。
