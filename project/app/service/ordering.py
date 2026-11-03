@@ -15,8 +15,9 @@ from service.errors import BusinessRuleViolation, ValidationError
 MAX_LINES = 20
 MAX_QTY_PER_LINE = 20
 
-# 外币种、支付方式等先固定：v1.0 只做线上支付一条路
-PAY_METHOD = "ONLINE"
+# 支付方式只有 CARD / ALIPAY / WECHAT / CASH 四种（ck_order_header_pay_method），
+# v1.0 网单默认走微信
+PAY_METHOD = "WECHAT"
 PAY_STATUS = "SUCCESS"
 ORDER_STATUS = "PENDING"
 

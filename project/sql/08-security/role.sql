@@ -60,6 +60,7 @@ GO
 IF USER_ID('usr_test_cashier') IS NOT NULL DROP USER usr_test_cashier;
 IF USER_ID('usr_test_maker')   IS NOT NULL DROP USER usr_test_maker;
 IF USER_ID('usr_test_stocker') IS NOT NULL DROP USER usr_test_stocker;
+IF USER_ID('usr_test_manager') IS NOT NULL DROP USER usr_test_manager;
 GO
 
 -- 清理角色
@@ -135,11 +136,13 @@ GO
 CREATE USER usr_test_cashier WITHOUT LOGIN;
 CREATE USER usr_test_maker   WITHOUT LOGIN;
 CREATE USER usr_test_stocker WITHOUT LOGIN;
+CREATE USER usr_test_manager WITHOUT LOGIN;
 GO
 
 ALTER ROLE role_cashier ADD MEMBER usr_test_cashier;
 ALTER ROLE role_maker   ADD MEMBER usr_test_maker;
 ALTER ROLE role_stocker ADD MEMBER usr_test_stocker;
+ALTER ROLE role_manager ADD MEMBER usr_test_manager;
 GO
 
 PRINT N'【安全】测试用户已建立并成功加入对应角色。';
