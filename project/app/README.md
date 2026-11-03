@@ -1,13 +1,92 @@
-# app · 应用界面
+# app · 应用界面（v1.0）
 
-第 2 阶段（v1.0）起存放数据库应用的界面代码。
+第 2 阶段的应用层实现：在 **18 表 / 137 字段 / 31 外键 / 44 CHECK** 的 v1.0 库上，
+完成「登录 → 点单 → 写库 → 工作台接单」的全流程。
 
-课程要求涵盖：应用程序登录、商品/库存/订单操作、**参数化查询**、错误反馈、角色界面。
-
-| 当前状态 | ⬜ 占位，尚未开始 |
+| 项目 | 内容 |
 |---|---|
+| 当前状态 | 🟡 **本地可运行的第一版**（分支 `feat/week07-app-skeleton`，未合并、未推送） |
+| 技术栈 | Flask 3 + Jinja2 + 本地 Bootstrap 5.3.3 + pyodbc（**方案 B**，见 `../../weeks/week07/README.md` §七） |
+| Python | 3.12（`SQL Server` 与 `ODBC Driver 17 for SQL Server` 均可） |
+| 数据库 | `milktea_shop`，Windows 认证连接，**每请求切换数据库身份** |
 
-## 放什么 / 不放什么
+## 1. 三层怎么分（课程段落 7 / 11 的口径）
+
+| 层 | 目录 | 职责 | 不该做的事 |
+|---|---|---|---|
+| 页面层 | `web/`（`templates/`、`static/`、`routes_*.py`、`security.py`） | 接收操作、渲染页面、表单必填与格式校验 | **不含一行 SQL**；不直接 `import dao` |
+| 业务层 | `service/` | 业务规则、**事务边界**、角色可执行范围、统一异常 | 不拼 SQL、不碰连接 |
+| 数据访问层 | `dao/` | 连库、**参数化**、执行、读取；事务提交/回滚/释放 | 不做业务判断 |
+| 数据库层 | SQL Server | 表、约束、视图、权限 | ——（不是我们写的代码层） |
+
+边界由 **可执行的测试** 守住，不靠口头约定：`tests/test_layering.py` 会失败在
+「谁 import 了 pyodbc」「上层是否出现内联 SQL」「页面层是否绕过业务层用 dao」这三件事上。
+
+## 2. 目录与文件
+
+```
+app.py                    应用工厂、请求标识日志、统一异常处理、/health
+config.py                 连接串与角色→数据库账户映射（读 .env，不写死）
+requirements.txt          Flask / pyodbc / pytest
+.env.example              连接信息模板（.env 本身不提交）
+dao/
+  db.py                   Session 封装 + open_session（EXECUTE AS USER）+ probe
+  errors.py               把 pyodbc 异常归到四类（连接/约束/权限/未知）
+  catalog_dao.py          菜单、规格、加料、可做杯数
+  member_dao.py           会员与我的订单、积分流水
+  order_dao.py            下单写入：单号流水、订单头/明细/加料、反冲扣料、积分
+service/
+  errors.py               八类业务异常 + 从 dao 错误翻译
+  auth.py                 会员登录 / 员工登录 / 口令摘要
+  catalog.py              菜单与选项的用例
+  ordering.py             下单用例（校验 → 定价 → 库存 → 事务写入）
+web/
+  security.py             登录态与角色装饰器
+  routes_auth.py          /login /staff/login /logout
+  routes_member.py        / /order /orders /me
+  routes_maker.py         /maker /maker/order/<id>/next
+  templates/              8 个 Jinja2 模板
+  static/                 本地 Bootstrap 5.3.3 + app.css（离线可用）
+tests/
+  test_layering.py        分层边界三条断言
+  test_auth_hash.py       口令摘要与 SQL 侧一致性
+```
+
+## 3. 启动
+
+```powershell
+cd project\app
+python -m pip install -r requirements.txt
+Copy-Item .env.example .env      # 按本机改连接信息
+python app.py                    # http://127.0.0.1:5000
+```
+
+健康检查：`GET /health` 返回 `@@SERVERNAME`、库名、`tbl_` 表数与
+`COL_LENGTH('tbl_member','password_hash')`——最后一项为 `null` 说明
+**迁移 02 尚未执行，登录不可用**（此时登录页会给出明确提示而不是 500）。
+
+## 4. 两个入口
+
+| 入口 | 账号 | 口令（演示） | 落点 |
+|---|---|---|---|
+| 会员 | 手机号，如 `13800000001` | 手机号后 6 位，如 `000001` | `/` 菜单 → 下单 → `/orders`、`/me` |
+| 员工 | 工号，如 `E003`（制作员） | 小写工号，如 `e003` | `/maker` 接单与推到下一状态 |
+
+口令约定与 `../sql/11-migration/migration-02-login-credentials.sql` 完全一致：
+盐 = `m<member_id>` / `e<employee_id>`，摘要 = `UPPER(HEX(SHA-256(盐+口令)))`。
+
+## 5. 已知边界（答辩要主动说）
+
+| # | 情况 | 现状 | 计划 |
+|---|---|---|---|
+| 1 | 一次下单跨「订单域 + 库存域」，单个角色授权做不到 | 写入路径以 `dbo` 执行，读取路径仍走受限身份 | 第 11—12 周改为存储过程 + `EXECUTE WITH OWNER`，业务层只 `GRANT EXECUTE` |
+| 2 | 网单没有收银员，但 `tbl_order_header.cashier_id` NOT NULL | 固定记到 `employee_id=2`（E002 李娜 CASHIER，`SYSTEM_CASHIER_ID`） | 同上，随存储过程一起处理 |
+| 3 | 顾客借用收银员的数据库身份（未建 `usr_member`） | `config.ROLE_DB_USER['MEMBER'] = usr_test_cashier` | 可加一个只读 + 写订单的专用账户 |
+| 4 | 迁移 02 未合并，`password_hash` 列不存在 | 登录直接抛 `BUSINESS_RULE_VIOLATION`，不 500 | 等核心工程确认后合并 |
+| 5 | 口令是单轮 SHA-256，不是 Argon2id | 演示级取舍，答辩时主动说明 | 真实产品应换 PBKDF2/Argon2id + 每用户随机盐 |
+| 6 | 只做了「顾客 + 制作员」两条主线 | 收银员/库管员页面未做 | 第 8—9 周补 |
+
+## 6. 放什么 / 不放什么
 
 | ✅ | ❌ |
 |---|---|

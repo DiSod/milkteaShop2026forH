@@ -39,3 +39,14 @@ Thumbs.db
 *.zip
 *.7z
 *.rar
+
+# ---- Python 运行产物（第 7 周应用层）----
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+project/app/.env
+
+# ---- 会话上传暂存（GUI 拖入的文件，不是项目内容）----
+.dsh-uploads/
