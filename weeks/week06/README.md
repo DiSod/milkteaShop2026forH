@@ -94,7 +94,7 @@
 | [`project/docs/data-dictionary.md`](../../project/docs/data-dictionary.md) | 数据字典 | 18 表完整字段字典与码标注汇总 |
 | [`project/sql/11-migration/migration.sql`](../../project/sql/11-migration/migration.sql) | 第 6 周模式迁移与规范化拆分脚本 | 满足迁移 6 要素，已接入 `99-rebuild.sql` |
 | [`project/sql/11-migration/README.md`](../../project/sql/11-migration/README.md) | 迁移设计与执行说明 | 6 要素落地对照与双重验证指引 |
-| [`project/tests/regression.sql`](../../project/tests/regression.sql) | 全库自动化回归测试入口 | 12 项硬断言，带 `THROW` 与 `sqlcmd -b` 非零退出码机制 |
+| [`project/tests/regression.sql`](../../project/tests/regression.sql) | 全库自动化回归测试入口 | 12 项硬断言（第 7 周追加 TC-13 后为 13 项），带 `THROW` 与 `sqlcmd -b` 非零退出码机制 |
 | [`project/tests/01-migration-verification.sql`](../../project/tests/01-migration-verification.sql) | 迁移专项正反例脚本 | 正反例验证（合法放行、越界拦截、悬空外键拦截） |
 | [`project/tests/01-migration-verification.md`](../../project/tests/01-migration-verification.md) | 迁移专项回归测试报告 | 5/5 测试用例全绿与重建集成证据 |
 | [`project/tests/baseline/`](../../project/tests/baseline/README.md) | 迁移前后基线快照对比 | 抽样明细 S1、销售 S2、库存 S3 对比迁移前，0 差异 |

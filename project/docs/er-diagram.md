@@ -2,7 +2,7 @@
 
 > **产出周**：第 5 周（ch6 ER 模型）
 > **课程依据**：[`course/lecture-week05.md`](../../course/lecture-week05.md) —— 第五周任务 ch6 ER 模型
-> **建模对象**：`v1.0` 数据库设计（**18 张表 / 137 字段 / 31 外码**）。
+> **建模对象**：`v1.0` 数据库设计（**18 张表 / 139 字段 / 31 外码**）。
 > 前 17 张表与 132 字段来自对 `v0.1` 的逆向梳理；第 18 张 `tbl_coupon_template`
 > 与第 31 个外码 `fk_coupon_template` 由**第 6 周券表拆分迁移**新增（ISSUE-013 定案）。
 > **配套**：[`business-rules.md`](business-rules.md)（基数与规则清单）· [`v0.1-issues.md`](v0.1-issues.md)（问题清单）

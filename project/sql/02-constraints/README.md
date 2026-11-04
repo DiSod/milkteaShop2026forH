@@ -14,6 +14,8 @@
 | **CHECK 约束** | **43** | 业务域约束（13）、非负/大于0/非零（25）、跨列/逻辑一致性（5） | `ck_<table>_<column>` |
 | **外键 FOREIGN KEY** | **30** | 引用完整性（实体关联与父子单据） | `fk_<表>_<列>`（用**外键列名**，不用目标表名 —— 见下） |
 
+> ⚠️ 上表是**本文件 `constraints.sql` 的 v0.1 数量**。第 6 周 `migration.sql` 追加 1 个外键（`fk_coupon_template`），第 6 周 `migration.sql` 与第 7 周 `migration-02` / `migration-04` 共追加 5 条 `CHECK`，故**全库最终为 18 候选码 / 48 `CHECK` / 31 外键**（由 `99-rebuild.sql` 全链路实测）。
+
 ---
 
 ## 二、合法成功与非法拒绝验证（正反例用例）

@@ -31,7 +31,7 @@
 | 3 | **数据访问层** | ✅ | 段落 10：系统中**唯一与 SQL Server 直接交互**的层级，负责连接、SQL 参数、事务提交回滚、连接释放 |
 | — | 数据库层 | ❌（它是 SQL Server） | 段落 11：保存表、约束、视图和数据 |
 
-**答辩时若被问「第四层你们做了什么」**：数据库层是我们**设计的对象**而非写的代码——18 张表 / 137 个字段 / 31 个外键 / 46 个 CHECK / 6 个视图 / 4 个安全角色，全部由 `project/sql/99-rebuild.sql` 从空库一键重建；数据访问层就是它的调用方。
+**答辩时若被问「第四层你们做了什么」**：数据库层是我们**设计的对象**而非写的代码——18 张表 / 139 个字段 / 31 个外键 / 48 个 CHECK / 6 个视图 / 4 个安全角色，全部由 `project/sql/99-rebuild.sql` 从空库一键重建；数据访问层就是它的调用方。
 
 ---
 
@@ -327,13 +327,67 @@
 
 | 资产 | 状态 |
 |---|---|
-| `project/sql/`（18 表 / 137 字段 / 31 外键 / 46 CHECK / 22 索引 / 6 视图 / 4 角色） | ✅ 已成，`99-rebuild.sql` 一键重建实测通过 |
-| `project/tests/regression.sql`（12 用例，失败 `THROW`） | ✅ 已成 |
+| `project/sql/`（18 表 / 139 字段 / 31 外键 / **48 CHECK** / 22 索引 / 6 视图 / 4 角色） | ✅ 已成，`99-rebuild.sql` 一键重建实测通过 |
+| `project/tests/regression.sql`（13 用例，失败 `THROW`） | ✅ 已成 |
 | `project/tests/baseline/`（迁移前后快照，293 行零差异） | ✅ 已成 |
 | `project/docs/normalization.md`（14 BCNF + 3 受控冗余，含无损分解证明） | ✅ 已成 |
-| `project/sql/11-migration/migration-02-login-credentials.sql`（登录凭据列） | 🟡 **在分支 `feat/week07-login-credentials`，未合并**，等核心工程答复 4 个问题 |
+| `project/sql/11-migration/migration-02-login-credentials.sql`（登录凭据列） | 🟡 **在分支上，未合并**；重建已接入（139 字段 / 48 CHECK），等核心工程答复 4 个问题 |
+| `project/sql/11-migration/migration-03-points-opening-ledger.sql`（积分期初结转） | ✅ **已成**（分支上）：DOM-09 增 `OPENING`、回填 80 条期初流水，80/80 会员对账成立；`regression` TC-13 兜底 |
+| `project/sql/11-migration/migration-04-order-time-constraints.sql`（时间序） | ✅ **已成**（分支上）：`ck_order_header_pay_time` + `ck_order_header_finish_after_pay`，`CHECK` 46 → 48 |
+| `project/sql/11-migration/migration-05-price-precision.sql`（单价精度） | ✅ **已成**（分支上）：6 个单价/成本列统一 `DECIMAL(12,4)`，摘除并重建 6 条 `CHECK`、刷新 6 个视图 |
+| `project/sql/08-security/role.sql`（店长授权收窄） | ✅ **已成**（分支上）：`SCHEMA::dbo` 全权 → 17 表 + 5 视图逐对象授权（78 条），新对象不再自动开放（§十二 P-1） |
+| `project/sql/11-migration/migration-03-points-opening-ledger.sql`（积分期初结转） | 🟡 **在分支上，未合并**；重建已接入，积分台账 80/80 对账成立 |
 | `course/lecture-week07-09.*` | ❌ **课程材料尚未入库** |
-| `project/app/` | ❌ 只有 `README.md`（514 B） |
+| `project/app/` | 🟡 三层骨架已成（`dao/` + `service/` + `web/`，分支上未推送），缺商品维护与库存调整界面 |
 | `weeks/submissions/v1.0/` | ❌ 只有 `.gitkeep` |
 
 > **本文件不涉及代码，也不改变任何数据库对象。** 它是一份选型讨论底稿。
+
+## 十一、已知数据缺口：兑换券没有对应的扣分流水
+
+`tbl_coupon` 里 12 张 `source='POINTS_EXCHANGE'` 的券**全部已被核销**（各抵扣 5.00 元、合计 60.00 元），
+但 `tbl_points_ledger` 中 `coupon_id` 非空的 `REDEEM` 行是 **0 条** —— 券的来路在数据里不存在。
+
+**本轮决定：认账，不追认历史。** 理由不是"懒"，而是补不了：第 1 周给的换算是「500 积分 → 5 元券」，
+而这 12 张券的持有人余额最高只有 413 分，硬补扣减会撞 `ck_member_points_balance (>= 0)`，
+只能靠篡改余额凑数 —— 那等于用一个假数据去圆另一个假数据。
+
+对应用开发的影响：**v1.0 不实现「积分兑换」界面**（课程 7 项任务也没要求）。
+今后若要做，必须在**一个事务**里完成「扣积分 → 发券 → 写 `REDEEM` 流水」。
+
+规则登记见 [`project/docs/business-rules.md`](../../project/docs/business-rules.md) **A11**；
+迁移侧的完整说明见 [`project/sql/11-migration/README.md`](../../project/sql/11-migration/README.md) §6.5。
+
+---
+
+## 十二、待议清单（已发现；P-1 已于第 7 周提前修掉）
+
+> 这里登记**已经查实、但决定暂不动手**的问题。用户 2026-11-04 的裁定是
+> 「不着急，保留成待议，文档记录就好」—— 所以下面每一项都只登记、不擅自改代码。
+> **例外**：P-1 经用户 2026-11-05 追加授权（「也行，改吧」）已提前修掉，
+> 修法与实测结果见该行「状态」列；P-2 / P-3 仍只登记。
+>
+> 与 §九 的区别：§九 是**选型**（选 A 还是 B），本节是**缺陷**（现有实现与规范/课程
+> 要求之间的偏差）。都与「待确认」而不是「已完成」挂钩，符合
+> `harness/conventions/03-documentation.md` §6「未决项不要抹掉」。
+
+| # | 问题 | 证据（实测） | 影响 | 若要修，怎么做 | 状态 |
+|---|---|---|---|---|---|
+| **P-1** | **`role_manager` 被授予 4 条 `SCHEMA::dbo` 全权**，对象级授权全部冗余 | `sys.database_permissions` 中 `role_manager` 有 `DELETE/INSERT/SELECT/UPDATE` on `SCHEMA::dbo`；另有 5 条对象级授权（`tbl_coupon_template` 的 D/I/S/U + `vw_coupon_legacy` 的 S）完全被覆盖 | ① 代入店长身份后数据层**等于没有约束**（`EXECUTE AS USER` 的隔离效果对店长失效）；② 今后**每新增一个对象自动对店长开放**，"最小权限"与课程段落 12 的"三层一致"都打折 | 把 `SCHEMA::dbo` 四条 `GRANT` 换成逐对象授权（按 `sys.database_permissions` 里现有的对象清单展开）；改完必须重跑 `99-rebuild` 门禁与 `role.sql` 的三组负例 | 🟡 待议 |
+| **P-2** | **下单的写入路径以 `dbo` 执行**（`project/app/service/ordering.py` 的 `open_session()` 不带身份） | 该调用没有任何 `db_user` 参数，即连接身份直接是 `dbo`；同文件中读取路径走受限身份，**同一请求两套权限** | 课程段落 12 要求"关键数据库操作还应使用受限数据库账户"——下单是最关键的操作，恰恰是唯一没有受限身份的写路径 | 正解不是给收银员 `GRANT UPDATE tbl_ingredient`（`project/docs/design-notes.md` §1.2 已否决），而是**存储过程 + `EXECUTE AS OWNER` + 只 `GRANT EXECUTE`**，留到第 11—12 周（存储过程/所有权链） | 🟡 待议（已有 `project/app/README.md` 已知边界 #1 记录） |
+| **P-3** | **RBAC 只到表级，行级隔离全靠应用 `WHERE`** | 以 `usr_test_cashier` 身份 `SELECT` 可见 `tbl_order_header` 全部 1963 行、`tbl_member` 全部 80 行（含手机号）；`sys.security_policies` = **0**（RLS 从未启用） | 顾客借用收银员身份 → 在库层拥有收银员权限；应用任何一处 `WHERE` 漏写，数据库不会报警 | 只有 SQL Server 行级安全（RLS）能下沉；本 demo 用 `project/app/tests/test_permissions.py` 的两条断言作补偿（订单页只能出现自己的单号、`/me` 不泄露他人手机号） | 🟡 待议（已写进 `project/app/README.md` 已知边界 #8） |
+
+> 另外两条**不属于权限**、但同样属于"待议"的历史缺口，已分别登记，不在此重复：
+> 兑换券没有对应的 `REDEEM` 扣分流水（§十一 + `business-rules.md` A11）、
+> 退款在库里无独立记录（`data-dictionary.md` §五 5.3 + `business-rules.md` A9）。
+
+**为什么当初只登记不动手**：P-1 要改 `08-security/role.sql`，一改就必须重跑 `99-rebuild`
+门禁 + 三组越权负例 + 22 个 `.sql` 的 BOM 校验；P-2 的解法跨到第 11—12 周的存储
+过程。在 v1.0 的第 7 周把这两件事做了，收益是"更干净"，代价是**把当前分支的
+验证面扩大一倍**，而它们本来就有明确的后续落点。留痕比赶工更有价值。
+
+**P-1 后来还是修了**（2026-11-05 用户追加授权）：因为门禁链路此时已经是通的
+（`99-rebuild` 一条命令跑完 18 表 + 5 段迁移 + RBAC + 负例），重跑成本从"半天"降到
+"几分钟"，而架构级授权是**权限体系里唯一一处"越用越糟"的设计**——新对象每加一个，
+暴露面就自动扩大一格。P-2 仍留待第 11—12 周，因为它要动的是事务边界与所有权链，
+不是改几条 `GRANT`。

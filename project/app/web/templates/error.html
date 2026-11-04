@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}操作未完成{% endblock %}
+{% block content %}
+<div class="alert alert-danger">
+  <h5 class="alert-heading">{{ error.code }}</h5>
+  <p class="mb-1">{{ error.message }}</p>
+  {% if error.ref %}<p class="small text-muted mb-0">请求标识 {{ error.ref }}，可凭此在服务端日志中定位。</p>{% endif %}
+</div>
+<a class="btn btn-outline-secondary" href="{{ url_for('member.menu') if g.member else url_for('auth.login') }}">返回</a>
+{% endblock %}

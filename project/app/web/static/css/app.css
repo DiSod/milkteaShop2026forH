@@ -1,0 +1,26 @@
+/* 只补 Bootstrap 不覆盖的少量样式；品牌色沿用奶茶店的暖色调。 */
+:root {
+  --brand: #8a5a2b;
+}
+
+.navbar-brand {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.table > :not(caption) > * > * {
+  padding: 0.45rem 0.5rem;
+}
+
+.navbar-text {
+  font-size: 0.9rem;
+}
+
+code {
+  color: var(--brand);
+}
+
+.display-6 {
+  color: var(--brand);
+  font-weight: 600;
+}

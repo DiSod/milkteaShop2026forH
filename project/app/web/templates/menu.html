@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}菜单 · 点单{% endblock %}
+{% block content %}
+<h4 class="mb-3">今日菜单</h4>
+<p class="text-muted small">
+  价格与「还能做几杯」都直接读 <code>vw_product_stock_availability</code>，页面不做任何推算。
+</p>
+
+<form method="post" action="{{ url_for('member.place_order') }}">
+  <div class="table-responsive">
+    <table class="table table-sm align-middle bg-white">
+      <thead class="table-light">
+        <tr>
+          <th>商品</th><th>杯型</th><th class="text-end">单价</th>
+          <th class="text-end">可做</th><th>糖度</th><th>冰量</th>
+          <th style="width:6rem">数量</th><th>加料</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for row in menu %}
+        {% set i = loop.index0 %}
+        <tr>
+          <td>
+            {{ row[2] }}
+            <div class="text-muted small">{{ row[3] }} · {{ row[1] }}</div>
+          </td>
+          <td>{{ row[5] }}</td>
+          <td class="text-end">{{ '%.2f'|format(row[6]) }}</td>
+          <td class="text-end">
+            {{ row[7] }}
+            {% if row[8] %}<span class="badge bg-secondary ms-1">沽清</span>{% endif %}
+          </td>
+          <td>
+            <select class="form-select form-select-sm" name="sugar_spec_id">
+              {% for s in options.specs.SUGAR %}
+                <option value="{{ s.spec_option_id }}">{{ s.spec_name }}</option>
+              {% endfor %}
+            </select>
+          </td>
+          <td>
+            <select class="form-select form-select-sm" name="ice_spec_id">
+              {% for s in options.specs.ICE %}
+                <option value="{{ s.spec_option_id }}">{{ s.spec_name }}</option>
+              {% endfor %}
+            </select>
+          </td>
+          <td>
+            <select class="form-select form-select-sm" name="qty">
+              <option value="0">0</option>
+              {% for n in range(1, 6) %}<option value="{{ n }}">{{ n }}</option>{% endfor %}
+            </select>
+          </td>
+          <td>
+            {% for t in options.toppings %}
+              <label class="form-check form-check-inline mb-0">
+                <input class="form-check-input" type="checkbox"
+                       name="topping_id_{{ i }}" value="{{ t.topping_id }}">
+                <span class="form-check-label small">{{ t.topping_name }}+{{ '%.1f'|format(t.extra_price) }}</span>
+              </label>
+            {% endfor %}
+          </td>
+          <input type="hidden" name="product_id" value="{{ row[0] }}">
+          <input type="hidden" name="cup_spec_id" value="{{ row[4] }}">
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+    <button class="btn btn-primary" type="submit">提交订单</button>
+  </div>
+</form>
+{% endblock %}

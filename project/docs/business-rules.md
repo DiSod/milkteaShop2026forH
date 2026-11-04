@@ -27,14 +27,19 @@
 
 | 实现层 | 条数 | 说明 |
 |---|---|---|
-| ① 数据库约束 | **53** | 44 `CHECK` + 31 `FK`（含基数方向）+ 18 `UNIQUE` 中的业务码部分 |
-| ② 应用代码 | **9** | 见 §4 —— 其中 A1—A6 是完整性缺口，A8—A10 是口径类规则（口径问题加约束也解决不了） |
+| ① 数据库约束 | **53** | 48 `CHECK` + 31 `FK`（含基数方向）+ 18 `UNIQUE` 中的业务码部分 |
+| ② 应用代码 | **13** | 见 §4 —— 其中 A1—A6 是完整性缺口，A8—A10 是口径类规则，A11 是跨表原子性，A12—A14 是 v1.0 应用收紧与业务语义登记（三者加约束都解决不了） |
 | ③ 人工检查 | **2** | 见 §5 |
 
 > 条数变化留痕：初版 ② 层记 7 条（A1—A7）；第 6 周 A7 用 `ck_coupon_used_time_range` 下沉到 ① 层（−1），
-> 同时新增 A8/A9/A10 三条口径类规则（+3），故现为 9 条。
+> 同时新增 A8/A9/A10 三条口径类规则（+3），故第 6 周为 9 条；
+> **第 7 周新增 A11（兑换券必须由一次积分扣减换来，跨表原子性），② 层 9 → 10 条**。
 > 第 6 周券表拆分又带来 1 条由外码强制的规则（券必属某模板，`fk_coupon_template`），故 ① 层 52 → **53**。
-> 注意：① 层的条数是**规则条数**，不是约束条数（44+31+18 = 93 个约束对象承载了 53 条规则）。
+> `CHECK` 数 43 → 44（第 6 周新增 `ck_coupon_used_time_range`）→ **46**（第 7 周登录凭据两条格式约束，
+> 属实现层校验、不计入业务规则条数，故 ① 层仍是 53 条）。
+> **第 7 周（第二/三批）**：新增 A12（v1.0 起下单必须绑定会员）、A13（在售商品必须有配方）、A14（取消不回冲 / 弃单照常耗用的库存语义），② 层 10 → **13** 条；
+> 同时 `migration-04` 补了 2 条时序 `CHECK`（`CHECK` 46 → 48），`migration-05` 只改精度不改条数。
+> 注意：① 层的条数是**规则条数**，不是约束条数（48+31+18 = **97** 个约束对象承载了 53 条规则）。
 
 ---
 
@@ -47,7 +52,7 @@
 |---|---|---|---|---|---|---|
 | 1 | 收银 | 员工 — 订单 | (0,N) | **(1,1)** | `tbl_order_header.cashier_id` → `fk_order_header_cashier` | 所有订单，无例外 |
 | 2 | 包含 | 订单 — 订单明细 | (1,1) | **(0,N)** ⚠️ | `tbl_order_detail.order_id` → `fk_order_detail_order` | ⚠️ **右端业务应为 (1,N)**，库中做不到，见 §4 规则 A1 |
-| 3 | 下单 | 会员 — 订单 | (0,N) | **(0,1)** | `tbl_order_header.member_id` → `fk_order_header_member` | **散客可下单**，故可空 |
+| 3 | 下单 | 会员 — 订单 | (0,N) | **(0,1)** | `tbl_order_header.member_id` → `fk_order_header_member` | **v0.1 散客可下单**，故可空 —— 库层保留可空只为承载 764 张历史散客单；**v1.0 起应用层强制会员**，见 §4 规则 A12 |
 | 4 | 被点 | 商品 — 订单明细 | (0,N) | **(1,1)** | `tbl_order_detail.product_id` → `fk_order_detail_product` | 所有明细 |
 | 5 | 加料 | 订单明细 — 加料明细 | (0,N) | **(1,1)** | `tbl_order_detail_topping.order_detail_id` → `fk_order_detail_topping_order_detail` | 左端可 0：**不加小料则无行** |
 | 6 | 选用 | 小料 — 加料明细 | (0,N) | **(1,1)** | `tbl_order_detail_topping.topping_id` → `fk_order_detail_topping_topping` | |
@@ -131,14 +136,18 @@
 |---|---|---|---|---|
 | **A1** | **每张订单至少含一条明细** | 子表向父表建外码，**无法约束父端必须有一个子端**（标准 SQL 无「至少一」约束） | `crud.sql` 应用逻辑显式插入 | 第 6 周迁移候选（触发器或事务封装） |
 | **A2** | **每张采购单至少含一条明细** | 同 A1 | 应用逻辑 | 同 A1 |
-| **A3** | **`order_header` 金额 = Σ 明细 `subtotal`** | 跨行聚合，`CHECK` 不能引用其他行 | 应用计算后写入 | 第 6 周事务/触发器 |
-| **A4** | **`tbl_member.points_balance` = Σ 积分流水** | 同上（冗余字段，D-12 有意保留） | 事务维护 | 同上 |
+| **A3** | **`order_header` 金额 = Σ 明细 `subtotal`** | 跨行聚合，`CHECK` 不能引用其他行 | 应用计算后写入 | 第 6 周事务/触发器。⚠️ `migration-05` 把单价升到 `DECIMAL(12,4)` 后，`subtotal`(10,2) 在出现 3—4 位单价时会四舍五入，等式只在单价恰为 2 位小数时严格成立（现库全是 2 位，实测偏差 0） |
+| **A4** | **`tbl_member.points_balance` = Σ 积分流水** | 同上（冗余字段，D-12 有意保留） | 事务维护。**第 7 周已补期初流水**（`migration-03` 新增 `OPENING` 类型，80/80 会员现已对账成立） | 仍靠应用维护；`regression.sql` TC-13 兜底 |
 | **A5** | **一券只能用一次** | `status`/`used_time` 有 `CHECK` 保证**取值合法**，但「只能改一次」是**状态转换**约束 | 应用逻辑 | 第 6 周 |
 | **A6** | **`tbl_ingredient.qty_on_hand` = 期初 + Σ 流水** | 同上，跨行聚合 | 造数引擎保证 + 审计查询验证 | v1.0 校准 |
 | **A7** | **券核销时间必须落在有效期内** | `used_time` 与 `valid_from/valid_to` 的跨列关系**未建 CHECK** | 应用逻辑 | ✅ **已实施**，见下「第 6 周增补」 |
 | **A8** | **`order_status = 'COMPLETED'` ⇒ `pay_status = 'SUCCESS'`** | 两个字段的**跨列蕴含**没有 `CHECK`；且 `COMPLETED` 与否还受"已取件"这个**库外事件**影响 | 造数程序自觉保证（实测 1,894 单全部满足） | 可补 `CHECK (NOT (order_status='COMPLETED' AND pay_status<>'SUCCESS'))`；**但不建议**——真实业务里"已取件"由店员操作，硬约束会把操作卡死 |
 | **A9** | **退款是整单退，退款额 = `SUM(amount_paid) WHERE pay_status='FAILED'`** | 库里**没有退款表**，也没有退款时间、原因、退款单号；`tbl_order_header` 的 `pay_status` 只有 `SUCCESS`/`FAILED` 两值，无法区分"从未支付"与"已退款" | 造数程序把 `CANCELLED` 单写成 `FAILED` 并保留**退款前原值** | **本轮明确不建退款表**（第 6 周裁定）。退款额只能反推，**不可审计**；写进报告作为已知边界 |
 | **A10** | **求销售额必须带 `pay_status = 'SUCCESS'` 过滤** | 这不是库的问题，而是**口径问题**：`vw_daily_business_summary.net_revenue` 是 `SUM(amount_paid)` 且视图**整体无 WHERE**，把 37 张已退款单的 446.00 元也算进了收入 | 视图现状即如此，**本轮不改视图** | 口径写进 [`data-dictionary.md`](data-dictionary.md) §五；`regression.sql` 断言"视图合计 = 销售额 + 退款额"这个**已知偏差**，而不是断言"视图等于销售额" |
+| **A11** | **`source='POINTS_EXCHANGE'` 的券，必须由一次积分扣减（`REDEEM` 流水）换来** | 券在 `tbl_coupon`、扣分在 `tbl_points_ledger`，**跨表**；且"扣分与发券同生共死"是**原子性**要求，单表 `CHECK` 与 `FOREIGN KEY` 都表达不了（外码只能保证"券挂到某个会员"，不能保证"这个会员为此付过积分"） | ⚠️ **历史数据不满足**：24 张券里 12 张 `POINTS_EXCHANGE`，**`tbl_points_ledger` 里 `coupon_id` 非空的 `REDEEM` 行是 0 条** —— 券的来路在数据上不存在 | **本轮认账、不补历史**（详见 [`../sql/11-migration/README.md`](../sql/11-migration/README.md) §6.5）。今后应用侧兑换动作必须在**一个事务**里完成：扣积分 → 发券 → 写 `REDEEM` 流水（`coupon_id` 回填） |
+| **A12** | **v1.0 起下单必须绑定会员** | `tbl_order_header.member_id` 允许 NULL，库层拦不住「散客下单」；允许 NULL 只是为了承载 v0.1 的 764 张历史散客单（占 1963 单的 38.9%） | 应用层 `project/app/web/routes_member.py` 全部路由 `@member_required`，散客根本进不了下单页 | 保持现状：库层可空、应用层强制。若要库层也强制，需先在迁移里把 764 行散客单迁到"匿名会员" |
+| **A13** | **在售商品至少有一条配方** | 配方在子表 `tbl_recipe`，商品在父表 `tbl_product`；「父端必须有子端」标准 SQL 表达不了（同 A1） | **无实现** —— `vw_product_stock_availability` 用 `JOIN tbl_recipe` **静默滤除**无配方组合，所以看不出来 | 实测缺口：在售商品 × 杯型应有 **58** 组合、实际有配方 **55**，缺 `P019 香草圣代` / `P020 草莓圣代` / `P021 脆皮甜筒` 的**大杯**（业务上合理：圣代只有中杯，但**库里没有任何记录**） |
+| **A14** | **已取消（CANCELLED）不回冲原料；已制作未取件（ABANDONED）照常耗用** | 这是**业务语义**，不是完整性约束：两种终态对库存的处理本就不同，且"是否已制作"是库外事件 | 造数程序按此实现（`CANCELLED` 37 单 **0** 条 `SALES_USE` 流水；`ABANDONED` 32 单**全部**有耗用） | v1.0 由业务层在状态转换时保证：只有进入 `MAKING` 之后才允许扣料 |
 
 ### 第 6 周增补（A7 已落地，A8—A10 为新增口径类规则）
 
@@ -152,9 +161,28 @@ ALTER TABLE tbl_coupon WITH CHECK ADD CONSTRAINT ck_coupon_used_time_range
 并已接入 `99-rebuild.sql`（接通顺序 `00→01→02→03→04→07→08→11`）。
 迁移脚本自带违例预检与事务回滚，独立可重放（幂等）。
 
-**A8—A10 的性质和 A1—A7 不同**：A1—A6 是"库里应该能拦但没拦"的**完整性缺口**；
-A8—A10 是**业务口径的定义问题**，其中 A9 是**有意接受的边界**（不建退款表），
-A10 是"同一份库里存在两套口径"的提醒 —— 二者都不是靠加约束能解决的。
+**A8—A14 的性质和 A1—A7 不同**：A1—A6 是"库里应该能拦但没拦"的**完整性缺口**；
+A8—A11 是**业务口径与跨表原子性**问题，其中 A9 是**有意接受的边界**（不建退款表），
+A10 是"同一份库里存在两套口径"的提醒，A11 是**历史数据已经违背、但决定不追认**的边界，
+A12 是"v1.0 应用比库更严"的收紧、A13 是"业务上成立但库里静默滤除"的覆盖缺口、
+A14 是"两种终态库存处理不同"的业务语义登记 —— 它们都不是靠加约束能解决的。
+
+### 第 7 周增补：A11（兑换券的来路）
+
+**事实**：`tbl_coupon` 24 张券里 12 张 `source='POINTS_EXCHANGE'`，**全部已被订单核销**，
+各自抵扣 5.00 元、合计 **60.00 元**；而 `tbl_points_ledger` 中 `coupon_id` 非空的
+`REDEEM` 行是 **0 条**（类型分布只有 `OPENING` 80 条 + `EARN` 1,179 条）。
+
+也就是说：**券的作用真实发生了（60 元让利），但"积分被扣掉"这件事在数据里不存在。**
+
+**为什么不补**（详见 [`../sql/11-migration/README.md`](../sql/11-migration/README.md) §6.5）：
+第 1 周给的换算例子是「500 积分 → 5 元券」，而这 12 张券的持有人当前余额分别为
+249 / 257 / 327 / 343 / 358 / 369 / 413 —— **全部低于 500**，硬补扣减会撞
+`ck_member_points_balance (points_balance >= 0)`，只能靠篡改余额凑数，
+那等于用一个假数据去圆另一个假数据。
+
+**决定**：本轮**认账**，不追认历史，只保证今后。今后应用侧兑换必须在一个事务里完成
+「扣积分 → 发券 → 写 `REDEEM` 流水（`coupon_id` 回填）」三步，任一步失败整体回滚。
 
 > ⚠️ **口径不一致是真实存在的**：`vw_daily_business_summary`（`view.sql:169`）用 `SUM(amount_paid)` 且不带状态过滤；
 > `vw_member_consumption_profile`（`view.sql:227`）却带了 `o.order_status = 'COMPLETED'`。
@@ -179,7 +207,7 @@ A10 是"同一份库里存在两套口径"的提醒 —— 二者都不是靠加
 
 ---
 
-## 6. 数据库约束全量清单（44 个 `CHECK`）
+## 6. 数据库约束全量清单（48 个 `CHECK`）
 
 > 供逐条核对「规则是否真的在库里生效」。分三类。
 
@@ -196,7 +224,7 @@ A10 是"同一份库里存在两套口径"的提醒 —— 二者都不是靠加
 | `ck_order_header_pay_status` | `tbl_order_header` | `pay_status IS NULL OR IN ('SUCCESS','FAILED')` |
 | `ck_coupon_template_source` | `tbl_coupon_template` | `source IN ('POINTS_EXCHANGE','CAMPAIGN')`（第 6 周随券表拆分改名并迁表） |
 | `ck_coupon_status` | `tbl_coupon` | `status IN ('UNUSED','USED','EXPIRED')` |
-| `ck_points_ledger_point_type` | `tbl_points_ledger` | `point_type IN ('EARN','REDEEM')` |
+| `ck_points_ledger_point_type` | `tbl_points_ledger` | `point_type IN ('EARN','REDEEM','OPENING')`（`OPENING` 由 `migration-03` 第 7 周补入） |
 | `ck_spec_option_spec_type` | `tbl_spec_option` | `spec_type IN ('CUP','SUGAR','ICE')` |
 | `ck_purchase_order_order_status` | `tbl_purchase_order` | `order_status IN (5 值)` |
 | `ck_spec_option_code_by_type` | `tbl_spec_option` | ⭐ **规格码必须与规格类型匹配**（`CUP` 只能是 `M`/`L`）：`(spec_type='CUP' AND code IN ('M','L')) OR (spec_type='SUGAR' AND …) OR (spec_type='ICE' AND …)` |
@@ -204,13 +232,15 @@ A10 是"同一份库里存在两套口径"的提醒 —— 二者都不是靠加
 > ℹ️ `ck_spec_option_code_by_type` 形式上是「跨字段」，**实质是域约束** ——
 > 它保证的是「规格码这个域的取值**依赖于**规格类型」，属 DOM-11/12/13 的完整落地。
 
-### 6.2 跨字段一致性约束（6 个 —— 业务规则的硬核部分）
+### 6.2 跨字段一致性约束（8 个 —— 业务规则的硬核部分）
 
 | 约束名 | 表 | 保证的业务规则 |
 |---|---|---|
 | `ck_stock_ledger_ref_consistency` | `tbl_stock_ledger` | ⭐ **来源与来源单必须匹配**（`PURCHASE` 必有采购单且无订单，反之亦然） |
-| `ck_points_ledger_target` | `tbl_points_ledger` | ⭐ **EARN 必有来源单；REDEEM 必有券或订单**（ISSUE-008 修复的死锁点） |
+| `ck_points_ledger_target` | `tbl_points_ledger` | ⭐ **EARN 必有来源单；REDEEM 必有券或订单；OPENING 两端必须都为空**（ISSUE-008 修复的死锁点；`OPENING` 分支由 `migration-03` 补入） |
 | `ck_order_header_finish_time` | `tbl_order_header` | 完成时间 ≥ 下单时间 |
+| `ck_order_header_pay_time` | `tbl_order_header` | 付款时间 ≥ 下单时间（`migration-04` 第 7 周新增） |
+| `ck_order_header_finish_after_pay` | `tbl_order_header` | 完成时间 ≥ 付款时间（`migration-04` 第 7 周新增） |
 | `ck_purchase_order_arrival_date` | `tbl_purchase_order` | 到货日期 ≥ 下单日期 |
 | `ck_coupon_valid_period` | `tbl_coupon` | 有效期 `valid_to > valid_from` |
 | `ck_coupon_used_time_range` | `tbl_coupon` | ⭐ **核销时间必须落在有效期内**：`used_time IS NULL OR (used_time >= valid_from AND used_time <= valid_to)`（第 6 周迁移新增，即 §4 规则 A7 的落地） |
@@ -249,7 +279,7 @@ A10 是"同一份库里存在两套口径"的提醒 —— 二者都不是靠加
 > 因为库存/积分流水**用符号表达方向**（入库正、耗用负），
 > 「数量不能为零」与「数量必须为正」是**两条不同的规则**。
 
-**本节合计校验**：13 + 5 + 25 = **43** ✅ 与 `sys.check_constraints` 实测数一致。
+**本节合计校验**：13（6.1）+ 8（6.2）+ 25（6.3）= **46**，另加 `migration-02` 的 2 条登录凭据格式校验（实现层约束，不计入业务规则条数）= **48** ✅ 与 `sys.check_constraints` 实测数一致。
 
 ---
 
@@ -259,5 +289,5 @@ A10 是"同一份库里存在两套口径"的提醒 —— 二者都不是靠加
 |---|---|
 | ER 图上的每条线都能追到外码？ | ✅ **31 条线 ↔ 31 个外码，一一对应**（`er-diagram.md` §2.1 有编号映射表） |
 | 每个外码都有 (min,max)？ | ✅ §2 覆盖 29 段业务联系 / 31 个外码 |
-| 每条规则都有实现层？ | ✅ ① 52 条 / ② 7 条 / ③ 2 条 |
-| 有没有「写在文档里但库里不生效」的规则？ | ⚠️ **有 7 条**，全部列在 §4 —— **这正是第 6 周迁移的输入** |
+| 每条规则都有实现层？ | ✅ ① 53 条 / ② 13 条 / ③ 2 条 |
+| 有没有「写在文档里但库里不生效」的规则？ | ⚠️ **有 14 条**（A1—A14），全部列在 §4 —— 第 6 周已消化 A7，其余为应用层 / 业务语义 / 有意接受的边界 |

@@ -81,7 +81,7 @@ v0.1 已经落地 17 张表并有 20,979 行数据。第 5 周的任务不是推
 ### 2.0 读前须知
 
 - 图中**实体名 = 表名去掉 `tbl_` 前缀**（如 `order_header` ↔ `tbl_order_header`）。
-- 图中属性**是摘录**，完整 137 字段见 [`data-dictionary.md`](data-dictionary.md)。
+- 图中属性**是摘录**，完整 139 字段见 [`data-dictionary.md`](data-dictionary.md)。
 - 关系标签 `Rxx` 的完整映射表见 [`er-diagram.md`](er-diagram.md) §2.1。
 
 ### 2.1 场景一：多商品订单
@@ -186,9 +186,8 @@ v0.1 已经落地 17 张表并有 20,979 行数据。第 5 周的任务不是推
 ## 4. 验证记录
 
 > **全部为脚本实测值**，非引用既有文档。脚本：
-> [`harness/logs/tmp-verify-naming.py`](../../harness/logs/tmp-verify-naming.py)（命名与关系）、
-> [`harness/logs/tmp-count-cols.py`](../../harness/logs/tmp-count-cols.py)（列数）。
-> ⚠️ 两脚本为**临时校验脚本**，放在 gitignore 区，**不随交付物提交**。
+> `harness/logs/tmp-verify-naming.py`（命名与关系）、`harness/logs/tmp-count-cols.py`（列数）。
+> ⚠️ 两脚本为**临时校验脚本**，放在 gitignore 区，**不随交付物提交**，故此处只写路径不挂链接（跑完已清理）。
 
 ### 4.1 ⭐ 命名对应校验（**课程硬要求**）
 
@@ -227,7 +226,9 @@ v0.1 已经落地 17 张表并有 20,979 行数据。第 5 周的任务不是推
 | `CREATE INDEX` | **21** | `project/sql/03-indexes/indexes.sql` |
 | **`CREATE OR ALTER VIEW`** | **5** | `project/sql/07-view/view.sql` |
 | `CREATE ROLE` | **4** | `project/sql/08-security/role.sql` |
-| `FOREIGN KEY` / `CHECK` / `UNIQUE` | **30 / 43 / 17** | `project/sql/02-constraints/constraints.sql` |
+| `FOREIGN KEY` / `CHECK` / `UNIQUE` | **30 / 43 / 17** | `project/sql/02-constraints/constraints.sql`（**仅该文件的 v0.1 数量**） |
+
+> ⚠️ 上表数的是**建表脚本与 `constraints.sql` 里的 v0.1 对象**。经第 6—7 周的 5 段迁移后，全库实际为 **18 表 / 139 字段 / 31 外键 / 48 CHECK / 22 索引 / 6 视图 / 4 角色**（第 18 表与第 31 外码来自 `migration.sql`，另 5 条 `CHECK` 来自 `migration-02/04`）——本节的用途是**复现 v0.1 的原始计数**，不是报当前全库数。
 
 > ⚠️ **两条会让人算错的坑（踩过）**：
 >
@@ -277,7 +278,7 @@ npx -y @mermaid-js/mermaid-cli@11 -i project\docs\er-legend.mmd -o project\docs\
 
 | 项 | 状态 / 说明 |
 |---|---|
-| **`99-rebuild.sql` 在本机实跑** | ✅ **已补跑通过**（2026-10-19，文件策略放开为 danger-full-access 后）：`exit=0`，回显 **18 表 / 137 字段 / 31 外键 / 44 CHECK / 22 索引 / 6 视图 / 4 安全角色**，逐表行数合计 **20,979**；另实测约束行为与 `migration.sql` 连续两次幂等执行均 `exit=0`。原记「沙箱无法连接实例（实例只听命名管道）」是第 5 周当时的真实限制，现已不适用 |
+| **`99-rebuild.sql` 在本机实跑** | ✅ **已补跑通过**（初测 2026-10-19，文件策略放开为 danger-full-access 后；2026-11-04 随迁移 02/03 重跑复核）：`exit=0`，回显 **18 表 / 139 字段 / 31 外键 / 46 CHECK / 22 索引 / 6 视图 / 4 安全角色**，逐表行数合计 **20,979**；另实测约束行为与三个迁移脚本连续两次幂等执行均 `exit=0`。原记「沙箱无法连接实例（实例只听命名管道）」是第 5 周当时的真实限制，现已不适用 |
 | 校验脚本未入库 | `tmp-verify-naming.py` / `tmp-count-cols.py` 是一次性校验脚本，放在 `harness/logs/` 且已被 `.gitignore` 的 `harness/logs/tmp-*` 排除。**结论已写进本文档**，脚本可随时重跑；若要长期回归，应移入 `project/tests/` 并走代码分支（那段路要过 `99-rebuild.sql` 合并底线） |
 | 图中属性摘录 vs 数据字典全量 | **有意为之**（§1.3 取舍二），非缺陷 |
 
@@ -290,7 +291,7 @@ npx -y @mermaid-js/mermaid-cli@11 -i project\docs\er-legend.mmd -o project\docs\
 | [`er-diagram.md`](er-diagram.md) | **图本身** + 符号图例表 + R 编号映射表 |
 | [`business-rules.md`](business-rules.md) | **规则本身**：29 段联系的 `(min,max)` / 31 外码 / **A1—A10 库表达不了的规则** |
 | [`v0.1-issues.md`](v0.1-issues.md) | **问题清单**：3 处完整性缺口 + 第 6 周迁移输入 |
-| [`data-dictionary.md`](data-dictionary.md) | **唯一真相源**：18 表 / 137 字段的权威定义 |
+| [`data-dictionary.md`](data-dictionary.md) | **唯一真相源**：18 表 / 139 字段的权威定义 |
 | [`design-notes.md`](design-notes.md) | 阶段一的**设计取舍与已知边界**（跨周累积） |
 
 > **本文档不复制上述内容**，只做**说明与证据**。若与上述任何一份冲突，**以上述为准** ——

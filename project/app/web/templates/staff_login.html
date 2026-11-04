@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}员工登录{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-5">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h4 class="card-title mb-3">员工登录</h4>
+        <form method="post" novalidate>
+          <div class="mb-3">
+            <label class="form-label" for="employee_code">工号</label>
+            <input class="form-control" id="employee_code" name="employee_code"
+                   maxlength="10" required placeholder="如 E003">
+            <div class="form-text">演示环境：口令为小写工号。</div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="password">密码</label>
+            <input class="form-control" id="password" name="password" type="password" required>
+          </div>
+          <button class="btn btn-dark w-100" type="submit">进入工作台</button>
+        </form>
+        <hr>
+        <a class="small" href="{{ url_for('auth.login') }}">我是顾客，走会员登录</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
