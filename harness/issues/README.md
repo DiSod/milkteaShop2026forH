@@ -31,9 +31,9 @@
 | [**011**](011-week06-migration-and-subtotal-alignment.md) | **第 6 周迁移接入策略定案与订单明细 subtotal 加料一致性实测反馈** | 架构决策 / 完整性约束实测 | 双人共同讨论 / 核心工程 (hezhlin5) | 🟢 **已解决** | [`project/docs/v0.1-issues.md`](../../project/docs/v0.1-issues.md), [`weeks/week06/README.md`](../../weeks/week06/README.md) |
 | [**012**](012-normalization-paradigm-count-inconsistency.md) | **`normalization.md` 范式判定数字自相矛盾**：§0 写 12 BCNF + 5 反规范化，§3 判定表实为 14 BCNF + 3 张 2NF；并请作者确认标 2NF 的口径 | 文档一致性 / 范式判定口径 | **核心工程 (hezhlin5)** | 🟢 **已解决** | [`project/docs/normalization.md`](../../project/docs/normalization.md) §0 与 §3 |
 | [**013**](013-coupon-branch-verification-and-er-sync.md) | **券拆分分支验证环境存疑 + 18 表未回写设计文档**：澄清验证环境(c)与回显、确认18表结构冻结与终态口径 | 协同验证 / 文档一致性 | **核心工程 (hezhlin5)** | 🟢 **已解决** | [`migration.sql`](../../project/sql/11-migration/migration.sql)、[`013-coupon-branch-verification-and-er-sync.md`](013-coupon-branch-verification-and-er-sync.md) |
-| [**014**](014-week07-conformance-and-pending.md) | ⭐ **第 7 周应用开发期规范偏差清单**：已修 5 项（积分台账不可对账 / 时间序只约束一半 / 单价精度错用金额定标 / 店长架构级授权 / 业务层岗位校验漏参）+ 待裁定 4 项（登录凭据迁移）+ 已认账 4 项（A11—A14）+ 结构性待议 2 项（P-2/P-3） | 规范符合性 / 权限与安全 / 协同裁定 | **核心工程 (hezhlin5)**：裁定 §4 四问 | 🟡 **进行中** | [`weeks/week07/README.md`](../../weeks/week07/README.md) |
+| [**014**](014-week07-conformance-and-pending.md) | ⭐ **第 7 周应用开发期规范偏差清单**：已修 5 项（积分台账不可对账 / 时间序只约束一半 / 单价精度错用金额定标 / 店长架构级授权 / 业务层岗位校验漏参）+ 待裁定 4 项（登录凭据迁移）+ 已认账 4 项（A11—A14）+ 结构性待议 2 项（P-2/P-3） | 规范符合性 / 权限与安全 / 协同裁定 | **核心工程 (hezhlin5)**：裁定 §4 四问 | 🟢 **已解决** | [`weeks/week07/README.md`](../../weeks/week07/README.md) |
 
-> **闭环进度**：🟢 已解决 **13** 条（001—013）· 🟡 进行中 **1** 条（014，等核心工程裁定 4 项）· 🔴 待处理 **0** 条。
+> **闭环进度**：🟢 已解决 **14** 条（001—014）· 🟡 进行中 **0** 条 · 🔴 待处理 **0** 条。
 >
 > ⚠️ **排雷重点**：
 > - **008（工程主责）**：✅ 已闭环。修复 `ck_points_ledger_target` 对无券退单的拦截死锁，优化 `crud.sql` 退单聚合回冲与采购加权成本除零保护；
@@ -41,7 +41,8 @@
 > - **010（工程主责）**：✅ 已闭环（2026-10-06）。v0.1 六项提交物经何争霖以独立审查者身份复核，结论见 [`010-v0.1-submission-review.md`](010-v0.1-submission-review.md) §5；
 > - **011（双人定案 / 工程实测）**：✅ 已闭环（2026-10-14）。穿透实测加料 100% 吻合否决单表 CHECK，定案 `project/sql/11-migration/` 并接入 `99-rebuild.sql`；
 > - **012（工程主责）**：✅ 已闭环（2026-10-21）。统一全库 14 纯净 BCNF + 3 受控派生冗余口径（14+3=17），采纳单表超码视角学术定性，补齐无损分解数学证明；
-> - **013（工程主责）**：✅ 已闭环（2026-10-28）。澄清验证环境为 (c) 并附带 `-b` 实测回显，确认 18 表结构完全冻结、全库终态统一为 18 表，分支 rebase main 成功。
+> - **013（工程主责）**：✅ 已闭环（2026-10-28）。澄清验证环境为 (c) 并附带 `-b` 实测回显，确认 18 表结构完全冻结、全库终态统一为 18 表，分支 rebase main 成功；
+> - **014（工程主责）**：✅ 已闭环（2026-11-04）。裁定同意解冻 2 字段（137→139）支持凭据、允许 NULL 保障 CRUD 兼容、固化 TC-14 质量断言、确认小写工号规则，特性分支完整合入 main 并跑通全量门禁。
 
 ---
 

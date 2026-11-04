@@ -92,8 +92,7 @@ PRINT N'【重建】=== 08-security ===';
 PRINT N'【重建】=== 11-migration / 01 券表拆分 ===';
 :r .\11-migration\migration.sql
 
--- ⏸ 迁移 02（登录凭据列）在 feat/week07-login-credentials 分支上起草，尚未合并进 main。
---    待核心工程 hezhlin5 确认后再随分支合并；合并前本行与其下的 :r 只在分支上存在。
+-- ✅ 迁移 02（登录凭据列）经 ISSUE-014 裁定通过，已合入 main 并接入重建流水线。
 PRINT N'【重建】=== 11-migration / 02 登录凭据 ===';
 :r .\11-migration\migration-02-login-credentials.sql
 

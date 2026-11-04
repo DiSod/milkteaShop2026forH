@@ -2,10 +2,11 @@
  * 脚本：regression.sql
  * 用途：全库自动化回归测试入口（支持 CI/CD 自动化判定与非零退出码）
  * 依赖：00-bootstrap ~ 11-migration
- * 阶段：第 6 周（第 7 周追加 TC-13）
+ * 阶段：第 6 周（第 7 周追加 TC-13、TC-14）
  * 作者：hezhlin5 & DiSod
  * 日期：2026-10-21
  * 追加：2026-11-04 DiSod —— 新增 TC-13 积分台账对账，配合 migration-03 的期初流水
+ * 追加：2026-11-04 hezhlin5 —— 新增 TC-14 登录凭据质量校验，配合 migration-02 与 ISSUE-014 裁定
  *
  * 【执行方式与退出码机制】
  *   必须带 -b 参数运行：
@@ -31,7 +32,7 @@ GO
 
 DECLARE @pass_count INT = 0;
 DECLARE @fail_count INT = 0;
-DECLARE @total_tests INT = 13;
+DECLARE @total_tests INT = 14;
 
 -- 测试辅助变量
 DECLARE @test_member_id INT;
@@ -355,6 +356,43 @@ BEGIN
 END;
 
 /* ------------------------------------------------------------
+ * 断言 14：登录凭据质量校验（迁移 02 与 ISSUE-014 裁定）
+ *   验证 80 位会员与 5 位员工初始登录凭据覆盖度与 64 位大写十六进制 SHA-256 格式。
+ *   任何格式不符或基准数据凭据缺失都将阻断流水线。
+ * ------------------------------------------------------------ */
+PRINT N'[TC-14] 登录凭据质量校验：80 会员 + 5 员工 64 位 SHA-256 散列有效性 ...';
+DECLARE @member_cred_cnt INT, @member_bad_hash INT;
+DECLARE @emp_cred_cnt INT, @emp_bad_hash INT;
+
+SELECT 
+    @member_cred_cnt = COUNT(password_hash),
+    @member_bad_hash = SUM(CASE 
+        WHEN password_hash IS NOT NULL 
+             AND (LEN(password_hash) <> 64 OR password_hash COLLATE Latin1_General_100_BIN2 LIKE '%[^0-9A-F]%') 
+        THEN 1 ELSE 0 END)
+FROM tbl_member;
+
+SELECT 
+    @emp_cred_cnt = COUNT(password_hash),
+    @emp_bad_hash = SUM(CASE 
+        WHEN password_hash IS NOT NULL 
+             AND (LEN(password_hash) <> 64 OR password_hash COLLATE Latin1_General_100_BIN2 LIKE '%[^0-9A-F]%') 
+        THEN 1 ELSE 0 END)
+FROM tbl_employee;
+
+IF @member_cred_cnt = 80 AND @member_bad_hash = 0 AND @emp_cred_cnt = 5 AND @emp_bad_hash = 0
+BEGIN
+    PRINT FORMATMESSAGE(N'  --> ✅ [PASS] 登录凭据质量达标（会员 80/80、员工 5/5，无非法哈希格式）。');
+    SET @pass_count = @pass_count + 1;
+END
+ELSE
+BEGIN
+    PRINT FORMATMESSAGE(N'  --> ❌ [FAIL] 登录凭据异常！会员凭据: %d (非法: %d), 员工凭据: %d (非法: %d)',
+        @member_cred_cnt, ISNULL(@member_bad_hash, 0), @emp_cred_cnt, ISNULL(@emp_bad_hash, 0));
+    SET @fail_count = @fail_count + 1;
+END;
+
+/* ------------------------------------------------------------
  * 汇总评定与非零退出码机制
  * ------------------------------------------------------------ */
 PRINT N'============================================================';
@@ -368,6 +406,6 @@ BEGIN
 END
 ELSE
 BEGIN
-    PRINT N'【回归测试结论】🎉 13 项自动化断言全绿通过！模式演进、数据完整性与基线语义 100% 保持！';
+    PRINT N'【回归测试结论】🎉 14 项自动化断言全绿通过！模式演进、数据完整性与基线语义 100% 保持！';
 END;
 GO
