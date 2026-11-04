@@ -193,6 +193,9 @@ ALTER TABLE tbl_coupon
         CHECK (status IN ('UNUSED','USED','EXPIRED'));
 
 -- DOM-09 积分流水类型
+--     ⚠️ 最终定义已被 11-migration/migration-03-points-opening-ledger.sql 取代（新增 'OPENING'）。
+--        此处保留 v0.1 原始定义，让重建顺序保持可读：先建原始约束，再由迁移脚本按名探测后重建。
+--        改这里不会生效，要改请改迁移脚本。
 ALTER TABLE tbl_points_ledger
     ADD CONSTRAINT ck_points_ledger_point_type
         CHECK (point_type IN ('EARN','REDEEM'));
@@ -386,6 +389,9 @@ ALTER TABLE tbl_stock_ledger
 
 -- ⭐ 积分流水的"去向二选一"一致性（ISSUE-008）
 --    EARN 应对应一张订单；REDEEM 可对应一张券（积分兑换）或一张订单（退单积分回滚）。两者不能同时为空。
+--    ⚠️ 最终定义已被 11-migration/migration-03-points-opening-ledger.sql 取代：
+--       新增一条通路 —— OPENING（期初结转）不挂任何单据，order_id 与 coupon_id 必须**都为 NULL**。
+--       理由：会员在开账之前就已经存在的余额，既没有订单可挂，也没有券可挂。
 ALTER TABLE tbl_points_ledger
     ADD CONSTRAINT ck_points_ledger_target
         CHECK (

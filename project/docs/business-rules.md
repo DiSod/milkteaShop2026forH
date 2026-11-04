@@ -132,7 +132,7 @@
 | **A1** | **每张订单至少含一条明细** | 子表向父表建外码，**无法约束父端必须有一个子端**（标准 SQL 无「至少一」约束） | `crud.sql` 应用逻辑显式插入 | 第 6 周迁移候选（触发器或事务封装） |
 | **A2** | **每张采购单至少含一条明细** | 同 A1 | 应用逻辑 | 同 A1 |
 | **A3** | **`order_header` 金额 = Σ 明细 `subtotal`** | 跨行聚合，`CHECK` 不能引用其他行 | 应用计算后写入 | 第 6 周事务/触发器 |
-| **A4** | **`tbl_member.points_balance` = Σ 积分流水** | 同上（冗余字段，D-12 有意保留） | 事务维护 | 同上 |
+| **A4** | **`tbl_member.points_balance` = Σ 积分流水** | 同上（冗余字段，D-12 有意保留） | 事务维护。**第 7 周已补期初流水**（`migration-03` 新增 `OPENING` 类型，80/80 会员现已对账成立） | 仍靠应用维护；`regression.sql` TC-13 兜底 |
 | **A5** | **一券只能用一次** | `status`/`used_time` 有 `CHECK` 保证**取值合法**，但「只能改一次」是**状态转换**约束 | 应用逻辑 | 第 6 周 |
 | **A6** | **`tbl_ingredient.qty_on_hand` = 期初 + Σ 流水** | 同上，跨行聚合 | 造数引擎保证 + 审计查询验证 | v1.0 校准 |
 | **A7** | **券核销时间必须落在有效期内** | `used_time` 与 `valid_from/valid_to` 的跨列关系**未建 CHECK** | 应用逻辑 | ✅ **已实施**，见下「第 6 周增补」 |
@@ -196,7 +196,7 @@ A10 是"同一份库里存在两套口径"的提醒 —— 二者都不是靠加
 | `ck_order_header_pay_status` | `tbl_order_header` | `pay_status IS NULL OR IN ('SUCCESS','FAILED')` |
 | `ck_coupon_template_source` | `tbl_coupon_template` | `source IN ('POINTS_EXCHANGE','CAMPAIGN')`（第 6 周随券表拆分改名并迁表） |
 | `ck_coupon_status` | `tbl_coupon` | `status IN ('UNUSED','USED','EXPIRED')` |
-| `ck_points_ledger_point_type` | `tbl_points_ledger` | `point_type IN ('EARN','REDEEM')` |
+| `ck_points_ledger_point_type` | `tbl_points_ledger` | `point_type IN ('EARN','REDEEM','OPENING')`（`OPENING` 由 `migration-03` 第 7 周补入） |
 | `ck_spec_option_spec_type` | `tbl_spec_option` | `spec_type IN ('CUP','SUGAR','ICE')` |
 | `ck_purchase_order_order_status` | `tbl_purchase_order` | `order_status IN (5 值)` |
 | `ck_spec_option_code_by_type` | `tbl_spec_option` | ⭐ **规格码必须与规格类型匹配**（`CUP` 只能是 `M`/`L`）：`(spec_type='CUP' AND code IN ('M','L')) OR (spec_type='SUGAR' AND …) OR (spec_type='ICE' AND …)` |
@@ -209,7 +209,7 @@ A10 是"同一份库里存在两套口径"的提醒 —— 二者都不是靠加
 | 约束名 | 表 | 保证的业务规则 |
 |---|---|---|
 | `ck_stock_ledger_ref_consistency` | `tbl_stock_ledger` | ⭐ **来源与来源单必须匹配**（`PURCHASE` 必有采购单且无订单，反之亦然） |
-| `ck_points_ledger_target` | `tbl_points_ledger` | ⭐ **EARN 必有来源单；REDEEM 必有券或订单**（ISSUE-008 修复的死锁点） |
+| `ck_points_ledger_target` | `tbl_points_ledger` | ⭐ **EARN 必有来源单；REDEEM 必有券或订单；OPENING 两端必须都为空**（ISSUE-008 修复的死锁点；`OPENING` 分支由 `migration-03` 补入） |
 | `ck_order_header_finish_time` | `tbl_order_header` | 完成时间 ≥ 下单时间 |
 | `ck_purchase_order_arrival_date` | `tbl_purchase_order` | 到货日期 ≥ 下单日期 |
 | `ck_coupon_valid_period` | `tbl_coupon` | 有效期 `valid_to > valid_from` |

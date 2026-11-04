@@ -327,7 +327,7 @@
 
 | 资产 | 状态 |
 |---|---|
-| `project/sql/`（18 表 / 137 字段 / 31 外键 / 46 CHECK / 22 索引 / 6 视图 / 4 角色） | ✅ 已成，`99-rebuild.sql` 一键重建实测通过 |
+| `project/sql/`（18 表 / 139 字段 / 31 外键 / 46 CHECK / 22 索引 / 6 视图 / 4 角色） | ✅ 已成，`99-rebuild.sql` 一键重建实测通过 |
 | `project/tests/regression.sql`（12 用例，失败 `THROW`） | ✅ 已成 |
 | `project/tests/baseline/`（迁移前后快照，293 行零差异） | ✅ 已成 |
 | `project/docs/normalization.md`（14 BCNF + 3 受控冗余，含无损分解证明） | ✅ 已成 |

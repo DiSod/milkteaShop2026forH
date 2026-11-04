@@ -100,7 +100,7 @@
 | DOM-06 | **支付方式** | `tbl_order_header.pay_method` | `CASH` / `WECHAT` / `ALIPAY` / `CARD` | 现金 / 微信 / 支付宝 / 刷卡 | 🟡 week1 §4.1 #11 只写"在线支付/现金"，此处细化 |
 | DOM-07 | **券来源** | `tbl_coupon.source` | `POINTS_EXCHANGE` / `CAMPAIGN` | 积分兑换 / 活动赠与 | ✅ week1 §3.7 |
 | DOM-08 | **券状态** | `tbl_coupon.status` | `UNUSED` / `USED` / `EXPIRED` | 未使用 / 已核销 / 已过期 | ✅ D-11 |
-| DOM-09 | **积分流水类型** | `tbl_points_ledger.point_type` | `EARN` / `REDEEM` | 消费累积(+) / 兑换扣减(−) | ✅ week1 §3.7 |
+| DOM-09 | **积分流水类型** | `tbl_points_ledger.point_type` | `EARN` / `REDEEM` / `OPENING` | 消费累积(+) / 兑换扣减(−) / **期初结转(+)** | ✅ week1 §3.7；`OPENING` 由 `migration-03` 第 7 周补入 |
 | DOM-10 | **规格类型** | `tbl_spec_option.spec_type` | `CUP` / `SUGAR` / `ICE` | 杯型 / 糖度 / 冰量 | ✅ 漏洞 1 |
 | DOM-11 | **杯型** | `tbl_spec_option.spec_code`（`spec_type='CUP'`） | `M` / `L` | 中杯 / 大杯（**大杯 +3.00 元**） | ✅ 漏洞 1 |
 | DOM-12 | **糖度** | `tbl_spec_option.spec_code`（`spec_type='SUGAR'`） | `NONE` / `S30` / `S50` / `S70` / `FULL` | 无糖 / 三分 / 五分 / 七分 / 全糖<br>⚠️ **没有 `ANY`** —— "该原料用量与糖度无关"由 `tbl_recipe.sugar_spec_id IS NULL` 表达，**不是**一个糖度档（D-05a） | ✅ week1 §3.1 · D-05a |
@@ -504,7 +504,7 @@ PK      : od_topping_id
 |---|---|---|---|---|---|---|---|
 | `point_ledger_id` | INT | — | 否 | IDENTITY | 正整数 | **代理主码** | **PK** |
 | `member_id` | INT | — | 否 | — | `tbl_member.member_id` | 会员 | **FK** |
-| `point_type` | VARCHAR | 10 | 否 | — | **DOM-09** `EARN` / `REDEEM` | 消费累积(+) / 兑换扣减(−) | |
+| `point_type` | VARCHAR | 10 | 否 | — | **DOM-09** `EARN` / `REDEEM` / `OPENING` | 消费累积(+) / 兑换扣减(−) / 期初结转(+) | |
 | `point_change` | INT | — | 否 | — | **≠ 0** | 变动值，正负号区分 | |
 | `order_id` | INT | — | **是** | — | `tbl_order_header.order_id` | 关联订单（累积时非空） | **FK** |
 | `coupon_id` | INT | — | **是** | — | `tbl_coupon.coupon_id` | 关联券（兑换时非空） | **FK** |

@@ -10,7 +10,7 @@
 | ├ [`er-diagram.svg`](er-diagram.svg) | ER 图矢量导出图（**纯文本标签，Word 可用**） | 第 5 周 | ✅ |
 | ├ [`er-diagram.png`](er-diagram.png) | ER 图位图导出图（6537 × 2511） | 第 5 周 | ✅ |
 | └ [`er-design-notes.md`](er-design-notes.md) | **ER 设计说明与验证记录** ← 作业 4 | 第 5 周 | ✅ **已建**（设计思路 / 三场景 / 97 项命名校验） |
-| [`business-rules.md`](business-rules.md) | **业务规则与映射清单**（基数、参与约束、实现层、库表达不了的规则 A1—A10） | 第 5 周 | ✅ **已建**（29 段联系 / 31 外码 / 44 CHECK / A1—A10） |
+| [`business-rules.md`](business-rules.md) | **业务规则与映射清单**（基数、参与约束、实现层、库表达不了的规则 A1—A10） | 第 5 周 | ✅ **已建**（29 段联系 / 31 外码 / 46 CHECK / A1—A10） |
 | ├ [`er-legend.png`](er-legend.png) | Crow's Foot **符号图例**（图形版，作业 4 要求） | 第 5 周 | ✅ |
 | ├ [`er-legend.svg`](er-legend.svg) | 图例矢量版（`foreignObject` = 0，Word 可用） | 第 5 周 | ✅ |
 | └ [`er-legend.mmd`](er-legend.mmd) | 图例 Mermaid 源 | 第 5 周 | ✅ |

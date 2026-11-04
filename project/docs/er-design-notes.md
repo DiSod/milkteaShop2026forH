@@ -186,9 +186,8 @@ v0.1 已经落地 17 张表并有 20,979 行数据。第 5 周的任务不是推
 ## 4. 验证记录
 
 > **全部为脚本实测值**，非引用既有文档。脚本：
-> [`harness/logs/tmp-verify-naming.py`](../../harness/logs/tmp-verify-naming.py)（命名与关系）、
-> [`harness/logs/tmp-count-cols.py`](../../harness/logs/tmp-count-cols.py)（列数）。
-> ⚠️ 两脚本为**临时校验脚本**，放在 gitignore 区，**不随交付物提交**。
+> `harness/logs/tmp-verify-naming.py`（命名与关系）、`harness/logs/tmp-count-cols.py`（列数）。
+> ⚠️ 两脚本为**临时校验脚本**，放在 gitignore 区，**不随交付物提交**，故此处只写路径不挂链接（跑完已清理）。
 
 ### 4.1 ⭐ 命名对应校验（**课程硬要求**）
 
@@ -277,7 +276,7 @@ npx -y @mermaid-js/mermaid-cli@11 -i project\docs\er-legend.mmd -o project\docs\
 
 | 项 | 状态 / 说明 |
 |---|---|
-| **`99-rebuild.sql` 在本机实跑** | ✅ **已补跑通过**（2026-10-19，文件策略放开为 danger-full-access 后）：`exit=0`，回显 **18 表 / 137 字段 / 31 外键 / 44 CHECK / 22 索引 / 6 视图 / 4 安全角色**，逐表行数合计 **20,979**；另实测约束行为与 `migration.sql` 连续两次幂等执行均 `exit=0`。原记「沙箱无法连接实例（实例只听命名管道）」是第 5 周当时的真实限制，现已不适用 |
+| **`99-rebuild.sql` 在本机实跑** | ✅ **已补跑通过**（初测 2026-10-19，文件策略放开为 danger-full-access 后；2026-11-04 随迁移 02/03 重跑复核）：`exit=0`，回显 **18 表 / 139 字段 / 31 外键 / 46 CHECK / 22 索引 / 6 视图 / 4 安全角色**，逐表行数合计 **20,979**；另实测约束行为与三个迁移脚本连续两次幂等执行均 `exit=0`。原记「沙箱无法连接实例（实例只听命名管道）」是第 5 周当时的真实限制，现已不适用 |
 | 校验脚本未入库 | `tmp-verify-naming.py` / `tmp-count-cols.py` 是一次性校验脚本，放在 `harness/logs/` 且已被 `.gitignore` 的 `harness/logs/tmp-*` 排除。**结论已写进本文档**，脚本可随时重跑；若要长期回归，应移入 `project/tests/` 并走代码分支（那段路要过 `99-rebuild.sql` 合并底线） |
 | 图中属性摘录 vs 数据字典全量 | **有意为之**（§1.3 取舍二），非缺陷 |
 

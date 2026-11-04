@@ -2,9 +2,10 @@
  * 脚本：regression.sql
  * 用途：全库自动化回归测试入口（支持 CI/CD 自动化判定与非零退出码）
  * 依赖：00-bootstrap ~ 11-migration
- * 阶段：第 6 周
+ * 阶段：第 6 周（第 7 周追加 TC-13）
  * 作者：hezhlin5 & DiSod
  * 日期：2026-10-21
+ * 追加：2026-11-04 DiSod —— 新增 TC-13 积分台账对账，配合 migration-03 的期初流水
  *
  * 【执行方式与退出码机制】
  *   必须带 -b 参数运行：
@@ -30,7 +31,7 @@ GO
 
 DECLARE @pass_count INT = 0;
 DECLARE @fail_count INT = 0;
-DECLARE @total_tests INT = 12;
+DECLARE @total_tests INT = 13;
 
 -- 测试辅助变量
 DECLARE @test_member_id INT;
@@ -319,6 +320,41 @@ BEGIN
 END;
 
 /* ------------------------------------------------------------
+ * 断言 13：积分台账对账（迁移 03）
+ *   每个会员都必须满足 points_balance = Σ point_change。
+ *   背景：第 7 周审计发现 80/80 会员对不上、缺口合计 10,823 分，
+ *         原因是造数脚本把期初积分直接写进余额列而没有生成流水。
+ *         迁移 03 补了 OPENING 类型与 80 条期初流水，这里把它固化成
+ *         止损线 —— 以后谁再往余额列里凭空加数，这条断言立刻失败。
+ * ------------------------------------------------------------ */
+PRINT N'[TC-13] 积分台账对账：points_balance = Σ point_change ...';
+DECLARE @pts_mismatch INT, @pts_opening_cnt INT;
+
+SELECT @pts_mismatch = COUNT(*)
+FROM tbl_member AS m
+LEFT JOIN (
+    SELECT member_id, SUM(point_change) AS flow_total
+    FROM tbl_points_ledger
+    GROUP BY member_id
+) AS l ON l.member_id = m.member_id
+WHERE m.points_balance <> ISNULL(l.flow_total, 0);
+
+SELECT @pts_opening_cnt = COUNT(*)
+FROM tbl_points_ledger
+WHERE point_type = N'OPENING';
+
+IF @pts_mismatch = 0 AND @pts_opening_cnt = 80
+BEGIN
+    PRINT FORMATMESSAGE(N'  --> ✅ [PASS] 积分台账自洽（80 位会员余额 = 流水合计，期初流水 80 条）。');
+    SET @pass_count = @pass_count + 1;
+END
+ELSE
+BEGIN
+    PRINT FORMATMESSAGE(N'  --> ❌ [FAIL] 积分台账不自洽！不符会员 %d 位，期初流水 %d 条。', @pts_mismatch, @pts_opening_cnt);
+    SET @fail_count = @fail_count + 1;
+END;
+
+/* ------------------------------------------------------------
  * 汇总评定与非零退出码机制
  * ------------------------------------------------------------ */
 PRINT N'============================================================';
@@ -332,6 +368,6 @@ BEGIN
 END
 ELSE
 BEGIN
-    PRINT N'【回归测试结论】🎉 12 项自动化断言全绿通过！模式演进、数据完整性与基线语义 100% 保持！';
+    PRINT N'【回归测试结论】🎉 13 项自动化断言全绿通过！模式演进、数据完整性与基线语义 100% 保持！';
 END;
 GO

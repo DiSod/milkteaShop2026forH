@@ -32,8 +32,8 @@
 ## 3. 双重验证机制（Single Source of Truth）
 
 1. **全新重建流水线（99-rebuild.sql）**：
-   - 接入 `project/sql/99-rebuild.sql` 第 11 步（状态：✅ 已接入）；
-   - 确保从空库一键拉起即为最新重构形态（18 表、137 字段、31 外键、44 CHECK、22 业务索引、6 业务视图、4 安全角色）；
+   - 接入 `project/sql/99-rebuild.sql` 第 11 步（状态：✅ 已接入，含 01 / 02 / 03 三个脚本）；
+   - 确保从空库一键拉起即为最新重构形态（18 表、139 字段、31 外键、46 CHECK、22 业务索引、6 业务视图、4 安全角色）；
    - 彻底避免第 7—9 周应用开发时的表结构版本漂移。
 2. **历史库独立重放演练（独立执行测试）**：
    - 支持在已存在数据的历史库上独立执行：
@@ -60,7 +60,7 @@
 cd project\tests
 sqlcmd -S .\SQLEXPRESS -E -C -d milktea_shop -f 65001 -b -i regression.sql
 ```
-- **测试结果**：12/12 自动化断言全绿通过；
+- **测试结果**：13/13 自动化断言全绿通过（迁移 03 追加 TC-13 积分台账对账）；
 - **基线比对**：`project/tests/baseline/` 抽样订单明细（S1）、销售统计（S2）、库存可用性（S3）对比迁移前快照，**0 差异，指纹完全一致，语义 100% 保持**。
 
 ---
@@ -70,12 +70,20 @@ sqlcmd -S .\SQLEXPRESS -E -C -d milktea_shop -f 65001 -b -i regression.sql
 | # | 脚本 | 周次 | 作用 | 状态 |
 |---|---|---|---|---|
 | 01 | [`migration.sql`](migration.sql) | 第 6 周 | 券表拆分（17 表 → 18 表）+ 核销区间约束 | ✅ 已并入 `main`，已接入 `99-rebuild.sql` |
-| 02 | [`migration-02-login-credentials.sql`](migration-02-login-credentials.sql) | 第 7 周 | 登录凭据列：`tbl_member` / `tbl_employee` 各 +1 列 | ⏸ **草稿待确认**，仅在 `feat/week07-login-credentials` 分支 |
+| 02 | [`migration-02-login-credentials.sql`](migration-02-login-credentials.sql) | 第 7 周 | 登录凭据列：`tbl_member` / `tbl_employee` 各 +1 列 | ✅ 已接入 `99-rebuild.sql`；⏸ 仍在 `feat/week07-app-skeleton` 分支，等核心工程确认后并入 `main` |
+| 03 | [`migration-03-points-opening-ledger.sql`](migration-03-points-opening-ledger.sql) | 第 7 周 | 积分台账期初结转：DOM-09 增 `OPENING`、放宽 `ck_points_ledger_target`、回填 80 条期初流水 | ✅ 已接入 `99-rebuild.sql`；⏸ 同分支 |
 
 > **02 为什么需要**：全库实查确认**用户表没有任何登录凭据列**，而第 7—9 周课程要求
 > 「用户登录 → Web 界面操作 → 数据写入」。没有凭据就无法验证"你是你"，
 > 后续的角色界面、权限差异、越权拦截全部失去立足点。
 > 口径依据：DiSod 2026-10-28 裁定「**默认顾客就是会员**」。
+
+> **03 为什么需要**：第 7 周的数据库符合性审计发现 `tbl_member.points_balance` 合计
+> **25,224** 而 `tbl_points_ledger.point_change` 合计只有 **14,401**，缺口 **10,823**，
+> **80/80 会员全部对不上**。根因在造数脚本 `generate_seed.py:656` —— 期初积分直接写进
+> 余额列、不生成流水；而台账原有的两条 CHECK 只认 `EARN` / `REDEEM`，期初这种
+> 「开账前就已存在、不对应任何单据」的事实**无处安放**。这与库存流水用
+> `ref_type='OPENING'` 记期初是同一个道理，积分这边当初漏了对应类型。
 
 ### 6.1 迁移 02 的实测结果
 
@@ -117,5 +125,21 @@ sqlcmd -S .\SQLEXPRESS -E -C -d milktea_shop -f 65001 -b -i regression.sql
 | 3 | 是否把凭据断言并入 `regression.sql` | 建议**合并之后**再加，避免两边同时改同一文件冲突；迁移脚本内已有自证（逐行重算比对） |
 | 4 | 员工初始口令用「小写工号」是否可接受 | 可接受。这只是初始值，真实系统首次登录应强制改密 |
 
-> ⚠️ 本迁移**尚未合并进 `main`**。合并前 `main` 上的 `99-rebuild.sql` 不会执行它，
-> 数据库仍是 137 字段 / 44 CHECK。
+### 6.4 迁移 03 的实测结果
+
+环境：本机 SQL Server 2022 Express（16.0.1000.6），2026-11-04。
+
+| 验证项 | 结果 |
+|---|---|
+| 迁移前体检 | 80 位会员余额与流水不符，缺口合计 **10,823** 分（与审计数一致） |
+| 回填 | **80 条** `OPENING` 流水，变动合计 10,823 分，时间取会员注册日 00:00 |
+| 自证（脚本内） | 缺口 0；`余额合计 25,224 = 流水合计 25,224`，不符会员 **0** |
+| 从空库 `99-rebuild.sql` | exit=0，总览 **18 表 / 139 字段 / 31 外键 / 46 CHECK / 22 索引 / 6 视图 / 4 角色**（CHECK 条数不变，只有两条定义被替换） |
+| 独立执行 ×2（幂等） | 两次都 exit=0，第二次打印「所有会员均已有期初行，本次跳过回填」，`OPENING` 仍 **80 条**、`tbl_points_ledger` 仍 **3 个** CHECK |
+| `project/tests/regression.sql` | **13/13 全绿，exit=0**（新增 TC-13 积分对账） |
+| 三份基线快照 | 与 `result/after-S01~03.txt` 逐行比对：**293/293 行差异 0**（快照不含积分，本应无影响） |
+| 约束行为 5 例 | `OPENING` 挂订单 / 挂券 / `EARN` 无来源单 / 变动为 0 → **全部被 547 拦截**；`OPENING` 两端皆空 → 放行；回滚后流水 1,259 行（1,179 + 80）、期初 80 行，残留 0 |
+
+> ⚠️ 迁移 02 / 03 **尚未合并进 `main`**（都在 `feat/week07-app-skeleton` 分支上）。
+> 合并前 `main` 上的 `99-rebuild.sql` 不会执行它们，从 `main` 重建得到的库仍是
+> **137 字段 / 44 CHECK**、积分台账仍对不上。
