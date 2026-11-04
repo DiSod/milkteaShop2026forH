@@ -31,7 +31,7 @@
 | 3 | **数据访问层** | ✅ | 段落 10：系统中**唯一与 SQL Server 直接交互**的层级，负责连接、SQL 参数、事务提交回滚、连接释放 |
 | — | 数据库层 | ❌（它是 SQL Server） | 段落 11：保存表、约束、视图和数据 |
 
-**答辩时若被问「第四层你们做了什么」**：数据库层是我们**设计的对象**而非写的代码——18 张表 / 137 个字段 / 31 个外键 / 46 个 CHECK / 6 个视图 / 4 个安全角色，全部由 `project/sql/99-rebuild.sql` 从空库一键重建；数据访问层就是它的调用方。
+**答辩时若被问「第四层你们做了什么」**：数据库层是我们**设计的对象**而非写的代码——18 张表 / 139 个字段 / 31 个外键 / 48 个 CHECK / 6 个视图 / 4 个安全角色，全部由 `project/sql/99-rebuild.sql` 从空库一键重建；数据访问层就是它的调用方。
 
 ---
 
@@ -327,11 +327,15 @@
 
 | 资产 | 状态 |
 |---|---|
-| `project/sql/`（18 表 / 139 字段 / 31 外键 / 46 CHECK / 22 索引 / 6 视图 / 4 角色） | ✅ 已成，`99-rebuild.sql` 一键重建实测通过 |
+| `project/sql/`（18 表 / 139 字段 / 31 外键 / **48 CHECK** / 22 索引 / 6 视图 / 4 角色） | ✅ 已成，`99-rebuild.sql` 一键重建实测通过 |
 | `project/tests/regression.sql`（13 用例，失败 `THROW`） | ✅ 已成 |
 | `project/tests/baseline/`（迁移前后快照，293 行零差异） | ✅ 已成 |
 | `project/docs/normalization.md`（14 BCNF + 3 受控冗余，含无损分解证明） | ✅ 已成 |
-| `project/sql/11-migration/migration-02-login-credentials.sql`（登录凭据列） | 🟡 **在分支上，未合并**；重建已接入（139 字段 / 46 CHECK），等核心工程答复 4 个问题 |
+| `project/sql/11-migration/migration-02-login-credentials.sql`（登录凭据列） | 🟡 **在分支上，未合并**；重建已接入（139 字段 / 48 CHECK），等核心工程答复 4 个问题 |
+| `project/sql/11-migration/migration-03-points-opening-ledger.sql`（积分期初结转） | ✅ **已成**（分支上）：DOM-09 增 `OPENING`、回填 80 条期初流水，80/80 会员对账成立；`regression` TC-13 兜底 |
+| `project/sql/11-migration/migration-04-order-time-constraints.sql`（时间序） | ✅ **已成**（分支上）：`ck_order_header_pay_time` + `ck_order_header_finish_after_pay`，`CHECK` 46 → 48 |
+| `project/sql/11-migration/migration-05-price-precision.sql`（单价精度） | ✅ **已成**（分支上）：6 个单价/成本列统一 `DECIMAL(12,4)`，摘除并重建 6 条 `CHECK`、刷新 6 个视图 |
+| `project/sql/08-security/role.sql`（店长授权收窄） | ✅ **已成**（分支上）：`SCHEMA::dbo` 全权 → 17 表 + 5 视图逐对象授权（78 条），新对象不再自动开放（§十二 P-1） |
 | `project/sql/11-migration/migration-03-points-opening-ledger.sql`（积分期初结转） | 🟡 **在分支上，未合并**；重建已接入，积分台账 80/80 对账成立 |
 | `course/lecture-week07-09.*` | ❌ **课程材料尚未入库** |
 | `project/app/` | 🟡 三层骨架已成（`dao/` + `service/` + `web/`，分支上未推送），缺商品维护与库存调整界面 |

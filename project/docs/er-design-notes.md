@@ -81,7 +81,7 @@ v0.1 已经落地 17 张表并有 20,979 行数据。第 5 周的任务不是推
 ### 2.0 读前须知
 
 - 图中**实体名 = 表名去掉 `tbl_` 前缀**（如 `order_header` ↔ `tbl_order_header`）。
-- 图中属性**是摘录**，完整 137 字段见 [`data-dictionary.md`](data-dictionary.md)。
+- 图中属性**是摘录**，完整 139 字段见 [`data-dictionary.md`](data-dictionary.md)。
 - 关系标签 `Rxx` 的完整映射表见 [`er-diagram.md`](er-diagram.md) §2.1。
 
 ### 2.1 场景一：多商品订单
@@ -226,7 +226,9 @@ v0.1 已经落地 17 张表并有 20,979 行数据。第 5 周的任务不是推
 | `CREATE INDEX` | **21** | `project/sql/03-indexes/indexes.sql` |
 | **`CREATE OR ALTER VIEW`** | **5** | `project/sql/07-view/view.sql` |
 | `CREATE ROLE` | **4** | `project/sql/08-security/role.sql` |
-| `FOREIGN KEY` / `CHECK` / `UNIQUE` | **30 / 43 / 17** | `project/sql/02-constraints/constraints.sql` |
+| `FOREIGN KEY` / `CHECK` / `UNIQUE` | **30 / 43 / 17** | `project/sql/02-constraints/constraints.sql`（**仅该文件的 v0.1 数量**） |
+
+> ⚠️ 上表数的是**建表脚本与 `constraints.sql` 里的 v0.1 对象**。经第 6—7 周的 5 段迁移后，全库实际为 **18 表 / 139 字段 / 31 外键 / 48 CHECK / 22 索引 / 6 视图 / 4 角色**（第 18 表与第 31 外码来自 `migration.sql`，另 5 条 `CHECK` 来自 `migration-02/04`）——本节的用途是**复现 v0.1 的原始计数**，不是报当前全库数。
 
 > ⚠️ **两条会让人算错的坑（踩过）**：
 >
@@ -289,7 +291,7 @@ npx -y @mermaid-js/mermaid-cli@11 -i project\docs\er-legend.mmd -o project\docs\
 | [`er-diagram.md`](er-diagram.md) | **图本身** + 符号图例表 + R 编号映射表 |
 | [`business-rules.md`](business-rules.md) | **规则本身**：29 段联系的 `(min,max)` / 31 外码 / **A1—A10 库表达不了的规则** |
 | [`v0.1-issues.md`](v0.1-issues.md) | **问题清单**：3 处完整性缺口 + 第 6 周迁移输入 |
-| [`data-dictionary.md`](data-dictionary.md) | **唯一真相源**：18 表 / 137 字段的权威定义 |
+| [`data-dictionary.md`](data-dictionary.md) | **唯一真相源**：18 表 / 139 字段的权威定义 |
 | [`design-notes.md`](design-notes.md) | 阶段一的**设计取舍与已知边界**（跨周累积） |
 
 > **本文档不复制上述内容**，只做**说明与证据**。若与上述任何一份冲突，**以上述为准** ——
