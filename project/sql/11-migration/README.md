@@ -72,6 +72,8 @@ sqlcmd -S .\SQLEXPRESS -E -C -d milktea_shop -f 65001 -b -i regression.sql
 | 01 | [`migration.sql`](migration.sql) | 第 6 周 | 券表拆分（17 表 → 18 表）+ 核销区间约束 | ✅ 已并入 `main`，已接入 `99-rebuild.sql` |
 | 02 | [`migration-02-login-credentials.sql`](migration-02-login-credentials.sql) | 第 7 周 | 登录凭据列：`tbl_member` / `tbl_employee` 各 +1 列 | ✅ 已接入 `99-rebuild.sql`；⏸ 仍在 `feat/week07-app-skeleton` 分支，等核心工程确认后并入 `main` |
 | 03 | [`migration-03-points-opening-ledger.sql`](migration-03-points-opening-ledger.sql) | 第 7 周 | 积分台账期初结转：DOM-09 增 `OPENING`、放宽 `ck_points_ledger_target`、回填 80 条期初流水 | ✅ 已接入 `99-rebuild.sql`；⏸ 同分支 |
+| 04 | [`migration-04-order-time-constraints.sql`](migration-04-order-time-constraints.sql) | 第 7 周 | 订单时间序：新增 `ck_order_header_pay_time`（付款 ≥ 下单）与 `ck_order_header_finish_after_pay`（完成 ≥ 付款） | ✅ 已接入 `99-rebuild.sql`；自证通过 `CHECK` 46 → 48 |
+| 05 | [`migration-05-price-precision.sql`](migration-05-price-precision.sql) | 第 7 周 | 单价 / 成本精度：6 个列统一到 `DECIMAL(12,4)`（`02-sql-style.md` §6.3） | ✅ 已接入 `99-rebuild.sql`；6 条 `CHECK` 摘除后重建、6 个视图 `sp_refreshview` |
 
 > **02 为什么需要**：全库实查确认**用户表没有任何登录凭据列**，而第 7—9 周课程要求
 > 「用户登录 → Web 界面操作 → 数据写入」。没有凭据就无法验证"你是你"，

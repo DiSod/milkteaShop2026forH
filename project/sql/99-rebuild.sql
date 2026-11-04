@@ -100,7 +100,13 @@ PRINT N'【重建】=== 11-migration / 02 登录凭据 ===';
 PRINT N'【重建】=== 11-migration / 03 积分期初结转 ===';
 :r .\11-migration\migration-03-points-opening-ledger.sql
 
-PRINT N'【重建】完成 —— 数据库已从空库重建完毕（含 18 表、约束、索引、种子数据、6 视图、4 安全角色、第 6 周券表拆分、第 7 周登录凭据列与积分期初流水）。';
+PRINT N'【重建】=== 11-migration / 04 订单头时间序约束 ===';
+:r .\11-migration\migration-04-order-time-constraints.sql
+
+PRINT N'【重建】=== 11-migration / 05 单价成本精度对齐 ===';
+:r .\11-migration\migration-05-price-precision.sql
+
+PRINT N'【重建】完成 —— 数据库已从空库重建完毕（含 18 表、约束、索引、种子数据、6 视图、4 安全角色、第 6 周券表拆分、第 7 周登录凭据列与积分期初流水、时间序约束与单价精度对齐）。';
 GO
 
 /* ---------- 重建结果总览 ---------- */

@@ -100,6 +100,7 @@ SQL、口令哈希与数据库侧定标一致）；`tests/test_permissions.py` 9
 | 7 | 「积分兑换券」未实现 | 库里 12 张 `POINTS_EXCHANGE` 券没有对应的 `REDEEM` 扣分流水（历史造数缺陷，已认账不追认） | 若做，必须在一个事务里「扣积分 → 发券 → 写 `REDEEM` 流水」；见 `../docs/business-rules.md` A11 |
 | 8 | **RBAC 只到表级，管不了行级** | 顾客与收银员共用表级授权：`usr_test_cashier` 能读全部 1963 张订单头、80 个会员手机号；行级隔离**全靠应用写 `WHERE member_id = ?`**（`dao/member_dao.py`），`WHERE` 漏写数据库不会报警 | 行级安全只有 SQL Server RLS 能下沉（本库 `sys.security_policies` = 0，从未启用）；`tests/test_permissions.py` 用断言把「只出现自己的单号」钉住，作为补偿 |
 | 9 | 角色是**封闭的 4 个** | 与 `ck_employee_position` 的 4 个取值（MANAGER/CASHIER/MAKER/STOCKER）严格一一对应；顾客不是岗位、在 `tbl_employee` 不占行，故**不设** `role_member`，界面层用 `member_required` 区分 | 若将来要给顾客独立数据库身份，只加**用户**（`usr_member`）不加角色，配合行级过滤——保持 4 角色不变 |
+| 10 | **v1.0 应用强制会员下单** | 库层 `tbl_order_header.member_id` 仍允许 NULL（为承载 v0.1 的 764 张历史散客单，占 38.9%），但应用侧 `/`、`/order`、`/orders`、`/me` 全部 `@member_required`，**散客无法下单** | 见 `../docs/business-rules.md` A12；若要库层也强制，需先把 764 行散客单迁到"匿名会员" |
 
 ## 6. 放什么 / 不放什么
 

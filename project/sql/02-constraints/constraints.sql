@@ -359,6 +359,8 @@ GO
 ALTER TABLE tbl_order_header
     ADD CONSTRAINT ck_order_header_finish_time
         CHECK (finish_time IS NULL OR finish_time >= order_time);
+        -- ⚠️ 另一条时序约束（完成时间 ≥ 付款时间）与「付款时间 ≥ 下单时间」由
+        --    11-migration/migration-04-order-time-constraints.sql 第 7 周补入，见该脚本。
 
 -- 到货日不能早于下单日（未到货时为 NULL）
 ALTER TABLE tbl_purchase_order

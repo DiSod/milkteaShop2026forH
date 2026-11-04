@@ -245,7 +245,7 @@ PK      : category_id
 | `product_code` | VARCHAR | 10 | 否 | — | 形如 `P001` | 商品编号 | **UNIQUE**（候选码） |
 | `product_name` | NVARCHAR | 30 | 否 | — | — | 商品名称 | |
 | `category_id` | INT | — | 否 | — | `tbl_product_category.category_id` | 所属品类 | **FK** |
-| `base_price` | DECIMAL | (10,2) | 否 | — | **≥ 0** | **基础售价**（＝中杯价）<br>**大杯加价不在这里**，在 `tbl_spec_option.extra_price` | |
+| `base_price` | DECIMAL | (12,4) | 否 | — | **≥ 0** | **基础售价**（＝中杯价）<br>**大杯加价不在这里**，在 `tbl_spec_option.extra_price` | |
 | `product_status` | VARCHAR | 10 | 否 | `'ON_SALE'` | **DOM-02 商品状态** | 在售 / 停售。**下架改状态，不删行**（历史订单不受影响） | |
 
 > **为什么没有"大杯加价"字段** —— 漏洞 1 裁定"**全店统一加价**"，
@@ -268,7 +268,7 @@ PK      : product_id
 | `spec_type` | VARCHAR | 10 | 否 | — | **DOM-10** `CUP` / `SUGAR` / `ICE` | 规格维度 | |
 | `spec_code` | VARCHAR | 6 | 否 | — | 见 **DOM-11 / DOM-12 / DOM-13** | 规格代码（`M` / `S30` / `NO_ICE` …） | |
 | `spec_name` | NVARCHAR | 10 | 否 | — | — | 显示名（`中杯` / `三分糖` / `去冰`） | |
-| `extra_price` | DECIMAL | (10,2) | 否 | `0` | ≥ 0 | **加价** —— 大杯 `+3.00` 的落点 | |
+| `extra_price` | DECIMAL | (12,4) | 否 | `0` | ≥ 0 | **加价** —— 大杯 `+3.00` 的落点 | |
 | `sort_no` | INT | — | 否 | `0` | 正整数 | 前端展示顺序 | |
 
 > **这张表是本项目"域 vs 实体"判据的正面样本**：规格取值集合**携带自有属性**（加价 / 排序 / 显示名），
@@ -318,7 +318,7 @@ PK      : recipe_id
 | `topping_code` | VARCHAR | 10 | 否 | — | 形如 `TP01` | 加料项编码 | **UNIQUE**（候选码） |
 | `topping_name` | NVARCHAR | 20 | 否 | — | — | 加料项名称（珍珠 / 椰果 / 布丁 / 芋圆） | |
 | `ingredient_id` | INT | — | 否 | — | `tbl_ingredient.ingredient_id` | **对应的库存原料**（桥接点） | **FK** |
-| `extra_price` | DECIMAL | (10,2) | 否 | `0` | ≥ 0 | 加料加价（如珍珠 `+2.00`） | |
+| `extra_price` | DECIMAL | (12,4) | 否 | `0` | ≥ 0 | 加料加价（如珍珠 `+2.00`） | |
 | `qty_per_serving` | DECIMAL | (12,3) | 否 | — | **> 0** | **加一份耗多少料**（单位＝原料基本单位） | |
 | `is_active` | BIT | — | 否 | `1` | `0` / `1` | 是否可点 | |
 
@@ -351,7 +351,7 @@ PK      : topping_id
 | `qty_on_hand` | DECIMAL | (12,3) | 否 | `0` | **≥ 0** | **当前库存量**（单库；单位＝`unit`）<br>冗余字段，判据见 D-12 | |
 | `reorder_point` | DECIMAL | (12,3) | 否 | `0` | ≥ 0 | **补货点** —— 低于它由库管员报缺 | |
 | `target_level` | DECIMAL | (12,3) | 否 | `0` | ≥ 0 | **目标水位** —— 补货量＝目标水位 − 当前库存 | |
-| `moving_avg_cost` | DECIMAL | (10,4) | 否 | `0` | ≥ 0 | **移动加权成本**（元/基本单位）；每次采购入库后更新 | |
+| `moving_avg_cost` | DECIMAL | (12,4) | 否 | `0` | ≥ 0 | **移动加权成本**（元/基本单位）；每次采购入库后更新 | |
 | `is_sold_out` | BIT | — | 否 | `0` | `0` / `1` | **沽清标记**（D4）——"料有、但现在做不了" | |
 | `is_active` | BIT | — | 否 | `1` | `0` / `1` | 是否启用 | |
 
@@ -452,7 +452,7 @@ PK      : order_id
 | `line_no` | INT | — | 否 | — | 正整数 | **小票行号**（同一订单内连续） | |
 | `product_id` | INT | — | 否 | — | `tbl_product.product_id` | 成品 | **FK** |
 | `qty` | INT | — | 否 | `1` | **> 0** | 数量（杯数） | |
-| `unit_price` | DECIMAL | (10,2) | 否 | — | ≥ 0 | **成交单价快照**（＝基础价 + 杯型加价） | |
+| `unit_price` | DECIMAL | (12,4) | 否 | — | ≥ 0 | **成交单价快照**（＝基础价 + 杯型加价） | |
 | `cup_spec_id` | INT | — | **是** | — | `tbl_spec_option`（`CUP`） | **杯型快照**；不适用时为 NULL（如圣代/甜筒） | **FK** |
 | `sugar_spec_id` | INT | — | **是** | — | `tbl_spec_option`（`SUGAR`） | **糖度快照**；不适用时为 NULL | **FK** |
 | `ice_spec_id` | INT | — | **是** | — | `tbl_spec_option`（`ICE`） | **冰量快照**；不适用时为 NULL | **FK** |
@@ -463,6 +463,13 @@ PK      : order_id
 >
 > **规格存"代码值的 FK"而不是 JSON**（D-07）：JSON 会让属性不原子、**域的约束根本写不出来**。
 > **快照要快照的是"钱"**：`unit_price` 与子表的 `unit_extra_price` 都存快照；规格代码本身是固定枚举，存 FK 即可。
+
+> **⭐ 精度口径（第 7 周 `migration-05` 对齐）**：三类数值列各有定标，**不是一律取大** ——
+> 金额 `DECIMAL(10,2)`（`subtotal` / `discount_amount` / `amount_due` / `amount_paid` 等）、
+> 单价 / 成本 `DECIMAL(12,4)`（`base_price` / `extra_price` / `unit_price` / `unit_extra_price` / `moving_avg_cost` / `purchase_order_detail.unit_price`）、
+> 物料数量 `DECIMAL(12,3)`（`qty_on_hand` / `reorder_point` / `target_level` / `recipe.qty` 等）。
+> 依据 [`02-sql-style.md`](../../harness/conventions/02-sql-style.md) §6.3：单价按基本单位计价时数值很小（如 `0.0110` 元/g），2 位会被截断；而金额升到 4 位会失去定标、出现无意义尾数。
+> `migration-05` 之前这 6 个单价列误用了金额定标，第 7 周已统一。
 
 **码标注**
 ```
@@ -483,7 +490,7 @@ PK      : order_detail_id
 | `order_detail_id` | INT | — | 否 | — | `tbl_order_detail.order_detail_id` | 所属明细行 | **FK** |
 | `topping_id` | INT | — | 否 | — | `tbl_topping.topping_id` | 加料项 | **FK** |
 | `qty` | INT | — | 否 | `1` | **> 0** | **加料份数** | |
-| `unit_extra_price` | DECIMAL | (10,2) | 否 | — | ≥ 0 | **加价快照** | |
+| `unit_extra_price` | DECIMAL | (12,4) | 否 | — | ≥ 0 | **加价快照** | |
 
 > **一行一种加料**（可加多种就写多行）—— 这是"加料是一对多"的落点。
 > 扣料时要走**两路**：`固定配方` + `加料用量`（见 D-06）。

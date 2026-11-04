@@ -19,6 +19,11 @@
  * ============================================================ */
 
 USE milktea_shop;
+
+-- 说明：单价类列在 11-migration/migration-05 中升为 DECIMAL(12,4)（见 02-sql-style.md §6.3）。
+--       本快照比的是**业务语义**（多少钱、几杯），不是存储精度，故统一 CAST 到金额口径 2 位，
+--       避免精度调整在快照里制造 diff 噪声。金额列（subtotal / amount_*）本来就是 (10,2)，无需处理。
+
 GO
 
 SET NOCOUNT ON;
@@ -72,7 +77,7 @@ pick2 AS (
 tp AS (
     SELECT t.order_detail_id,
            COUNT(*)                        AS 加料条数,
-           SUM(t.qty * t.unit_extra_price)  AS 加料费,
+           CAST(SUM(t.qty * t.unit_extra_price) AS DECIMAL(10,2))     AS 加料费,
            STRING_AGG(CONCAT(tp2.topping_name, N'×', t.qty), N' + ') AS 加料清单
     FROM tbl_order_detail_topping t
     JOIN tbl_topping tp2 ON tp2.topping_id = t.topping_id
@@ -97,13 +102,13 @@ SELECT p.入选理由,
        ss.spec_code  AS 糖度,
        ics.spec_code AS 冰量,
        d.qty,
-       d.unit_price,
+       CAST(d.unit_price AS DECIMAL(10,2))                        AS unit_price,
        d.subtotal,
        ISNULL(tp.加料条数, 0) AS 加料条数,
        ISNULL(tp.加料费, 0)   AS 加料费,
        tp.加料清单,
-       d.qty * d.unit_price + ISNULL(tp.加料费, 0)                AS 复算小计,
-       d.subtotal - (d.qty * d.unit_price + ISNULL(tp.加料费, 0)) AS 小计偏差
+       CAST(d.qty * d.unit_price + ISNULL(tp.加料费, 0) AS DECIMAL(10,2)) AS 复算小计,
+       CAST(d.subtotal - (d.qty * d.unit_price + ISNULL(tp.加料费, 0)) AS DECIMAL(10,2)) AS 小计偏差
 INTO #s1
 FROM pick2 p
 JOIN tbl_order_header    o   ON o.order_id          = p.order_id
