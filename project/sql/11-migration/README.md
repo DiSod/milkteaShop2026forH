@@ -60,7 +60,7 @@
 cd project\tests
 sqlcmd -S .\SQLEXPRESS -E -C -d milktea_shop -f 65001 -b -i regression.sql
 ```
-- **测试结果**：13/13 自动化断言全绿通过（迁移 03 追加 TC-13 积分台账对账）；
+- **测试结果**：14/14 自动化断言全绿通过（迁移 03 追加 TC-13 积分台账对账、迁移 02 追加 TC-14 登录凭据质量校验）；
 - **基线比对**：`project/tests/baseline/` 抽样订单明细（S1）、销售统计（S2）、库存可用性（S3）对比迁移前快照，**0 差异，指纹完全一致，语义 100% 保持**。
 
 ---
@@ -70,8 +70,8 @@ sqlcmd -S .\SQLEXPRESS -E -C -d milktea_shop -f 65001 -b -i regression.sql
 | # | 脚本 | 周次 | 作用 | 状态 |
 |---|---|---|---|---|
 | 01 | [`migration.sql`](migration.sql) | 第 6 周 | 券表拆分（17 表 → 18 表）+ 核销区间约束 | ✅ 已并入 `main`，已接入 `99-rebuild.sql` |
-| 02 | [`migration-02-login-credentials.sql`](migration-02-login-credentials.sql) | 第 7 周 | 登录凭据列：`tbl_member` / `tbl_employee` 各 +1 列 | ✅ 已接入 `99-rebuild.sql`；⏸ 仍在 `feat/week07-app-skeleton` 分支，等核心工程确认后并入 `main` |
-| 03 | [`migration-03-points-opening-ledger.sql`](migration-03-points-opening-ledger.sql) | 第 7 周 | 积分台账期初结转：DOM-09 增 `OPENING`、放宽 `ck_points_ledger_target`、回填 80 条期初流水 | ✅ 已接入 `99-rebuild.sql`；⏸ 同分支 |
+| 02 | [`migration-02-login-credentials.sql`](migration-02-login-credentials.sql) | 第 7 周 | 登录凭据列：`tbl_member` / `tbl_employee` 各 +1 列 | ✅ 经 ISSUE-014 裁定已并入 `main`，已接入 `99-rebuild.sql` |
+| 03 | [`migration-03-points-opening-ledger.sql`](migration-03-points-opening-ledger.sql) | 第 7 周 | 积分台账期初结转：DOM-09 增 `OPENING`、放宽 `ck_points_ledger_target`、回填 80 条期初流水 | ✅ 已并入 `main`，已接入 `99-rebuild.sql` |
 | 04 | [`migration-04-order-time-constraints.sql`](migration-04-order-time-constraints.sql) | 第 7 周 | 订单时间序：新增 `ck_order_header_pay_time`（付款 ≥ 下单）与 `ck_order_header_finish_after_pay`（完成 ≥ 付款） | ✅ 已接入 `99-rebuild.sql`；自证通过 `CHECK` 46 → 48 |
 | 05 | [`migration-05-price-precision.sql`](migration-05-price-precision.sql) | 第 7 周 | 单价 / 成本精度：6 个列统一到 `DECIMAL(12,4)`（`02-sql-style.md` §6.3） | ✅ 已接入 `99-rebuild.sql`；6 条 `CHECK` 摘除后重建、6 个视图 `sp_refreshview` |
 
@@ -96,7 +96,7 @@ sqlcmd -S .\SQLEXPRESS -E -C -d milktea_shop -f 65001 -b -i regression.sql
 | 独立执行第 1 次 | 加列成功，回填 **80 会员 + 5 员工**，2 个格式约束创建，自证通过 |
 | 独立执行第 2 次 | 全部「已存在，跳过」，回填 **0 行** → **幂等成立** |
 | 从空库 `99-rebuild.sql` | exit=0，总览 **18 表 / 139 字段 / 31 外键 / 48 CHECK / 22 索引 / 6 视图 / 4 角色** |
-| `project/tests/regression.sql` | **12/12 全绿，exit=0**（迁移 02 未破坏任何既有断言） |
+| `project/tests/regression.sql` | **14/14 全绿，exit=0**（含 TC-14 登录凭据质量校验） |
 | 三份基线快照 | 与 `result/after-S01~03.txt` 逐行比对：**293/293 行差异 0** |
 | 端到端登录模拟（Python） | **80 会员 + 5 员工**都能用约定口令算出同一哈希；错误口令被拒 |
 | 约束行为 5 例 | 63 位 / 小写 64 位 / 非十六进制 → **全部拒绝**；`NULL` 与合法 64 位 → 接受；回滚后残留 0 |
@@ -142,9 +142,7 @@ sqlcmd -S .\SQLEXPRESS -E -C -d milktea_shop -f 65001 -b -i regression.sql
 | 三份基线快照 | 与 `result/after-S01~03.txt` 逐行比对：**293/293 行差异 0**（快照不含积分，本应无影响） |
 | 约束行为 5 例 | `OPENING` 挂订单 / 挂券 / `EARN` 无来源单 / 变动为 0 → **全部被 547 拦截**；`OPENING` 两端皆空 → 放行；回滚后流水 1,259 行（1,179 + 80）、期初 80 行，残留 0 |
 
-> ⚠️ 迁移 02 / 03 **尚未合并进 `main`**（都在 `feat/week07-app-skeleton` 分支上）。
-> 合并前 `main` 上的 `99-rebuild.sql` 不会执行它们，从 `main` 重建得到的库仍是
-> **137 字段 / 44 CHECK**、积分台账仍对不上。
+> ✅ 迁移 02 / 03 已正式合入 `main` 并接入 `99-rebuild.sql`（经 ISSUE-014 裁定闭环），从空库重建全库 **18 表 / 139 字段 / 31 外键 / 48 CHECK / 22 索引 / 6 视图 / 4 角色**，积分台账 80/80 结转与 TC-14 凭据断言 100% 成立。
 
 ### 6.5 明确不做：兑换券的 `REDEEM` 流水（迁移 04 缺席）
 

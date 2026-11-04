@@ -5,7 +5,7 @@
 
 | 项目 | 内容 |
 |---|---|
-| 当前状态 | 🟡 **本地可运行的第一版**（分支 `feat/week07-points-opening-ledger`，含应用骨架与迁移 02/03，未合并、未推送） |
+| 当前状态 | 🟢 **已合并入 main 并推送**（含应用骨架与迁移 02/03/04/05，经 ISSUE-014 闭环） |
 | 技术栈 | Flask 3 + Jinja2 + 本地 Bootstrap 5.3.3 + pyodbc（**方案 B**，见 `../../weeks/week07/README.md` §七） |
 | Python | 3.12（`SQL Server` 与 `ODBC Driver 17 for SQL Server` 均可） |
 | 数据库 | `milktea_shop`，Windows 认证连接，**每请求切换数据库身份** |
@@ -94,7 +94,7 @@ SQL、口令哈希与数据库侧定标一致）；`tests/test_permissions.py` 9
 | 1 | 一次下单跨「订单域 + 库存域」，单个角色授权做不到 | 写入路径以 `dbo` 执行，读取路径仍走受限身份 | 第 11—12 周改为存储过程 + `EXECUTE WITH OWNER`，业务层只 `GRANT EXECUTE` |
 | 2 | 网单没有收银员，但 `tbl_order_header.cashier_id` NOT NULL | 固定记到 `employee_id=2`（E002 李娜 CASHIER，`SYSTEM_CASHIER_ID`） | 同上，随存储过程一起处理 |
 | 3 | 顾客借用收银员的数据库身份（未建 `usr_member`） | `config.ROLE_DB_USER['MEMBER'] = usr_test_cashier` | 可加一个只读 + 写订单的专用账户 |
-| 4 | 迁移 02 未合并，`password_hash` 列不存在 | 登录直接抛 `BUSINESS_RULE_VIOLATION`，不 500 | 等核心工程确认后合并 |
+| 4 | 迁移 02 若未执行，`password_hash` 列不存在 | 登录直接抛 `BUSINESS_RULE_VIOLATION`，不 500 | ✅ 经 ISSUE-014 裁定已接入 `99-rebuild.sql` 重建流水线 |
 | 5 | 口令是单轮 SHA-256，不是 Argon2id | 演示级取舍，答辩时主动说明 | 真实产品应换 PBKDF2/Argon2id + 每用户随机盐 |
 | 6 | 只做了「顾客 + 制作员」两条主线 | 收银员/库管员页面未做 | 第 8—9 周补 |
 | 7 | 「积分兑换券」未实现 | 库里 12 张 `POINTS_EXCHANGE` 券没有对应的 `REDEEM` 扣分流水（历史造数缺陷，已认账不追认） | 若做，必须在一个事务里「扣积分 → 发券 → 写 `REDEEM` 流水」；见 `../docs/business-rules.md` A11 |

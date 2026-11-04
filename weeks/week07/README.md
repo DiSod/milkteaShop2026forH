@@ -328,17 +328,16 @@
 | 资产 | 状态 |
 |---|---|
 | `project/sql/`（18 表 / 139 字段 / 31 外键 / **48 CHECK** / 22 索引 / 6 视图 / 4 角色） | ✅ 已成，`99-rebuild.sql` 一键重建实测通过 |
-| `project/tests/regression.sql`（13 用例，失败 `THROW`） | ✅ 已成 |
+| `project/tests/regression.sql`（14 用例，失败 `THROW`） | ✅ 已成（含 TC-14 登录凭据质量校验） |
 | `project/tests/baseline/`（迁移前后快照，293 行零差异） | ✅ 已成 |
 | `project/docs/normalization.md`（14 BCNF + 3 受控冗余，含无损分解证明） | ✅ 已成 |
-| `project/sql/11-migration/migration-02-login-credentials.sql`（登录凭据列） | 🟡 **在分支上，未合并**；重建已接入（139 字段 / 48 CHECK），等核心工程答复 4 个问题 |
-| `project/sql/11-migration/migration-03-points-opening-ledger.sql`（积分期初结转） | ✅ **已成**（分支上）：DOM-09 增 `OPENING`、回填 80 条期初流水，80/80 会员对账成立；`regression` TC-13 兜底 |
-| `project/sql/11-migration/migration-04-order-time-constraints.sql`（时间序） | ✅ **已成**（分支上）：`ck_order_header_pay_time` + `ck_order_header_finish_after_pay`，`CHECK` 46 → 48 |
-| `project/sql/11-migration/migration-05-price-precision.sql`（单价精度） | ✅ **已成**（分支上）：6 个单价/成本列统一 `DECIMAL(12,4)`，摘除并重建 6 条 `CHECK`、刷新 6 个视图 |
-| `project/sql/08-security/role.sql`（店长授权收窄） | ✅ **已成**（分支上）：`SCHEMA::dbo` 全权 → 17 表 + 5 视图逐对象授权（78 条），新对象不再自动开放（§十二 P-1） |
-| `project/sql/11-migration/migration-03-points-opening-ledger.sql`（积分期初结转） | 🟡 **在分支上，未合并**；重建已接入，积分台账 80/80 对账成立 |
+| `project/sql/11-migration/migration-02-login-credentials.sql`（登录凭据列） | ✅ **已合入 main**（经 ISSUE-014 裁定闭环，139 字段 / 48 CHECK） |
+| `project/sql/11-migration/migration-03-points-opening-ledger.sql`（积分期初结转） | ✅ **已合入 main**：DOM-09 增 `OPENING`、回填 80 条期初流水，80/80 会员对账成立；`regression` TC-13 兜底 |
+| `project/sql/11-migration/migration-04-order-time-constraints.sql`（时间序） | ✅ **已合入 main**：`ck_order_header_pay_time` + `ck_order_header_finish_after_pay`，`CHECK` 46 → 48 |
+| `project/sql/11-migration/migration-05-price-precision.sql`（单价精度） | ✅ **已合入 main**：6 个单价/成本列统一 `DECIMAL(12,4)`，摘除并重建 6 条 `CHECK`、刷新 6 个视图 |
+| `project/sql/08-security/role.sql`（店长授权收窄） | ✅ **已合入 main**：`SCHEMA::dbo` 全权 → 17 表 + 5 视图逐对象授权（78 条），新对象不再自动开放（§十二 P-1） |
 | `course/lecture-week07-09.*` | ❌ **课程材料尚未入库** |
-| `project/app/` | 🟡 三层骨架已成（`dao/` + `service/` + `web/`，分支上未推送），缺商品维护与库存调整界面 |
+| `project/app/` | ✅ **三层骨架已成并合入 main**（`dao/` + `service/` + `web/`），缺商品维护与库存调整界面 |
 | `weeks/submissions/v1.0/` | ❌ 只有 `.gitkeep` |
 
 > **本文件不涉及代码，也不改变任何数据库对象。** 它是一份选型讨论底稿。
