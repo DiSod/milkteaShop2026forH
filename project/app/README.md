@@ -85,6 +85,7 @@ python app.py                    # http://127.0.0.1:5000
 | 4 | 迁移 02 未合并，`password_hash` 列不存在 | 登录直接抛 `BUSINESS_RULE_VIOLATION`，不 500 | 等核心工程确认后合并 |
 | 5 | 口令是单轮 SHA-256，不是 Argon2id | 演示级取舍，答辩时主动说明 | 真实产品应换 PBKDF2/Argon2id + 每用户随机盐 |
 | 6 | 只做了「顾客 + 制作员」两条主线 | 收银员/库管员页面未做 | 第 8—9 周补 |
+| 7 | 「积分兑换券」未实现 | 库里 12 张 `POINTS_EXCHANGE` 券没有对应的 `REDEEM` 扣分流水（历史造数缺陷，已认账不追认） | 若做，必须在一个事务里「扣积分 → 发券 → 写 `REDEEM` 流水」；见 `../docs/business-rules.md` A11 |
 
 ## 6. 放什么 / 不放什么
 

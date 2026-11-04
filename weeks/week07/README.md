@@ -328,12 +328,28 @@
 | 资产 | 状态 |
 |---|---|
 | `project/sql/`（18 表 / 139 字段 / 31 外键 / 46 CHECK / 22 索引 / 6 视图 / 4 角色） | ✅ 已成，`99-rebuild.sql` 一键重建实测通过 |
-| `project/tests/regression.sql`（12 用例，失败 `THROW`） | ✅ 已成 |
+| `project/tests/regression.sql`（13 用例，失败 `THROW`） | ✅ 已成 |
 | `project/tests/baseline/`（迁移前后快照，293 行零差异） | ✅ 已成 |
 | `project/docs/normalization.md`（14 BCNF + 3 受控冗余，含无损分解证明） | ✅ 已成 |
-| `project/sql/11-migration/migration-02-login-credentials.sql`（登录凭据列） | 🟡 **在分支 `feat/week07-login-credentials`，未合并**，等核心工程答复 4 个问题 |
+| `project/sql/11-migration/migration-02-login-credentials.sql`（登录凭据列） | 🟡 **在分支上，未合并**；重建已接入（139 字段 / 46 CHECK），等核心工程答复 4 个问题 |
+| `project/sql/11-migration/migration-03-points-opening-ledger.sql`（积分期初结转） | 🟡 **在分支上，未合并**；重建已接入，积分台账 80/80 对账成立 |
 | `course/lecture-week07-09.*` | ❌ **课程材料尚未入库** |
-| `project/app/` | ❌ 只有 `README.md`（514 B） |
+| `project/app/` | 🟡 三层骨架已成（`dao/` + `service/` + `web/`，分支上未推送），缺商品维护与库存调整界面 |
 | `weeks/submissions/v1.0/` | ❌ 只有 `.gitkeep` |
 
 > **本文件不涉及代码，也不改变任何数据库对象。** 它是一份选型讨论底稿。
+
+## 十一、已知数据缺口：兑换券没有对应的扣分流水
+
+`tbl_coupon` 里 12 张 `source='POINTS_EXCHANGE'` 的券**全部已被核销**（各抵扣 5.00 元、合计 60.00 元），
+但 `tbl_points_ledger` 中 `coupon_id` 非空的 `REDEEM` 行是 **0 条** —— 券的来路在数据里不存在。
+
+**本轮决定：认账，不追认历史。** 理由不是"懒"，而是补不了：第 1 周给的换算是「500 积分 → 5 元券」，
+而这 12 张券的持有人余额最高只有 413 分，硬补扣减会撞 `ck_member_points_balance (>= 0)`，
+只能靠篡改余额凑数 —— 那等于用一个假数据去圆另一个假数据。
+
+对应用开发的影响：**v1.0 不实现「积分兑换」界面**（课程 7 项任务也没要求）。
+今后若要做，必须在**一个事务**里完成「扣积分 → 发券 → 写 `REDEEM` 流水」。
+
+规则登记见 [`project/docs/business-rules.md`](../../project/docs/business-rules.md) **A11**；
+迁移侧的完整说明见 [`project/sql/11-migration/README.md`](../../project/sql/11-migration/README.md) §6.5。
