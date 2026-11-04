@@ -89,8 +89,40 @@ GO
  * 2. 角色精细化授权（GRANT）
  * ============================================================ */
 
--- 2.1 店长（role_manager）：全权管理
-GRANT SELECT, INSERT, UPDATE, DELETE ON SCHEMA::dbo TO role_manager;
+-- 2.1 店长（role_manager）：全库业务对象全权（逐对象显式授权）
+--
+-- ⚠️ 第 7 周修正（原为一行 `GRANT SELECT, INSERT, UPDATE, DELETE ON SCHEMA::dbo`）：
+--    架构级授权等于把「将来新增的任何对象」也一并授权 —— 新建一张表就自动对店长开放，
+--    与最小权限原则、以及课程要求的「界面 / 后端 / 数据库三层权限一致」都不符，
+--    且会让「店长能做一切」无法被审计（登记为 weeks/week07/README.md §十二 待议 P-1）。
+--    改为逐对象显式授权：**授权面不变**（仍是全库业务表与视图全权），
+--    但今后新增对象必须显式补授，不会静默扩大权限。
+--
+--    注意执行顺序：本脚本在 11-migration 之前运行，故此处只授当时已存在的
+--    17 张业务表 + 5 个业务视图；第 18 表 `tbl_coupon_template` 与第 6 个视图
+--    `vw_coupon_legacy` 由 `11-migration/migration.sql`「要素 6/6」创建后显式补授。
+GRANT SELECT, INSERT, UPDATE, DELETE ON tbl_employee                   TO role_manager;
+GRANT SELECT, INSERT, UPDATE, DELETE ON tbl_member                     TO role_manager;
+GRANT SELECT, INSERT, UPDATE, DELETE ON tbl_product_category           TO role_manager;
+GRANT SELECT, INSERT, UPDATE, DELETE ON tbl_spec_option                TO role_manager;
+GRANT SELECT, INSERT, UPDATE, DELETE ON tbl_ingredient                 TO role_manager;
+GRANT SELECT, INSERT, UPDATE, DELETE ON tbl_supplier                   TO role_manager;
+GRANT SELECT, INSERT, UPDATE, DELETE ON tbl_product                    TO role_manager;
+GRANT SELECT, INSERT, UPDATE, DELETE ON tbl_topping                    TO role_manager;
+GRANT SELECT, INSERT, UPDATE, DELETE ON tbl_recipe                     TO role_manager;
+GRANT SELECT, INSERT, UPDATE, DELETE ON tbl_purchase_order             TO role_manager;
+GRANT SELECT, INSERT, UPDATE, DELETE ON tbl_purchase_order_detail      TO role_manager;
+GRANT SELECT, INSERT, UPDATE, DELETE ON tbl_coupon                     TO role_manager;
+GRANT SELECT, INSERT, UPDATE, DELETE ON tbl_order_header               TO role_manager;
+GRANT SELECT, INSERT, UPDATE, DELETE ON tbl_order_detail               TO role_manager;
+GRANT SELECT, INSERT, UPDATE, DELETE ON tbl_order_detail_topping       TO role_manager;
+GRANT SELECT, INSERT, UPDATE, DELETE ON tbl_points_ledger              TO role_manager;
+GRANT SELECT, INSERT, UPDATE, DELETE ON tbl_stock_ledger               TO role_manager;
+GRANT SELECT                         ON vw_product_stock_availability  TO role_manager;
+GRANT SELECT                         ON vw_order_detail_full           TO role_manager;
+GRANT SELECT                         ON vw_ingredient_reorder_alert    TO role_manager;
+GRANT SELECT                         ON vw_member_consumption_profile  TO role_manager;
+GRANT SELECT                         ON vw_daily_business_summary      TO role_manager;
 GO
 
 -- 2.2 收银员（role_cashier）：交易结算 + 会员营销 + 菜单只读
@@ -211,6 +243,18 @@ GO
 /* ============================================================
  * 5. 权限矩阵总览回显
  * ============================================================ */
+PRINT N'【安全】=== 每角色授权条数（对象级展开后计数） ===';
+SELECT
+    r.name            AS 角色名称,
+    COUNT(*)          AS 授权条数
+FROM sys.database_permissions p
+INNER JOIN sys.database_principals r
+    ON p.grantee_principal_id = r.principal_id
+WHERE r.name IN ('role_manager', 'role_cashier', 'role_maker', 'role_stocker')
+GROUP BY r.name
+ORDER BY r.name;
+GO
+
 PRINT N'【安全】=== 数据库自定义角色权限清单汇总 ===';
 SELECT 
     r.name                                                               AS 角色名称,
