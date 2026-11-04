@@ -353,3 +353,30 @@
 
 规则登记见 [`project/docs/business-rules.md`](../../project/docs/business-rules.md) **A11**；
 迁移侧的完整说明见 [`project/sql/11-migration/README.md`](../../project/sql/11-migration/README.md) §6.5。
+
+---
+
+## 十二、待议清单（已发现、暂不修）
+
+> 这里登记**已经查实、但决定暂不动手**的问题。用户 2026-11-04 的裁定是
+> 「不着急，保留成待议，文档记录就好」—— 所以下面每一项都只登记，不改代码、
+> 不改 `08-security/role.sql`。
+>
+> 与 §九 的区别：§九 是**选型**（选 A 还是 B），本节是**缺陷**（现有实现与规范/课程
+> 要求之间的偏差）。都与「待确认」而不是「已完成」挂钩，符合
+> `harness/conventions/03-documentation.md` §6「未决项不要抹掉」。
+
+| # | 问题 | 证据（实测） | 影响 | 若要修，怎么做 | 状态 |
+|---|---|---|---|---|---|
+| **P-1** | **`role_manager` 被授予 4 条 `SCHEMA::dbo` 全权**，对象级授权全部冗余 | `sys.database_permissions` 中 `role_manager` 有 `DELETE/INSERT/SELECT/UPDATE` on `SCHEMA::dbo`；另有 5 条对象级授权（`tbl_coupon_template` 的 D/I/S/U + `vw_coupon_legacy` 的 S）完全被覆盖 | ① 代入店长身份后数据层**等于没有约束**（`EXECUTE AS USER` 的隔离效果对店长失效）；② 今后**每新增一个对象自动对店长开放**，"最小权限"与课程段落 12 的"三层一致"都打折 | 把 `SCHEMA::dbo` 四条 `GRANT` 换成逐对象授权（按 `sys.database_permissions` 里现有的对象清单展开）；改完必须重跑 `99-rebuild` 门禁与 `role.sql` 的三组负例 | 🟡 待议 |
+| **P-2** | **下单的写入路径以 `dbo` 执行**（`project/app/service/ordering.py` 的 `open_session()` 不带身份） | 该调用没有任何 `db_user` 参数，即连接身份直接是 `dbo`；同文件中读取路径走受限身份，**同一请求两套权限** | 课程段落 12 要求"关键数据库操作还应使用受限数据库账户"——下单是最关键的操作，恰恰是唯一没有受限身份的写路径 | 正解不是给收银员 `GRANT UPDATE tbl_ingredient`（`project/docs/design-notes.md` §1.2 已否决），而是**存储过程 + `EXECUTE AS OWNER` + 只 `GRANT EXECUTE`**，留到第 11—12 周（存储过程/所有权链） | 🟡 待议（已有 `project/app/README.md` 已知边界 #1 记录） |
+| **P-3** | **RBAC 只到表级，行级隔离全靠应用 `WHERE`** | 以 `usr_test_cashier` 身份 `SELECT` 可见 `tbl_order_header` 全部 1963 行、`tbl_member` 全部 80 行（含手机号）；`sys.security_policies` = **0**（RLS 从未启用） | 顾客借用收银员身份 → 在库层拥有收银员权限；应用任何一处 `WHERE` 漏写，数据库不会报警 | 只有 SQL Server 行级安全（RLS）能下沉；本 demo 用 `project/app/tests/test_permissions.py` 的两条断言作补偿（订单页只能出现自己的单号、`/me` 不泄露他人手机号） | 🟡 待议（已写进 `project/app/README.md` 已知边界 #8） |
+
+> 另外两条**不属于权限**、但同样属于"待议"的历史缺口，已分别登记，不在此重复：
+> 兑换券没有对应的 `REDEEM` 扣分流水（§十一 + `business-rules.md` A11）、
+> 退款在库里无独立记录（`data-dictionary.md` §五 5.3 + `business-rules.md` A9）。
+
+**为什么只登记不动手**：P-1 要改 `08-security/role.sql`，一改就必须重跑 `99-rebuild`
+门禁 + 三组越权负例 + 22 个 `.sql` 的 BOM 校验；P-2 的解法跨到第 11—12 周的存储
+过程。在 v1.0 的第 7 周把这两件事做了，收益是"更干净"，代价是**把当前分支的
+验证面扩大一倍**，而它们本来就有明确的后续落点。留痕比赶工更有价值。
