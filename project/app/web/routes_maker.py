@@ -16,7 +16,7 @@ bp = Blueprint("maker", __name__)
 
 
 @bp.route("/maker")
-@staff_required()
+@staff_required("MAKER", "MANAGER")
 def board():
     staff = current_staff()
     role = staff["role"]
@@ -30,7 +30,7 @@ def board():
 
 
 @bp.route("/maker/order/<int:order_id>/next", methods=["POST"])
-@staff_required()
+@staff_required("MAKER", "MANAGER")
 def advance(order_id: int):
     staff = current_staff()
     result = maker.advance(staff["role"], order_id)

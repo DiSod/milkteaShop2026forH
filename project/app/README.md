@@ -5,7 +5,7 @@
 
 | 项目 | 内容 |
 |---|---|
-| 当前状态 | 🟡 **本地可运行的第一版**（分支 `feat/week07-app-skeleton`，未合并、未推送） |
+| 当前状态 | 🟡 **本地可运行的第一版**（分支 `feat/week07-points-opening-ledger`，含应用骨架与迁移 02/03，未合并、未推送） |
 | 技术栈 | Flask 3 + Jinja2 + 本地 Bootstrap 5.3.3 + pyodbc（**方案 B**，见 `../../weeks/week07/README.md` §七） |
 | Python | 3.12（`SQL Server` 与 `ODBC Driver 17 for SQL Server` 均可） |
 | 数据库 | `milktea_shop`，Windows 认证连接，**每请求切换数据库身份** |
@@ -65,6 +65,18 @@ python app.py                    # http://127.0.0.1:5000
 `COL_LENGTH('tbl_member','password_hash')`——最后一项为 `null` 说明
 **迁移 02 尚未执行，登录不可用**（此时登录页会给出明确提示而不是 500）。
 
+自动化测试（需要能连库，否则权限类用例自动 skip）：
+
+```powershell
+cd project\app
+python -m pytest -q      # 期望 17 passed
+```
+
+其中 `tests/test_layering.py` 与 `tests/test_auth_hash.py` 共 8 条是本机就能跑的
+**结构断言**（只有 `dao/` 能 `import pyodbc`、`service/` 与 `web/` 不得出现内联
+SQL、口令哈希与数据库侧定标一致）；`tests/test_permissions.py` 9 条要连库，
+测的是**行级隔离**与**业务层岗位拦截**。
+
 ## 4. 两个入口
 
 | 入口 | 账号 | 口令（演示） | 落点 |
@@ -86,6 +98,8 @@ python app.py                    # http://127.0.0.1:5000
 | 5 | 口令是单轮 SHA-256，不是 Argon2id | 演示级取舍，答辩时主动说明 | 真实产品应换 PBKDF2/Argon2id + 每用户随机盐 |
 | 6 | 只做了「顾客 + 制作员」两条主线 | 收银员/库管员页面未做 | 第 8—9 周补 |
 | 7 | 「积分兑换券」未实现 | 库里 12 张 `POINTS_EXCHANGE` 券没有对应的 `REDEEM` 扣分流水（历史造数缺陷，已认账不追认） | 若做，必须在一个事务里「扣积分 → 发券 → 写 `REDEEM` 流水」；见 `../docs/business-rules.md` A11 |
+| 8 | **RBAC 只到表级，管不了行级** | 顾客与收银员共用表级授权：`usr_test_cashier` 能读全部 1963 张订单头、80 个会员手机号；行级隔离**全靠应用写 `WHERE member_id = ?`**（`dao/member_dao.py`），`WHERE` 漏写数据库不会报警 | 行级安全只有 SQL Server RLS 能下沉（本库 `sys.security_policies` = 0，从未启用）；`tests/test_permissions.py` 用断言把「只出现自己的单号」钉住，作为补偿 |
+| 9 | 角色是**封闭的 4 个** | 与 `ck_employee_position` 的 4 个取值（MANAGER/CASHIER/MAKER/STOCKER）严格一一对应；顾客不是岗位、在 `tbl_employee` 不占行，故**不设** `role_member`，界面层用 `member_required` 区分 | 若将来要给顾客独立数据库身份，只加**用户**（`usr_member`）不加角色，配合行级过滤——保持 4 角色不变 |
 
 ## 6. 放什么 / 不放什么
 
