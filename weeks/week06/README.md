@@ -138,6 +138,6 @@
 | 1 | `normalization.md` §0 与 §3 的范式判定数字不一致（12+5 vs 14+3） | ✅ **已闭环** | 见 ISSUE-012；统一为 14 纯净 BCNF + 3 工程反规范化（14+3=17） |
 | 2 | `normalization.md` §5 只有"无损连接且保持依赖"的断言，无证明步骤 | ✅ **已闭环** | 见 `normalization.md` §5；已补齐交集超码充要条件推导与依赖投影闭包证明 |
 | 3 | `migration.sql` 未含课程要求的 6 要素 | ✅ **已闭环** | 落地新表创建、字段调整、码设置、数据迁移、数据校验、旧表兼容处理 6 要素，已接入 `99-rebuild.sql` |
-| 4 | `regression.sql` 尚未编写 | ✅ **已闭环** | 编写 `project/tests/regression.sql`，支持 `THROW` 与 `sqlcmd -b` 非零退出码，12 项断言全绿 |
+| 4 | `regression.sql` 尚未编写 | ✅ **已闭环** | 编写 `project/tests/regression.sql`，支持 `THROW` 与 `sqlcmd -b` 非零退出码，14 项断言全绿 |
 | 5 | 券表拆分（`tbl_coupon` → `tbl_coupon_template` + `tbl_coupon`） | ✅ **已闭环** | 17 表成功扩充为 18 表，消除 12 行模板冗余，单表 BCNF 增至 15 张，补齐无损分解数学证明 |
 | 6 | `weeks/submissions/v1.0/report.md` 报告素材 | ⬜ **未起稿** | 目录目前只有 `.gitkeep`，待提交前汇总 |

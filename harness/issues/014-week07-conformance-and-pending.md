@@ -86,7 +86,7 @@ cd project\sql
 sqlcmd -S .\SQLEXPRESS -E -C -f 65001 -i 99-rebuild.sql
 #   → exit=0，总览 18 表 / 139 字段 / 31 外键 / 48 CHECK / 22 索引 / 6 视图 / 4 角色
 
-# 自动化回归（13 项，失败会 THROW 出非零码）
+# 自动化回归（14 项，失败会 THROW 出非零码）
 cd ..\..
 sqlcmd -S .\SQLEXPRESS -E -C -b -f 65001 -i project\tests\regression.sql
 #   → exit=0，总用例数 13 / 通过 13 / 失败 0
@@ -170,7 +170,7 @@ python -m pytest -q
 ## 7. 分支状态（供你决定是否合并）
 
 ```text
-main                    c676b68
+main                    b2c6c07  （分支已合入；本节为合并前留档）
   └─ feat/week07-points-opening-ledger  (已推送，领先 10 个提交)
        ad2295f  feat(migration): 迁移 02 登录凭据（草稿阶段）
        7d924fc  feat(app): 三层应用骨架
