@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}店长工作台{% endblock %}
+{% block content %}
+<h4 class="mb-3">店长工作台</h4>
+<p class="text-muted small">
+  经营日报读 <code>vw_daily_business_summary</code>（含退款口径见文档 §五 指标口径）；
+  商品档案是<strong>只有店长能写</strong>的对象。删除的等价物是「下架」——
+  历史订单仍指向这个商品，硬删会让明细失去引用。
+</p>
+
+<h6 class="mt-4">最近 7 天经营日报</h6>
+<div class="table-responsive">
+  <table class="table table-sm bg-white">
+    <thead class="table-light">
+      <tr>
+        <th>营业日</th><th class="text-end">订单</th><th class="text-end">完成</th>
+        <th class="text-end">取消</th><th class="text-end">杯数</th>
+        <th class="text-end">毛销售</th><th class="text-end">折扣</th>
+        <th class="text-end">实收</th><th class="text-end">会员单</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for r in daily %}
+      <tr>
+        <td>{{ r[0] }}</td>
+        <td class="text-end">{{ r[1] }}</td>
+        <td class="text-end">{{ r[2] }}</td>
+        <td class="text-end">{{ r[3] }}</td>
+        <td class="text-end">{{ r[4] }}</td>
+        <td class="text-end">{{ '%.2f'|format(r[5]) }}</td>
+        <td class="text-end">{{ '%.2f'|format(r[6]) }}</td>
+        <td class="text-end">{{ '%.2f'|format(r[7]) }}</td>
+        <td class="text-end">{{ r[8] }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<h6 class="mt-4">商品销量 Top 10（有效口径：<code>pay_status = 'SUCCESS'</code>）</h6>
+<div class="table-responsive">
+  <table class="table table-sm bg-white">
+    <thead class="table-light">
+      <tr><th>#</th><th>商品</th><th class="text-end">杯数</th><th class="text-end">销售额</th></tr>
+    </thead>
+    <tbody>
+    {% for t in top_products %}
+      <tr>
+        <td>{{ t[0] }}</td>
+        <td>{{ t[1] }}</td>
+        <td class="text-end">{{ t[2] }}</td>
+        <td class="text-end">{{ '%.2f'|format(t[3]) }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<h6 class="mt-4">商品档案（{{ products|length }} 个）</h6>
+<div class="table-responsive">
+  <table class="table table-sm align-middle bg-white">
+    <thead class="table-light">
+      <tr><th>#</th><th>编码</th><th>名称</th><th>分类</th>
+          <th class="text-end">单价</th><th>状态</th><th style="width:22rem">操作</th></tr>
+    </thead>
+    <tbody>
+    {% for p in products %}
+      <tr>
+        <td>{{ p[0] }}</td>
+        <td><code>{{ p[1] }}</code></td>
+        <td>
+          <form class="d-flex gap-1" method="post"
+                action="{{ url_for('manager.edit_product', product_id=p[0]) }}">
+            <input class="form-control form-control-sm" name="product_name" value="{{ p[2] }}" style="min-width:9rem">
+            <input class="form-control form-control-sm text-end" name="base_price"
+                   value="{{ '%.2f'|format(p[4]) }}" style="width:6rem">
+            <select class="form-select form-select-sm" name="product_status" style="width:6.5rem">
+              {% for code, label in statuses.items() %}
+                <option value="{{ code }}" {% if p[5] == code %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+            <button class="btn btn-sm btn-outline-primary" type="submit">保存</button>
+          </form>
+        </td>
+        <td>{{ p[3] }}</td>
+        <td class="text-end">{{ '%.2f'|format(p[4]) }}</td>
+        <td>
+          {% if p[5] == 'ON_SALE' %}
+            <span class="badge bg-success">在售</span>
+          {% else %}
+            <span class="badge bg-secondary">已下架</span>
+          {% endif %}
+        </td>
+        <td>
+          <form method="post" action="{{ url_for('manager.retire_product', product_id=p[0]) }}">
+            <button class="btn btn-sm btn-outline-danger" type="submit"
+                    {% if p[5] != 'ON_SALE' %}disabled{% endif %}>下架</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<h6 class="mt-4">新建商品</h6>
+<form class="row g-2 align-items-end" method="post" action="{{ url_for('manager.create_product') }}">
+  <div class="col-auto">
+    <label class="form-label small mb-1" for="product_code">编码</label>
+    <input class="form-control form-control-sm" id="product_code" name="product_code" style="width:8rem">
+  </div>
+  <div class="col-auto">
+    <label class="form-label small mb-1" for="product_name">名称</label>
+    <input class="form-control form-control-sm" id="product_name" name="product_name" style="width:12rem">
+  </div>
+  <div class="col-auto">
+    <label class="form-label small mb-1" for="category_id">分类</label>
+    <select class="form-select form-select-sm" id="category_id" name="category_id" style="width:9rem">
+      {% for c in categories %}
+        <option value="{{ c[0] }}">{{ c[2] }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-auto">
+    <label class="form-label small mb-1" for="base_price">单价</label>
+    <input class="form-control form-control-sm text-end" id="base_price" name="base_price"
+           value="0.00" style="width:6rem">
+  </div>
+  <div class="col-auto">
+    <label class="form-label small mb-1" for="product_status">状态</label>
+    <select class="form-select form-select-sm" id="product_status" name="product_status" style="width:6.5rem">
+      {% for code, label in statuses.items() %}
+        <option value="{{ code }}">{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-auto">
+    <button class="btn btn-sm btn-primary" type="submit">新建</button>
+  </div>
+</form>
+{% endblock %}

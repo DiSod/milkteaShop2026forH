@@ -16,7 +16,14 @@ from dao import db
 from dao import errors as dao_errors
 from service import errors as svc_errors
 from service.errors import AppError
-from web import routes_auth, routes_maker, routes_member
+from web import (
+    routes_auth,
+    routes_cashier,
+    routes_maker,
+    routes_manager,
+    routes_member,
+    routes_stocker,
+)
 from web.security import load_current_user
 
 LOG_FORMAT = (
@@ -80,6 +87,9 @@ def create_app(config_object=Config) -> Flask:
     app.register_blueprint(routes_auth.bp)
     app.register_blueprint(routes_member.bp)
     app.register_blueprint(routes_maker.bp)
+    app.register_blueprint(routes_cashier.bp)
+    app.register_blueprint(routes_stocker.bp)
+    app.register_blueprint(routes_manager.bp)
 
     @app.get("/health")
     def health():

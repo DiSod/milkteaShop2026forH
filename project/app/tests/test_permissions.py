@@ -142,8 +142,19 @@ def test_anonymous_is_redirected_to_staff_login(client):
     assert "/staff/login" in resp.headers["Location"]
 
 
-def test_staff_login_without_workbench_is_not_dumped_into_403(client):
-    """收银员 / 库管员登录成功但还没有工作台：应回到登录页并给出提示。"""
-    resp = login_staff(client, *STAFF["STOCKER"])
-    assert resp.status_code == 302
-    assert "/staff/login" in resp.headers["Location"]
+def test_every_staff_role_lands_on_a_workbench(client):
+    """四个岗位各有一个工作台：登录后不该停在登录页，也不该撞 403。
+
+    （第 7 周之前只有制作台，收银员/库管员登录会被送回登录页并提示"排在第 8—9 周"；
+    角色界面补全后这条断言改为"必须落到自己的入口"。）
+    """
+    expected = {
+        "MANAGER": "/manager",
+        "CASHIER": "/cashier",
+        "MAKER": "/maker",
+        "STOCKER": "/stocker",
+    }
+    for role, path in expected.items():
+        resp = login_staff(client, *STAFF[role])
+        assert resp.status_code == 302
+        assert resp.headers["Location"].endswith(path)

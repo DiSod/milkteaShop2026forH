@@ -40,7 +40,12 @@ def _validate(items) -> None:
                 raise ValidationError("商品选项不完整，请重新选择")
 
 
-def place_order(member_id: int, items) -> dict:
+def place_order(member_id, items, cashier_id=None) -> dict:
+    """下单。
+
+    ``member_id`` 为 ``None`` 表示散客（收银台代客下单），此时不产生积分。
+    ``cashier_id`` 为空时由 ``order_dao`` 落一个系统收银员（见那里的说明）。
+    """
     _validate(items)
 
     # 写入路径不切换身份：一次下单要同时写订单域（收银员）与库存域（库管员），
@@ -126,6 +131,7 @@ def place_order(member_id: int, items) -> dict:
             pay_method=PAY_METHOD,
             pay_status=PAY_STATUS,
             order_status=ORDER_STATUS,
+            cashier_id=cashier_id,
         )
 
         for p in priced:
@@ -148,10 +154,14 @@ def place_order(member_id: int, items) -> dict:
             order_dao.deduct_ingredient(s, ingredient_id, required)
             order_dao.insert_stock_ledger(s, ingredient_id, -required, order_id)
 
-        earned = int(amount_paid)  # 消费 1 元累计 1 积分（week1 §3.7）
-        if earned > 0:
-            order_dao.insert_points(s, member_id, order_id, earned)
-            member_dao.add_points(s, member_id, earned)
+        # 消费 1 元累计 1 积分（week1 §3.7）。散客单（member_id 为空）不产生积分：
+        # tbl_points_ledger.member_id 是 NOT NULL，积分天然只属于会员。
+        earned = 0
+        if member_id is not None:
+            earned = int(amount_paid)
+            if earned > 0:
+                order_dao.insert_points(s, member_id, order_id, earned)
+                member_dao.add_points(s, member_id, earned)
 
         s.commit()
 

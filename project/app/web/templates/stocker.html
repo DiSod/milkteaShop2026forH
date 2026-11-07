@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}库管员工作台{% endblock %}
+{% block content %}
+<h4 class="mb-3">库管员工作台</h4>
+<p class="text-muted small">
+  每一次数量变化都会落一条 <code>tbl_stock_ledger</code> —— 库里 <code>qty_on_hand</code>
+  必须等于流水之和（<code>regression.sql</code> TC-12 逐原料核对）。
+  收货按采购单走 <code>PURCHASE_IN</code>，报损走 <code>LOSS + MANUAL</code>；
+  <strong>盘点差异（<code>STOCKTAKE</code>）是 D5 明确延后的事，这里没有假入口。</strong>
+</p>
+
+{% if drift %}
+<div class="alert alert-danger">
+  <strong>台账不平！</strong>以下原料的 <code>qty_on_hand</code> 与流水合计不一致：
+  {% for d in drift %}{{ d[1] }}（{{ d[2] }} vs {{ d[3] }}）{% endfor %}
+</div>
+{% endif %}
+
+<h6 class="mt-4">待收货采购明细（{{ open_lines|length }} 条）</h6>
+{% if open_lines %}
+<div class="table-responsive">
+  <table class="table table-sm bg-white align-middle">
+    <thead class="table-light">
+      <tr><th>采购单</th><th>原料</th><th class="text-end">订购</th>
+          <th class="text-end">已收</th><th class="text-end">待收</th>
+          <th class="text-end">单价</th><th style="width:14rem">本次收货</th></tr>
+    </thead>
+    <tbody>
+    {% for l in open_lines %}
+      <tr>
+        <td><code>{{ l[2] }}</code> <span class="text-muted small">{{ l[3] }}</span></td>
+        <td>{{ l[6] }} <span class="text-muted small">{{ l[5] }}</span></td>
+        <td class="text-end">{{ l[8] }}</td>
+        <td class="text-end">{{ l[9] }}</td>
+        <td class="text-end">{{ l[10] }} {{ l[7] }}</td>
+        <td class="text-end">{{ '%.2f'|format(l[11]) }}</td>
+        <td>
+          <form class="d-flex gap-1" method="post" action="{{ url_for('stocker.receive') }}">
+            <input type="hidden" name="detail_id" value="{{ l[0] }}">
+            <input class="form-control form-control-sm text-end" name="qty"
+                   value="{{ l[10] }}" style="width:6rem">
+            <button class="btn btn-sm btn-outline-success" type="submit">收货</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="text-muted">没有待收货的采购明细。</p>
+{% endif %}
+
+<h6 class="mt-4">低于补货点的原料（{{ alerts|length }} 条）</h6>
+{% if alerts %}
+<div class="table-responsive">
+  <table class="table table-sm bg-white">
+    <thead class="table-light">
+      <tr><th>原料</th><th>单位</th><th class="text-end">结存</th>
+          <th class="text-end">补货点</th><th class="text-end">目标水位</th>
+          <th class="text-end">建议进货</th><th>预警</th></tr>
+    </thead>
+    <tbody>
+    {% for a in alerts %}
+      <tr>
+        <td>{{ a[2] }} <span class="text-muted small">{{ a[1] }}</span></td>
+        <td>{{ a[3] }}</td>
+        <td class="text-end">{{ a[5] }}</td>
+        <td class="text-end">{{ a[6] }}</td>
+        <td class="text-end">{{ a[7] }}</td>
+        <td class="text-end"><strong>{{ a[8] }}</strong></td>
+        <td><span class="badge bg-warning text-dark">{{ a[12] }}</span></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="text-muted">所有原料都在补货点之上。</p>
+{% endif %}
+
+<h6 class="mt-4">库存查询与报损（{{ ingredients|length }} 种原料）</h6>
+<div class="table-responsive">
+  <table class="table table-sm bg-white align-middle">
+    <thead class="table-light">
+      <tr><th>#</th><th>编码</th><th>原料</th><th>单位</th><th>规格</th>
+          <th class="text-end">结存</th><th class="text-end">补货点</th>
+          <th class="text-end">成本</th><th>状态</th><th style="width:18rem">报损</th></tr>
+    </thead>
+    <tbody>
+    {% for i in ingredients %}
+      <tr>
+        <td>{{ i[0] }}</td>
+        <td><code>{{ i[1] }}</code></td>
+        <td>{{ i[2] }}</td>
+        <td>{{ i[3] }}</td>
+        <td class="text-muted small">{{ i[4] }}</td>
+        <td class="text-end">{{ i[5] }}</td>
+        <td class="text-end">{{ i[6] }}</td>
+        <td class="text-end">{{ '%.4f'|format(i[8]) }}</td>
+        <td>
+          {% if i[9] %}<span class="badge bg-secondary">手工沽清</span>{% endif %}
+          {% if not i[10] %}<span class="badge bg-dark">停用</span>{% endif %}
+        </td>
+        <td>
+          <form class="d-flex gap-1" method="post" action="{{ url_for('stocker.report_loss') }}">
+            <input type="hidden" name="ingredient_id" value="{{ i[0] }}">
+            <input class="form-control form-control-sm text-end" name="qty"
+                   placeholder="数量" style="width:5rem">
+            <input class="form-control form-control-sm" name="remark"
+                   placeholder="原因（必填）" style="width:8rem">
+            <button class="btn btn-sm btn-outline-danger" type="submit">报损</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

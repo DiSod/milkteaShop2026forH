@@ -16,6 +16,19 @@
         <a class="nav-link" href="{{ url_for('member.menu') }}">菜单</a>
         <a class="nav-link" href="{{ url_for('member.orders') }}">我的订单</a>
         <a class="nav-link" href="{{ url_for('member.me') }}">我的积分</a>
+      {% elif g.staff %}
+        {% if g.current_role in ('CASHIER', 'MANAGER') %}
+          <a class="nav-link" href="{{ url_for('cashier.index') }}">收银台</a>
+        {% endif %}
+        {% if g.current_role in ('MAKER', 'MANAGER') %}
+          <a class="nav-link" href="{{ url_for('maker.board') }}">制作台</a>
+        {% endif %}
+        {% if g.current_role in ('STOCKER', 'MANAGER') %}
+          <a class="nav-link" href="{{ url_for('stocker.index') }}">库存</a>
+        {% endif %}
+        {% if g.current_role == 'MANAGER' %}
+          <a class="nav-link" href="{{ url_for('manager.index') }}">店长台</a>
+        {% endif %}
       {% endif %}
     </div>
     <div class="navbar-nav">

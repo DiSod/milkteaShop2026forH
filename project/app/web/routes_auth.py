@@ -6,9 +6,14 @@ from service import auth
 
 bp = Blueprint("auth", __name__)
 
-#: 目前已有工作台的岗位。收银员 / 库管员的界面排在第 8—9 周，
-#: 在那之前登录成功也不该把人丢进一个 403 页面。
-STAFF_WORKBENCH_ROLES = ("MAKER", "MANAGER")
+#: 岗位 → 登录后落到哪个工作台。四个岗位各有一个入口，
+#: 与 ``ck_employee_position`` 的四个取值严格一一对应（顾客不是岗位，没有第五条）。
+WORKBENCH = {
+    "CASHIER": "cashier.index",
+    "MAKER": "maker.board",
+    "STOCKER": "stocker.index",
+    "MANAGER": "manager.index",
+}
 
 
 @bp.route("/login", methods=["GET", "POST"])
@@ -31,10 +36,11 @@ def staff_login():
         staff = auth.login_employee(code, password)
         session.clear()
         session["staff"] = staff
-        if staff["role"] in STAFF_WORKBENCH_ROLES:
-            return redirect(url_for("maker.board"))
-        # 岗位存在但界面还没做：明确告知，而不是跳到 /maker 拿一个 403
-        flash("当前岗位（%s）的工作台排在第 8—9 周，暂未开放。" % staff["role"], "error")
+        endpoint = WORKBENCH.get(staff["role"])
+        if endpoint:
+            return redirect(url_for(endpoint))
+        # 岗位存在但界面还没做：明确告知，而不是跳到别的岗位拿一个 403
+        flash("当前岗位（%s）暂未开通工作台。" % staff["role"], "error")
         return redirect(url_for("auth.staff_login"))
     return render_template("staff_login.html")
 
