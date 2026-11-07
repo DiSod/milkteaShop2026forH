@@ -107,6 +107,7 @@ SQL、口令哈希与数据库侧定标一致）；`tests/test_permissions.py` 9
 
 登录后按岗位自动跳到各自工作台（`web/routes_auth.py` 的 `WORKBENCH` 映射），
 四类岗位与 `ck_employee_position` 一一对应，**没有第五个角色**。
+`routes_auth.py` 末尾仍留一条兜底 `flash("当前岗位（%s）暂未开通工作台。")`，四岗位都走不到它，只为将来新增岗位时不至于静默跳转。
 
 **岗位能做什么由数据库授权决定，不是页面说了算**：商品维护只有 `MANAGER` 能写
 （`role_cashier` 对 `tbl_product` 只有 `SELECT`），库存增减只有 `STOCKER`/`MANAGER`
@@ -129,7 +130,7 @@ SQL、口令哈希与数据库侧定标一致）；`tests/test_permissions.py` 9
 | 7 | 「积分兑换券」未实现 | 库里 12 张 `POINTS_EXCHANGE` 券没有对应的 `REDEEM` 扣分流水（历史造数缺陷，已认账不追认） | 若做，必须在一个事务里「扣积分 → 发券 → 写 `REDEEM` 流水」；见 `../docs/business-rules.md` A11 |
 | 8 | **RBAC 只到表级，管不了行级** | 顾客与收银员共用表级授权：`usr_test_cashier` 能读全部 1963 张订单头、80 个会员手机号；行级隔离**全靠应用写 `WHERE member_id = ?`**（`dao/member_dao.py`），`WHERE` 漏写数据库不会报警 | 行级安全只有 SQL Server RLS 能下沉（本库 `sys.security_policies` = 0，从未启用）；`tests/test_permissions.py` 用断言把「只出现自己的单号」钉住，作为补偿 |
 | 9 | 角色是**封闭的 4 个** | 与 `ck_employee_position` 的 4 个取值（MANAGER/CASHIER/MAKER/STOCKER）严格一一对应；顾客不是岗位、在 `tbl_employee` 不占行，故**不设** `role_member`，界面层用 `member_required` 区分 | 若将来要给顾客独立数据库身份，只加**用户**（`usr_member`）不加角色，配合行级过滤——保持 4 角色不变 |
-| 10 | **v1.0 应用强制会员下单** | 库层 `tbl_order_header.member_id` 仍允许 NULL（为承载 v0.1 的 764 张历史散客单，占 38.9%），但应用侧 `/`、`/order`、`/orders`、`/me` 全部 `@member_required`，**散客无法下单** | 见 `../docs/business-rules.md` A12；若要库层也强制，需先把 764 行散客单迁到"匿名会员" |
+| 10 | **登录即会员，系统没有"游客态"** | 顾客侧四个页面（`/`、`/order`、`/orders`、`/me`）全部 `@member_required`：**能登录的人，登录那一刻就是会员**。库层 `tbl_order_header.member_id` 仍允许 NULL，只为承载 v0.1 的 764 张历史散客单（38.9%），**不代表 v1.0 支持散客自助下单**。新会员的录入不在应用职责内（造数 / 后台补录），课程第 7—9 周任务也不含"会员注册" | 见 `../docs/business-rules.md` A12；收银台另有散客下单通道，用于店员代客下单 |
 
 ## 6. 放什么 / 不放什么
 

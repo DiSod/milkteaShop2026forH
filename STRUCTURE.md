@@ -102,9 +102,18 @@ databaseExp/
 │  │  ├─ raw/                         #   原始下载（⚠️ 不进 git）
 │  │  ├─ interim/                     #   清洗中间产物（⚠️ 不进 git）
 │  │  └─ generated/                   #   自建生成数据（⚠️ 不进 git）
-│  ├─ app/                            #   应用界面（第2阶段起）
+│  ├─ app/                            #   应用界面（第 7 周起，三层物理隔离）
+│  │  ├─ app.py                       #     应用工厂、请求标识日志、统一异常、/health
+│  │  ├─ config.py                    #     连接串与 角色→数据库账户 映射（读 .env）
+│  │  ├─ dao/                         #     ⭐ 数据访问层：唯一 import pyodbc、唯一写 SQL
+│  │  ├─ service/                     #     ⭐ 业务层：业务规则、事务边界、角色可执行范围
+│  │  ├─ web/                         #     ⭐ 页面层：路由 + Jinja2 模板 + 静态资源（不含 SQL）
+│  │  └─ tests/                       #     38 条自动化测试（分层边界 / 权限 / 四个工作台）
 │  ├─ docs/                           #   ER图、数据字典、设计说明
 │  └─ tests/                          #   测试用例与运行记录
+│     ├─ regression.sql               #     14 项数据库断言（迁移后必须全绿，失败返回非零）
+│     ├─ baseline/                    #     迁移前后数据快照（三脚本 + before/after 结果）
+│     └─ 01-migration-verification.*  #     迁移 02 的正反例验证记录
 │
 └─ harness/                           # ④ 协作域
    ├─ README.md                       #   harness 是什么、怎么用
@@ -117,7 +126,7 @@ databaseExp/
    ├─ issues/                         #   任务看板（第 2 周新增）
    │  ├─ README.md                    #     看板索引、两条铁律与状态图例
    │  ├─ ISSUE-TEMPLATE.md            #     Issue 模板（五段式）
-   │  └─ 001-*.md … 005-*.md          #     一 Issue 一文件，避免并发改大文件
+   │  └─ 001-*.md … 014-*.md          #     一 Issue 一文件，避免并发改大文件
    ├─ team/                           #   小组（原 team/ 并入）
    │  ├─ README.md                    #     成员名单
    │  └─ contributions.md             #     17 周分工与贡献记录
