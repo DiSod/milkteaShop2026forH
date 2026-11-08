@@ -3,7 +3,7 @@
 {% block content %}
 <div class="d-flex flex-wrap align-items-baseline justify-content-between mb-3">
   <h4 class="mb-0">今日菜单</h4>
-  <span class="small text-muted">点开一杯饮品，再选杯型、糖度、冰量与加料</span>
+  <span class="small text-muted">点一下饮品，在弹出的窗口里选杯型、糖度、冰量与加料</span>
 </div>
 
 <form method="post" action="{{ url_for('member.place_order') }}">
@@ -15,4 +15,8 @@
     </button>
   </div>
 </form>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/menu.js') }}"></script>
 {% endblock %}

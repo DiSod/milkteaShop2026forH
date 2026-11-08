@@ -58,6 +58,7 @@ web/
   routes_manager.py       /manager /manager/product/{new,<id>/edit,<id>/retire}
   templates/              12 个 Jinja2 模板（含共用片段 `_menu_cards.html`）
   static/                 本地 Bootstrap 5.3.3 + Bootstrap Icons + Roboto + app.css（离线可用）
+  static/js/menu.js       点单页交互增强（小计、加入订单、卡片已选徽标；无 JS 也能提交）
 tests/
   test_layering.py        分层边界三条断言
   test_auth_hash.py       口令摘要与 SQL 侧一致性
@@ -74,7 +75,7 @@ tests/
 | 排版引擎 | 仍是 Bootstrap 5.3.3 的栅格与工具类，模板里的 `row` / `col-*` / `d-flex` 全部保留 |
 | 设计语言 | `static/css/app.css` 用 CSS 变量定义 MD3 角色色（`--md-primary` / `--md-surface` / `--md-outline` …），再逐组件覆写外观 |
 | 主色 | 薄荷绿种子色（`#3eb489`），主色 `--md-primary: #146b56`，白字对比度约 7:1 |
-| 组件 | 导航胶囊高亮、表格卡片化、filled text field（浮动标签）、胶囊按钮、tonal 徽章与提示条、饮品折叠卡、独立错误页 |
+| 组件 | 导航胶囊高亮、表格卡片化、filled text field（浮动标签）、胶囊按钮、tonal 徽章与提示条、饮品卡片 + 二级菜单对话框、独立错误页 |
 | 离线 | Bootstrap / Bootstrap Icons / Roboto 全部 vendored 在 `static/vendor/`，无 CDN、无 npm |
 | 字体 | Roboto（latin 子集 woff2），中文回落到系统字体栈 |
 

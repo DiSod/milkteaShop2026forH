@@ -473,7 +473,7 @@ hr {
   color: var(--md-on-primary-container);
 }
 
-/* ===== 菜单卡片（点击饮品展开定制） ===== */
+/* ===== 菜单卡片（点击后弹出二级菜单对话框） ===== */
 .menu-section {
   margin: 2rem 0 .75rem;
   font-size: .8125rem;
@@ -483,30 +483,40 @@ hr {
   color: var(--md-on-surface-variant);
 }
 
+/* 卡片本身是 <button>：整块可点，点开对应的对话框 */
 .drink-card {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  width: 100%;
+  padding: .9rem 1.15rem;
+  text-align: left;
+  font: inherit;
+  color: inherit;
   background-color: var(--md-surface);
   border: 1px solid var(--md-outline-variant);
   border-radius: 16px;
   box-shadow: var(--md-e1);
-  transition: box-shadow .18s ease, border-color .18s ease;
+  cursor: pointer;
+  transition: box-shadow .18s ease, border-color .18s ease, background-color .18s ease;
 }
 
-.drink-card[open] {
+.drink-card:hover {
   border-color: var(--md-outline);
   box-shadow: var(--md-e2);
 }
 
-.drink-summary {
-  display: flex;
-  align-items: center;
-  gap: .75rem;
-  padding: .9rem 1.15rem;
-  cursor: pointer;
-  list-style: none;
+.drink-card:active { transform: scale(.996); }
+
+.drink-card:focus-visible {
+  outline: 2px solid var(--md-primary);
+  outline-offset: 2px;
 }
 
-.drink-summary::-webkit-details-marker { display: none; }
-.drink-summary::marker { content: ''; }
+.drink-card.is-picked {
+  border-color: var(--md-primary);
+  background-color: #f4fbf8;
+}
 
 .drink-main {
   display: flex;
@@ -527,6 +537,13 @@ hr {
   color: var(--md-on-surface-variant);
 }
 
+.drink-right {
+  display: inline-flex;
+  align-items: center;
+  gap: .6rem;
+  flex: 0 0 auto;
+}
+
 .drink-price {
   font-size: .9375rem;
   font-weight: 500;
@@ -534,18 +551,66 @@ hr {
   white-space: nowrap;
 }
 
-.drink-chevron {
-  display: inline-flex;
-  color: var(--md-on-surface-variant);
-  transition: transform .2s ease;
+.drink-picked {
+  padding: .1rem .55rem;
+  border-radius: 999px;
+  background-color: var(--md-primary-container);
+  color: var(--md-on-primary-container);
+  font-size: .75rem;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
-.drink-card[open] .drink-chevron { transform: rotate(180deg); }
+.drink-chevron {
+  color: var(--md-on-surface-variant);
+  font-size: .95rem;
+}
 
-.drink-body {
-  padding: .35rem 1.15rem 1.15rem;
+/* ----- 二级菜单对话框 ----- */
+.drink-modal {
+  border: 0;
+  border-radius: 24px;
+  background-color: var(--md-surface);
+  box-shadow: var(--md-e3);
+}
+
+.drink-modal .modal-header {
+  align-items: flex-start;
+  padding: 1.25rem 1.5rem .9rem;
+  border-bottom: 1px solid var(--md-outline-variant);
+}
+
+.drink-modal .modal-title {
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: var(--md-on-surface);
+}
+
+.modal-sub {
+  margin: .15rem 0 0;
+  font-size: .8125rem;
+  color: var(--md-on-surface-variant);
+}
+
+.drink-modal .modal-body {
+  padding: .6rem 1.5rem 1rem;
+}
+
+.drink-modal .modal-footer {
+  align-items: center;
+  gap: .5rem;
+  padding: .9rem 1.5rem;
   border-top: 1px solid var(--md-outline-variant);
 }
+
+.drink-subtotal {
+  margin-right: auto;
+  font-size: .875rem;
+  font-weight: 500;
+  color: var(--md-primary-dark);
+}
+
+.modal-backdrop.show { opacity: .42; }
 
 .opt-group {
   display: flex;
@@ -556,7 +621,7 @@ hr {
 
 .opt-label {
   flex: 0 0 2.5rem;
-  padding-top: .35rem;
+  padding-top: .7rem;
   font-size: .8125rem;
   color: var(--md-on-surface-variant);
 }
@@ -569,15 +634,11 @@ hr {
   min-width: 0;
 }
 
-.opt-controls .form-select {
-  max-width: 16rem;
-}
-
 .chip {
   display: inline-flex;
   align-items: center;
   gap: .35rem;
-  padding: .25rem .7rem;
+  padding: .35rem .75rem;
   border: 1px solid var(--md-outline);
   border-radius: 999px;
   background-color: var(--md-surface);
@@ -600,14 +661,13 @@ hr {
   color: var(--md-on-primary-container);
 }
 
-.drink-card.is-soldout {
+.is-soldout {
   background-color: var(--md-surface-dim);
   border-style: dashed;
   box-shadow: none;
   opacity: .72;
+  cursor: default;
 }
-
-.drink-card.is-soldout .drink-summary { cursor: default; }
 
 .badge-soldout {
   display: inline-flex;
