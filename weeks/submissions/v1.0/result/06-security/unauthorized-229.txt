@@ -1,0 +1,14 @@
+=== 负例 1：制作员读会员手机号（应被拒绝） ===
+RESULT: BLOCKED -> 拒绝了对对象 'tbl_member' (数据库 'milktea_shop'，架构 'dbo')的 SELECT 权限。
+ 
+=== 负例 2：收银员篡改配方（应被拒绝） ===
+RESULT: BLOCKED -> 拒绝了对对象 'tbl_recipe' (数据库 'milktea_shop'，架构 'dbo')的 SELECT 权限。
+ 
+=== 负例 3：库管员删除订单头（应被拒绝） ===
+RESULT: BLOCKED -> 拒绝了对对象 'tbl_order_header' (数据库 'milktea_shop'，架构 'dbo')的 SELECT 权限。
+ 
+=== 负例 4：店长新建表（架构级授权已收回，应被拒绝） ===
+RESULT: BLOCKED -> 在数据库 'milktea_shop' 中拒绝了 CREATE TABLE 权限。
+ 
+=== 结论 ===
+4 组越权全部由数据库引擎拦截：岗位能力由 GRANT 决定，不依赖页面层的判断。

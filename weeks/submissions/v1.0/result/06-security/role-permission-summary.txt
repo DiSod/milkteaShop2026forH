@@ -1,0 +1,5 @@
+角色 | 权限条数 | 覆盖对象数 | 架构级授权条数 | 可转授权条数
+role_manager | 78 | 24 | 0 | 0
+role_cashier | 20 | 13 | 0 | 0
+role_stocker | 10 | 6 | 0 | 0
+role_maker | 9 | 8 | 0 | 0

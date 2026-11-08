@@ -1,0 +1,6 @@
+指标 | 值
+会员数 | 80
+余额合计 SUM(points_balance) | 25224
+流水合计 SUM(point_change) | 25224
+OPENING 期初流水条数 | 80
+不符会员数（应为 0） | 0

@@ -1,0 +1,8 @@
+指标 | 值
+tbl_coupon 列数 | 8
+tbl_coupon_template 列数 | 8
+券模板行数 | 2
+券实例行数 | 24
+模板外键悬空的券（应为 0） | 0
+兼容视图 vw_coupon_legacy 行数 | 24
+兼容视图列数 | 14

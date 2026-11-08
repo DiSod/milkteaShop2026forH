@@ -15,10 +15,11 @@
 | ├ [`er-legend.svg`](er-legend.svg) | 图例矢量版（`foreignObject` = 0，Word 可用） | 第 5 周 | ✅ |
 | └ [`er-legend.mmd`](er-legend.mmd) | 图例 Mermaid 源 | 第 5 周 | ✅ |
 | [`v0.1-issues.md`](v0.1-issues.md) | **v0.1 问题清单与改进方向**（第 6 周迁移的输入） | 第 5 周 | ✅ **已建**（新发现 3 处完整性缺口） |
-| [`normalization.md`](normalization.md) | 范式分析与改进记录（全库 FD / 18 表范式判定 / 反规范化论证 / 无损分解数学证明） | 第 6 周 | ✅ **已闭环**（全库 14 纯净 BCNF + 3 受控跨表派生冗余，口径闭环对齐，含分解证明） |
+| [`normalization.md`](normalization.md) | 范式分析与改进记录（全库 FD / 18 表范式判定 / 反规范化论证 / 无损分解数学证明） | 第 6 周 | ✅ **已闭环**（18 表中 15 张纯净 BCNF + 3 张受控跨表派生冗余，含三组无损连接与依赖保持证明） |
 | **`migration.sql`** | ⚠️ **迁移脚本本身是 SQL，不在本目录** —— 落点 [`project/sql/11-migration/`](../sql/11-migration/)（**已定案**，见 ISSUE-011） | 第 6 周 | ✅ **已建**（`ck_coupon_used_time_range`，已接入 `99-rebuild.sql`） |
 | `migration.md` | 模式迁移说明 | 第 6 周 | 🟡 内容已由 `normalization.md` §6 与 [`11-migration/README.md`](../sql/11-migration/README.md) 承载，是否另立文件待定 |
 | [`design-notes.md`](design-notes.md) | 设计取舍与理由 · **已知边界** | 第 4 周起 | 🟡 已建（首批 2 条） |
+| [`manual.md`](manual.md) | **操作手册**（跑起来 / 五个角色的日常操作 / 报错码 / 统计口径 / 不提供什么） | 第 9 周 | ✅ **已建**（按角色分章，答辩演示直接照此走） |
 
 > ⚠️ **`project/docs/` 只放文档，不放可执行 SQL** —— 快照脚本与回归测试都在 [`project/tests/`](../tests/)，按
 > [`04-git-workflow.md`](../../harness/conventions/04-git-workflow.md) §2.1，

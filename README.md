@@ -149,8 +149,14 @@ flowchart TD
     → 关系模式设计（第2周）               ✅ 已完成
          ⤷ 17 张表 / 132 字段 / 30 外码 / 样例元组
     → 建库 / 建表 / 约束 / 索引 / 种子 / CRUD（第3周）  ✅ 已完成
-         ⤷ 一键重建实测 17 秒（20,979 行）
+         ⤷ 一键重建实测 24 秒（21,061 行）
         → 连接查询 / 视图 / 约束 / 授权（第4周）  ✅ 已完成         ← v0.1 交付（第5周周二截止）
+    → ER 模型 / 业务规则 / 问题清单（第5周）      ✅ 已完成
+    → 函数依赖 / 范式判定 / 五段迁移（第6周）      ✅ 已完成
+         ⤷ 17→18 表 / 132→139 字段 / 43→48 CHECK
+        → 数据访问层 / 业务层 / 页面层（第7周）    ✅ 已完成
+           → 四岗位工作台 + 38 条应用测试 / 14 项库回归（第8周） ✅ 已完成
+              → 界面 MD3 重构 + 阶段交付（第9周）    ✅ 已完成   ← v1.0 交付（第10周周二截止）
 ```
 
 ## 关键文档入口
@@ -158,10 +164,14 @@ flowchart TD
 | 我想看… | 去哪里 |
 |---|---|
 | **表结构、字段、域、码、样例数据** | [`project/docs/data-dictionary.md`](project/docs/data-dictionary.md) ⭐ **表结构的唯一真相源** |
-| 本周（第 2 周）做了什么 | [`weeks/week02/README.md`](weeks/week02/README.md) |
-| 设计决策与被否决的方案 | [`weeks/week02/schema-design.md`](weeks/week02/schema-design.md) |
-| 与同事的技术裁决记录 | [`weeks/week02/issue-review.md`](weeks/week02/issue-review.md) |
-| 菜单、原料、配方 | [`weeks/week02/master-data.md`](weeks/week02/master-data.md) |
+| **ER 图与实体↔表映射** | [`project/docs/er-diagram.md`](project/docs/er-diagram.md)（18 实体 / 31 联系） |
+| **业务规则 A1—A14 与实现层对照** | [`project/docs/business-rules.md`](project/docs/business-rules.md) |
+| **范式判定与五段迁移** | [`project/docs/normalization.md`](project/docs/normalization.md) |
+| **怎么用这个系统（操作手册）** | [`project/docs/manual.md`](project/docs/manual.md) ← 新同学先看这个 |
+| **应用分层与启动** | [`project/app/README.md`](project/app/README.md) |
+| **v1.0 阶段报告** | [`weeks/submissions/v1.0/report.md`](weeks/submissions/v1.0/report.md) |
+| **v1.0 结果证据（30 组）** | [`weeks/submissions/v1.0/result/README.md`](weeks/submissions/v1.0/result/README.md) |
+| 与搭档的技术裁决记录 | [`harness/issues/`](harness/issues/README.md)（15 条已闭环） |
 | 怎么协作、怎么提交 | [`harness/README.md`](harness/README.md) |
 
 ## 仓库
@@ -181,6 +191,8 @@ flowchart TD
 | SQL 脚本 | `project/sql/`（按 `00-` → `99-` 顺序执行） |
 | 数据文件 | `project/data/`（**不进 git**，见其 README 下载说明） |
 | 客户端 | `sqlcmd`（命令行）或 SSMS |
+| 应用运行时 | **Python 3.12** + Flask 3.0.3 + pyodbc 5.1.0（依赖见 `project/app/requirements.txt`） |
+| 应用启动 | `cd project\app` → `python app.py` → <http://127.0.0.1:5000> |
 
 ## 快速开始
 
@@ -195,10 +207,17 @@ sqlcmd -S .\SQLEXPRESS -E -C -f 65001 -i 99-rebuild.sql
 
 | 一键重建自动执行 ✅ | 按需单独执行 📄 | 待补 ⬜ |
 |---|---|---|
-| `00-bootstrap` 建库 · `01-schema` 建表 · `02-constraints` 约束 · `03-indexes` 索引 · `04-seed` 种子数据 · `07-view` 视图 · `08-security` 角色 | `05-dml/crud.sql`（CRUD + 5 个负例）· `06-query/query.sql`（4 组多表查询） | `09-programmability`（第 11—12 周）· `10-transaction`（第 13 周） |
+| `00-bootstrap` 建库 · `01-schema` 建表 · `02-constraints` 约束 · `03-indexes` 索引 · `04-seed` 种子数据 · `07-view` 视图 · `08-security` 角色 · **`11-migration` 五段迁移（01 券模板化 / 02 登录凭据 / 03 积分期初 / 04 时间序 / 05 单价精度）** | `05-dml/crud.sql`（CRUD + 5 个负例）· `06-query/query.sql`（4 组多表查询） | `09-programmability`（第 11—12 周）· `10-transaction`（第 13 周） |
 
-**表结构的定义处**：[`project/docs/data-dictionary.md`](project/docs/data-dictionary.md)（17 张表 / **132 字段**）——
-`01-schema/create-tables.sql` 由它翻译生成，**它是唯一真相源**。
+**表结构的定义处**：[`project/docs/data-dictionary.md`](project/docs/data-dictionary.md)（v0.1 口径 17 张表 / 132 字段；**一键重建后是 18 表 / 139 字段**，差额来自 `11-migration` 的券模板表与两个 `password_hash` 列）——
+`01-schema/create-tables.sql` 由它翻译生成，**它是唯一真相源**；`11-migration/` 里的结构变更**不回改** v0.1 的建表脚本。
+
+重建完成后逐项自检：
+
+```powershell
+sqlcmd -S .\SQLEXPRESS -E -C -f 65001 -d milktea_shop -i project\tests\regression.sql   # 期望 14/14
+cd project\app; python -m pytest -q                                                      # 期望 38 passed
+```
 
 > ⚠️ **含中文的 `.sql` 必须存为 UTF-8 带 BOM** —— 否则 `sqlcmd` 会**静默失效**（无报错，但一行都不生效）。
 > 见 [`02-sql-style.md`](harness/conventions/02-sql-style.md) §9。

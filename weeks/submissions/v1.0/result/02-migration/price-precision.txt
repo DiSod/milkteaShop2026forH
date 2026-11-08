@@ -1,0 +1,6 @@
+表 | 列 | 类型 | 精度 | 小数位
+tbl_ingredient | moving_avg_cost | decimal | 12 | 4
+tbl_order_detail | unit_price | decimal | 12 | 4
+tbl_order_detail_topping | unit_extra_price | decimal | 12 | 4
+tbl_product | base_price | decimal | 12 | 4
+tbl_purchase_order_detail | unit_price | decimal | 12 | 4

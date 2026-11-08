@@ -179,7 +179,8 @@
     if (countEl) countEl.textContent = cups + " 杯";
     if (totalEl) totalEl.textContent = money(total);
     submitBtns.forEach(function (b) { b.disabled = cups === 0; });
-    if (bar) bar.classList.toggle("is-empty", cups === 0);
+    if (bar) bar.hidden = cups === 0;
+    document.body.classList.toggle("has-cart-bar", cups > 0);
 
     if (listEl) {
       listEl.innerHTML = "";
@@ -227,8 +228,7 @@
     });
   }
 
-  if (bar) bar.hidden = false;
-  document.body.classList.add("has-cart-bar");
+  if (bar) bar.hidden = true;          /* 有商品后由 renderCart 显示 */
   document.querySelectorAll("[data-page-submit]").forEach(function (el) {
     el.hidden = true;          /* 有悬浮栏就不再需要页面底部那颗按钮 */
   });

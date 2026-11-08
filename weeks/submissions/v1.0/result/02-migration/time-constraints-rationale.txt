@@ -1,0 +1,13 @@
+=== 约束定义 ===
+name                                                                                                                             definition                                                                                                                                                                                                                                                      
+-------------------------------------------------------------------------------------------------------------------------------- ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ck_order_header_finish_after_pay                                                                                                 ([finish_time] IS NULL OR [pay_time] IS NULL OR [finish_time]>=[pay_time])                                                                                                                                                                                      
+ck_order_header_pay_time                                                                                                         ([pay_time] IS NULL OR [pay_time]>=[order_time])                                                                                                                                                                                                                
+ 
+=== 反例：pay_status 非空但 pay_time 为 NULL 的订单 ===
+数量         
+-----------
+         37
+ 
+直接加 CHECK (pay_status IS NULL OR pay_time IS NOT NULL) 会让上面这批历史数据装不回去，
+所以只约束「pay_time >= order_time」「finish_time >= pay_time」两条顺序关系。
