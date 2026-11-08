@@ -85,7 +85,7 @@ def load_member(member_id: int) -> dict:
 # 取值来自 ck_order_header_order_status，不要在这里新增库中不存在状态。
 ACTIVE_ORDER_STATUSES = ("PENDING", "MAKING", "READY")
 
-_ORDER_STATUS_LABEL = {
+ORDER_STATUS_LABEL = {
     "PENDING": "待制作",
     "MAKING": "制作中",
     "READY": "待取餐",
@@ -136,7 +136,7 @@ def _order_views(rows: list) -> list:
             "amount_paid": amount_paid,
             "pay_status": pay_status,
             "status": order_status,
-            "status_label": _ORDER_STATUS_LABEL.get(order_status, order_status),
+            "status_label": ORDER_STATUS_LABEL.get(order_status, order_status),
             "status_tone": _ORDER_STATUS_TONE.get(order_status, "secondary"),
             "status_hint": _ORDER_STATUS_HINT.get(order_status, ""),
             "order_time": _fmt_time(order_time),

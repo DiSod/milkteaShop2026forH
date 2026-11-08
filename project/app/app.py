@@ -171,6 +171,15 @@ def create_app(config_object=Config) -> Flask:
         )()
         return render_template("error.html", error=error), 500
 
+    @app.template_filter("dtminute")
+    def _dt_minute(value):
+        """DATETIME2 直接渲染会带 7 位小数秒，界面上一律截到分钟。"""
+        if value is None:
+            return ""
+        if hasattr(value, "strftime"):
+            return value.strftime("%Y-%m-%d %H:%M")
+        return str(value)[:16]
+
     return app
 
 

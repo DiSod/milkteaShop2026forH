@@ -22,13 +22,13 @@
           </div>
         {% endif %}
         <table class="table mb-0">
-          <thead class="table-light"><tr><th>类型</th><th class="text-end">变动</th><th>时间</th></tr></thead>
+          <thead><tr><th>类型</th><th class="text-end">变动</th><th>时间</th></tr></thead>
           <tbody>
           {% for p in points %}
             <tr>
               <td>{{ p[0] }}</td>
               <td class="text-end {{ 'text-success' if p[1] > 0 else 'text-danger' }}">{{ '%+d'|format(p[1]) }}</td>
-              <td class="text-muted small">{{ p[2] }}</td>
+              <td class="text-muted small">{{ p[2]|dtminute }}</td>
             </tr>
           {% else %}
             <tr><td colspan="3" class="text-muted">暂无流水</td></tr>
@@ -45,7 +45,7 @@
   {% for o in orders %}
     <li class="list-group-item d-flex justify-content-between">
       <span><code>{{ o[1] }}</code> · 取餐号 {{ o[3] }}</span>
-      <span>{{ '%.2f'|format(o[5]) }} 元 · {{ o[7] }}</span>
+      <span>{{ '%.2f'|format(o[5]) }} 元 · {{ states.get(o[7], o[7]) }}</span>
     </li>
   {% else %}
     <li class="list-group-item text-muted">暂无订单</li>

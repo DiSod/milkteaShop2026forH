@@ -680,13 +680,13 @@ hr {
   color: var(--md-on-surface-variant);
 }
 
-.history-block {
+.fold-block {
   margin-top: 2rem;
   padding-top: .5rem;
   border-top: 1px solid var(--md-outline-variant);
 }
 
-.history-summary {
+.fold-summary {
   display: flex;
   align-items: center;
   gap: .5rem;
@@ -697,24 +697,32 @@ hr {
   list-style: none;
 }
 
-.history-summary::-webkit-details-marker { display: none; }
-.history-summary:hover { color: var(--md-primary-dark); }
-.history-summary i.bi { color: var(--md-primary); }
+.fold-summary::-webkit-details-marker { display: none; }
+.fold-summary:hover { color: var(--md-primary-dark); }
+.fold-summary i.bi { color: var(--md-primary); }
 
-.history-count {
+.fold-count {
   font-size: .8125rem;
   font-weight: 400;
   color: var(--md-on-surface-variant);
 }
 
-.history-chevron {
+.fold-chevron {
   margin-left: auto;
   transition: transform .2s ease;
 }
 
-.history-block[open] .history-chevron { transform: rotate(180deg); }
+.fold-block[open] .fold-chevron { transform: rotate(180deg); }
 
-.history-block .table-responsive { margin-top: .75rem; }
+.fold-block .table-responsive { margin-top: .75rem; }
+
+/* 分节标题后面的计数小字（如「需要关注（5 个饮品）」） */
+.section-count {
+  font-size: .8125rem;
+  font-weight: 400;
+  color: var(--md-on-surface-variant);
+}
+
 
 /* ===== 底部悬浮价格栏 + 购物车面板 ===== */
 body.has-cart-bar {

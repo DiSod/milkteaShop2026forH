@@ -23,7 +23,7 @@
           <td>{{ o[2] }}</td>
           <td><span class="badge bg-primary">{{ states.get(o[3], o[3]) }}</span></td>
           <td class="text-end">{{ '%.2f'|format(o[5]) }}</td>
-          <td class="text-muted small">{{ o[4] }}</td>
+          <td class="text-muted small">{{ o[4]|dtminute }}</td>
           <td class="text-end">
             <form method="post" action="{{ url_for('maker.advance', order_id=o[0]) }}">
               <button class="btn btn-sm btn-outline-primary" type="submit">推到下一状态</button>
@@ -36,27 +36,94 @@
   </div>
 {% endif %}
 
-<h6 class="mt-4">还能做几杯</h6>
-<div class="table-responsive">
-  <table class="table">
-    <thead class="table-light">
-      <tr><th>商品</th><th>杯型</th><th class="text-end">可做杯数</th><th>状态</th></tr>
-    </thead>
-    <tbody>
-    {% for m in makeable %}
-      <tr>
-        <td>{{ m[1] }} <span class="text-muted small">{{ m[0] }}</span></td>
-        <td>{{ m[2] }}</td>
-        <td class="text-end">{{ m[3] }}</td>
-        <td>
-          {% set tone = 'bg-danger' if '紧张' in m[5] or '沽清' in m[5]
-             else ('bg-warning' if '偏低' in m[5] else 'bg-success') %}
-          <span class="badge {{ tone }}">{{ m[5] }}</span>
-          {% if m[4] %}<span class="badge bg-secondary ms-1">原料沽清</span>{% endif %}
-        </td>
-      </tr>
-    {% endfor %}
-    </tbody>
-  </table>
-</div>
+<h6 class="mt-4">
+  需要关注
+  {% if cards.attention %}<span class="section-count">（{{ cards.attention|length }} 个饮品）</span>{% endif %}
+</h6>
+{% if cards.attention %}
+  <div class="table-responsive">
+    <table class="table align-middle">
+      <thead>
+        <tr>
+          <th>饮品</th>
+          {% for cup in cards.cup_names %}<th class="text-end">{{ cup }}</th>{% endfor %}
+          <th>状态</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for p in cards.attention %}
+        <tr>
+          <td>
+            {{ p.product_name }}
+            <span class="text-muted small">{{ p.product_code }}</span>
+          </td>
+          {% for cup in cards.cup_names %}
+            {% set cell = p.cells.get(cup) %}
+            <td class="text-end">
+              {% if cell %}
+                {% if cell.ingredient_out %}
+                  <span class="badge bg-secondary">原料沽清</span>
+                {% else %}
+                  {{ cell.makeable }}
+                {% endif %}
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+          {% endfor %}
+          <td><span class="badge bg-{{ p.status_tone }}">{{ p.status_label }}</span></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <div class="alert alert-info">全部饮品的原料都够，没有需要特别提醒的。</div>
+{% endif %}
+
+<details class="fold-block">
+  <summary class="fold-summary">
+    <i class="bi bi-list-ul"></i>
+    <span>全部饮品可做量</span>
+    <span class="fold-count">{{ cards.total_products }} 个饮品 · {{ cards.total_rows }} 行</span>
+    <i class="bi bi-chevron-down fold-chevron"></i>
+  </summary>
+
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead>
+        <tr>
+          <th>饮品</th>
+          {% for cup in cards.cup_names %}<th class="text-end">{{ cup }}</th>{% endfor %}
+          <th>状态</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for p in cards.others %}
+        <tr>
+          <td>
+            {{ p.product_name }}
+            <span class="text-muted small">{{ p.product_code }}</span>
+          </td>
+          {% for cup in cards.cup_names %}
+            {% set cell = p.cells.get(cup) %}
+            <td class="text-end">
+              {% if cell %}
+                {% if cell.ingredient_out %}
+                  <span class="badge bg-secondary">原料沽清</span>
+                {% else %}
+                  {{ cell.makeable }}
+                {% endif %}
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+          {% endfor %}
+          <td><span class="badge bg-{{ p.status_tone }}">{{ p.status_label }}</span></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</details>
 {% endblock %}

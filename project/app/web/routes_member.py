@@ -88,4 +88,5 @@ def me():
         points=data["points"],
         points_denied=data.get("points_denied", False),
         orders=data["orders"][:5],
+        states=auth.ORDER_STATUS_LABEL,
     )

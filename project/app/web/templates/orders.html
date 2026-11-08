@@ -45,12 +45,12 @@
 {% endif %}
 
 {% if history_orders %}
-<details class="history-block">
-  <summary class="history-summary">
+<details class="fold-block">
+  <summary class="fold-summary">
     <i class="bi bi-clock-history"></i>
     <span>历史订单</span>
-    <span class="history-count">{{ history_orders|length }} 笔</span>
-    <i class="bi bi-chevron-down history-chevron"></i>
+    <span class="fold-count">{{ history_orders|length }} 笔</span>
+    <i class="bi bi-chevron-down fold-chevron"></i>
   </summary>
 
   <div class="table-responsive">

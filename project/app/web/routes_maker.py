@@ -25,7 +25,7 @@ def board():
         staff=staff,
         queue=maker.board(role),
         states=maker.STATE_LABEL,
-        makeable=catalog.makeable(role),
+        cards=catalog.makeable_cards(role),
     )
 
 
