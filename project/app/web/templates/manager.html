@@ -13,7 +13,7 @@
     <div class="card chart-card">
       <div class="card-body">
         <h6 class="card-title mb-1">近 7 天趋势</h6>
-        <p class="chart-sub">柱＝实收（元，左轴）　线＝订单数（右轴）· 只列有订单的营业日</p>
+        <p class="chart-sub">柱＝实收（元，左轴）　线＝订单数（右轴）· 只列有订单的营业日，<strong>断档处断开不连线</strong>（浅色标签为无记录区间）</p>
         <div class="chart-holder"><canvas id="trendChart"></canvas></div>
       </div>
     </div>
@@ -209,6 +209,7 @@
               backgroundColor: C.primary,
               borderWidth: 2,
               tension: 0.35,
+              spanGaps: false,          // 缺口处不连线（数据里那些 None）
               pointRadius: 3,
               pointBackgroundColor: "#fff",
               pointBorderWidth: 2,
@@ -221,7 +222,12 @@
           maintainAspectRatio: false,
           interaction: { mode: "index", intersect: false },
           plugins: {
-            legend: { position: "bottom", labels: { usePointStyle: true, boxWidth: 8 } }
+            legend: { position: "bottom", labels: { usePointStyle: true, boxWidth: 8 } },
+            tooltip: {
+              filter: function (item) {          // 占位标签（None）不弹提示
+                return item.parsed.y !== null;
+              }
+            }
           },
           scales: {
             y: {
@@ -236,7 +242,15 @@
               grid: { display: false },
               title: { display: true, text: "订单数" }
             },
-            x: { grid: { display: false } }
+            x: {
+              grid: { display: false },
+              ticks: {
+                color: function (ctx) {          // 断档占位标签用浅色
+                  var label = ctx && ctx.tick ? String(ctx.tick.label || "") : "";
+                  return label.indexOf("~") >= 0 ? "#a8c2b7" : C.muted;
+                }
+              }
+            }
           }
         }
       });

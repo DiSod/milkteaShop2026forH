@@ -9,6 +9,7 @@
 硬删会让 ``tbl_order_detail`` 失去指向，违反"历史订单不因删商品而消失"的取舍。
 """
 
+from datetime import timedelta
 from decimal import Decimal, InvalidOperation
 
 from config import db_user_for
@@ -63,15 +64,33 @@ def _chart_payload(daily, top_products) -> dict:
     （Flask 的 tojson 不认识 Decimal）。
     """
     rows = sorted(daily, key=lambda r: r[0])          # 日期升序，折线才从旧到新
-    trend = {
-        "labels": [
-            r[0].strftime("%m-%d") if hasattr(r[0], "strftime") else str(r[0])[:10]
-            for r in rows
-        ],
-        "orders": [int(r[1] or 0) for r in rows],
-        "net": [float(r[7] or 0) for r in rows],
-        "gross": [float(r[5] or 0) for r in rows],
-    }
+
+    # 营业日之间可能有断档：种子数据截到 2026-09-23，演示单落在 11-08，中间 46 天
+    # 没有任何记录。如果把这些点直接连起来，会画出一条从 2911 元直坠 12 元的假折线。
+    # 做法是在缺口处插一个「无数据」的占位标签，各序列都填 None，
+    # 折线在 None 处断开（模板里 spanGaps: false），占位标签用浅色显示。
+    labels, orders, net, gross = [], [], [], []
+    prev_day = None
+    for r in rows:
+        day = r[0] if hasattr(r[0], "strftime") else None
+        if prev_day is not None and day is not None and (day - prev_day).days > 1:
+            labels.append(
+                "%s~%s"
+                % (
+                    (prev_day + timedelta(days=1)).strftime("%m-%d"),
+                    (day - timedelta(days=1)).strftime("%m-%d"),
+                )
+            )
+            orders.append(None)
+            net.append(None)
+            gross.append(None)
+        labels.append(day.strftime("%m-%d") if day else str(r[0])[:10])
+        orders.append(int(r[1] or 0))
+        net.append(float(r[7] or 0))
+        gross.append(float(r[5] or 0))
+        prev_day = day
+
+    trend = {"labels": labels, "orders": orders, "net": net, "gross": gross}
     ranked = list(top_products)          # 已是杯数降序
     top = {
         # Chart.js 的横向柱状图把数组第 0 项画在最上面，所以这里保持降序
