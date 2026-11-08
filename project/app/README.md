@@ -5,7 +5,7 @@
 
 | 项目 | 内容 |
 |---|---|
-| 当前状态 | 🟢 **第 7 周七项任务已全部达成**（3 个岗位工作台、商品维护、库存查询与调整、38 条自动化测试） |
+| 当前状态 | 🟢 **第 9 周**：四岗位工作台、商品维护、库存查询与调整、38 条自动化测试全部通过；界面已完成 **Material Design 3 重构**（18 条路由 / 13 个模板） |
 | 技术栈 | Flask 3 + Jinja2 + 本地 Bootstrap 5.3.3（**Material Design 3 视觉层**）+ Chart.js 4 图表 + pyodbc（**方案 B**，见 `../../weeks/week07/README.md` §七） |
 | Python | 3.12（`SQL Server` 与 `ODBC Driver 17 for SQL Server` 均可） |
 | 数据库 | `milktea_shop`，Windows 认证连接，**每请求切换数据库身份** |
@@ -56,9 +56,9 @@ web/
   routes_maker.py         /maker /maker/order/<id>/next
   routes_stocker.py       /stocker /stocker/receive /stocker/loss
   routes_manager.py       /manager /manager/product/{new,<id>/edit,<id>/retire}
-  templates/              12 个 Jinja2 模板（含共用片段 `_menu_cards.html`）
+  templates/              13 个 Jinja2 模板（含共用片段 `_menu_cards.html`、`_cart_shell.html`）
   static/                 本地 Bootstrap 5.3.3 + Bootstrap Icons + Roboto + Chart.js + app.css（离线可用）
-  static/js/menu.js       点单页交互增强（小计、加入订单、卡片已选徽标；无 JS 也能提交）
+  static/js/menu.js       点单页交互增强（对话框小计、底部价格栏与购物车抽屉、卡片已选徽标；无 JS 也能提交）
 tests/
   test_layering.py        分层边界三条断言
   test_auth_hash.py       口令摘要与 SQL 侧一致性
@@ -75,12 +75,28 @@ tests/
 | 排版引擎 | 仍是 Bootstrap 5.3.3 的栅格与工具类，模板里的 `row` / `col-*` / `d-flex` 全部保留 |
 | 设计语言 | `static/css/app.css` 用 CSS 变量定义 MD3 角色色（`--md-primary` / `--md-surface` / `--md-outline` …），再逐组件覆写外观 |
 | 主色 | 薄荷绿种子色（`#3eb489`），主色 `--md-primary: #146b56`，白字对比度约 7:1 |
-| 组件 | 导航胶囊高亮、表格卡片化、filled text field（浮动标签）、胶囊按钮、tonal 徽章与提示条、饮品卡片 + 二级菜单对话框、独立错误页 |
+| 组件 | 导航胶囊高亮、表格卡片化、filled text field（浮动标签）、胶囊按钮、tonal 徽章与提示条、饮品卡片 + 二级菜单对话框、底部悬浮价格栏 + 购物车抽屉、折叠区（`.fold-*`）、图表卡、独立错误页 |
 | 离线 | Bootstrap / Bootstrap Icons / Roboto / Chart.js 全部 vendored 在 `static/vendor/`，无 CDN、无 npm |
 | 字体 | Roboto（latin 子集 woff2），中文回落到系统字体栈 |
 
 **没有做的**：涟漪（ripple）动效需要 JS，未实现；未做暗色主题；MD3 只覆盖了页面用到的组件，
 不是完整组件库。
+
+### 3.1 页面与交互要点
+
+| 页面 | 路由 | 交互 |
+|---|---|---|
+| 菜单 | `/` | 一饮品一张卡（按分类分组），点卡片弹出**对话框**选杯型/糖度/冰量/数量/加料，实时小计；**底部悬浮价格栏**显示杯数与合计，点开是**购物车抽屉**（可增减、可回到某杯改规格）；提交仍是普通表单 |
+| 收银台 | `/cashier` | 同一套卡片与购物车，多一个「会员手机号」filled field，留空＝散客 |
+| 我的订单 | `/orders` | 进行中订单主表格（状态徽章 + 一句人话进度），历史订单收进折叠区 |
+| 我的积分 | `/me` | 积分卡 + 积分流水 + 最近 5 笔订单 |
+| 制作台 | `/maker` | 待处理队列 + 「需要关注」小表（各杯型可做量，只列不健康的）+ 全量折叠区 |
+| 库管台 | `/stocker` | 待收货 + 低于补货点 + 库存全量折叠区（按需处理程度排序） |
+| 店长台 | `/manager` | 近 7 天趋势图 + 销量 Top 10 图 + 日报表 + Top 10 表 + 商品档案行内编辑 |
+
+设计取向：**表格给数据，折叠区给全量，悬浮栏给当前操作的结果**——首页只保留
+「值得看一眼」的行，其余收进 `<details>`；数字只在有含义时出现（某饮品原料沽清时
+只显示「原料沽清」徽章，不再显示一个做不出来的杯数）。
 
 ## 4. 启动
 
