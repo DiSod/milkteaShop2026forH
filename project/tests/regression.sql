@@ -239,14 +239,33 @@ DELETE FROM tbl_coupon WHERE coupon_code LIKE 'REG-CPN-%';
 
 /* ------------------------------------------------------------
  * 断言 10：基线 S2 已收款销售额 D 口径校验（23,762.00 / 1,926 单）
+ *
+ * 口径说明（2026-11-08 修订）：只统计 business_date < '2026-10-01' 的订单，
+ * 那一段才是 v0.1 种子数据集（种子数据只到 2026-09-23）。应用上线后顾客会
+ * 真的下单，若把断言写死在「全库」，正常点一杯就会让回归变红 —— 实测
+ * 2026-11-08 的两张演示单就把数字抬到 1,928 单 / 23,770.00 元。
+ * 运行期新增的订单只打印、不参与断言：这条用例要守的是「种子数据有没有被
+ * 改坏」，不是「业务数据不许增长」。
  * ------------------------------------------------------------ */
-PRINT N'[TC-10] 基线断言：已收款销售额 D 口径校验 (pay_status = ''SUCCESS'') ...';
+DECLARE @baseline_cutoff DATE = '2026-10-01';
+PRINT N'[TC-10] 基线断言：已收款销售额 D 口径校验 (pay_status = ''SUCCESS'' 且 business_date < 2026-10-01) ...';
 DECLARE @sales_orders INT, @sales_amt DECIMAL(12,2);
-SELECT 
+SELECT
     @sales_orders = COUNT(*),
-    @sales_amt = SUM(amount_paid)
+    @sales_amt = ISNULL(SUM(amount_paid), 0)
 FROM tbl_order_header
-WHERE pay_status = 'SUCCESS';
+WHERE pay_status = 'SUCCESS' AND business_date < @baseline_cutoff;
+
+DECLARE @live_orders INT, @live_amt DECIMAL(12,2);
+SELECT
+    @live_orders = COUNT(*),
+    @live_amt = ISNULL(SUM(amount_paid), 0)
+FROM tbl_order_header
+WHERE pay_status = 'SUCCESS' AND business_date >= @baseline_cutoff;
+
+PRINT FORMATMESSAGE(N'      种子口径 %d 单 / %s 元；运行期新增（不参与断言）%d 单 / %s 元',
+    @sales_orders, CAST(@sales_amt AS VARCHAR(20)),
+    @live_orders, CAST(@live_amt AS VARCHAR(20)));
 
 IF @sales_orders = 1926 AND @sales_amt = 23762.00
 BEGIN

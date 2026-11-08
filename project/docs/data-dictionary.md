@@ -947,6 +947,7 @@ PK      : purchase_order_detail_id
 
 > 同一份库里存在多个"销售额"，**报数前必须先声明用的是哪一个**。
 > 本节是第 6 周的裁定结果，也是 [`../tests/baseline/`](../tests/baseline/README.md) 与 `regression.sql` 期望值的依据。
+> 下表数字都是 **v0.1 种子数据集**（`business_date` 均在 2026-09-23 及以前）的取值；应用上线后顾客真实下单会让全库数字增长，`regression.sql` 的 TC-10 因此只断言 `business_date < '2026-10-01'` 的种子区间。
 
 ### 5.1 三种口径（包含关系 A ⊃ D ⊃ B）
 
