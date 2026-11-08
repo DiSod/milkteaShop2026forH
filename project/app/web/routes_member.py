@@ -70,7 +70,12 @@ def place_order():
 @member_required
 def orders():
     data = auth.profile(current_member()["member_id"])
-    return render_template("orders.html", member=data["member"], orders=data["orders"])
+    return render_template(
+        "orders.html",
+        member=data["member"],
+        active_orders=data["active_orders"],
+        history_orders=data["history_orders"],
+    )
 
 
 @bp.route("/me")

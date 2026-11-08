@@ -1,29 +1,88 @@
 {% extends "base.html" %}
 {% block title %}我的订单{% endblock %}
 {% block content %}
-<h4 class="mb-3">我的订单</h4>
-{% if not orders %}
-  <div class="alert alert-info">还没有订单，去<a href="{{ url_for('member.menu') }}">点一杯</a>吧。</div>
-{% else %}
+<div class="d-flex flex-wrap align-items-baseline justify-content-between mb-3">
+  <h4 class="mb-0">我的订单</h4>
+  <span class="small text-muted">进行中的订单在主表格，已结束的收进「历史订单」</span>
+</div>
+
+<h6 class="mb-2">进行中{% if active_orders %}（{{ active_orders|length }}）{% endif %}</h6>
+
+{% if active_orders %}
   <div class="table-responsive">
     <table class="table align-middle">
-      <thead class="table-light">
-        <tr><th>单号</th><th>日期</th><th>取餐号</th><th class="text-end">实付</th><th>支付</th><th>状态</th><th>下单时间</th></tr>
+      <thead>
+        <tr>
+          <th>单号</th>
+          <th>取餐号</th>
+          <th>状态</th>
+          <th class="text-end">实付</th>
+          <th>下单时间</th>
+        </tr>
       </thead>
       <tbody>
-      {% for o in orders %}
+      {% for o in active_orders %}
         <tr>
-          <td><code>{{ o[1] }}</code></td>
-          <td>{{ o[2] }}</td>
-          <td>{{ o[3] }}</td>
-          <td class="text-end">{{ '%.2f'|format(o[5]) }}</td>
-          <td>{{ o[6] }}</td>
-          <td>{{ o[7] }}</td>
-          <td class="text-muted small">{{ o[8] }}</td>
+          <td><code>{{ o.order_no }}</code></td>
+          <td><span class="pickup-no">{{ o.pickup_no }}</span></td>
+          <td>
+            <div class="order-status-cell">
+              <span class="badge bg-{{ o.status_tone }}">{{ o.status_label }}</span>
+              {% if o.status_hint %}<span class="order-hint">{{ o.status_hint }}</span>{% endif %}
+            </div>
+          </td>
+          <td class="text-end">{{ '%.2f'|format(o.amount_paid) }}</td>
+          <td class="text-muted small">{{ o.order_time }}</td>
         </tr>
       {% endfor %}
       </tbody>
     </table>
   </div>
+{% else %}
+  <div class="alert alert-info">
+    当前没有进行中的订单。去 <a href="{{ url_for('member.menu') }}">点一杯</a>吧。
+  </div>
+{% endif %}
+
+{% if history_orders %}
+<details class="history-block">
+  <summary class="history-summary">
+    <i class="bi bi-clock-history"></i>
+    <span>历史订单</span>
+    <span class="history-count">{{ history_orders|length }} 笔</span>
+    <i class="bi bi-chevron-down history-chevron"></i>
+  </summary>
+
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead>
+        <tr>
+          <th>单号</th>
+          <th>日期</th>
+          <th>取餐号</th>
+          <th class="text-end">实付</th>
+          <th>支付</th>
+          <th>状态</th>
+          <th>下单时间</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for o in history_orders %}
+        <tr>
+          <td><code>{{ o.order_no }}</code></td>
+          <td>{{ o.business_date }}</td>
+          <td>{{ o.pickup_no }}</td>
+          <td class="text-end">{{ '%.2f'|format(o.amount_paid) }}</td>
+          <td>{{ o.pay_status }}</td>
+          <td><span class="badge bg-{{ o.status_tone }}">{{ o.status_label }}</span></td>
+          <td class="text-muted small">{{ o.order_time }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</details>
+{% elif not active_orders %}
+  <p class="small text-muted mt-3 mb-0">还没有任何订单记录。</p>
 {% endif %}
 {% endblock %}

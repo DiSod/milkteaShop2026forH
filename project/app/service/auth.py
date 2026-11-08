@@ -81,6 +81,70 @@ def load_member(member_id: int) -> dict:
         }
 
 
+# 订单状态：前三个算「进行中」（订单页主表格），后三个算「历史」（折叠展示）。
+# 取值来自 ck_order_header_order_status，不要在这里新增库中不存在状态。
+ACTIVE_ORDER_STATUSES = ("PENDING", "MAKING", "READY")
+
+_ORDER_STATUS_LABEL = {
+    "PENDING": "待制作",
+    "MAKING": "制作中",
+    "READY": "待取餐",
+    "COMPLETED": "已完成",
+    "CANCELLED": "已取消",
+    "ABANDONED": "已弃单",
+}
+
+_ORDER_STATUS_TONE = {
+    "PENDING": "primary",
+    "MAKING": "warning",
+    "READY": "success",
+    "COMPLETED": "secondary",
+    "CANCELLED": "danger",
+    "ABANDONED": "secondary",
+}
+
+# 只有进行中的三个状态需要一句人话，历史状态不必解释
+_ORDER_STATUS_HINT = {
+    "PENDING": "已下单，等制作",
+    "MAKING": "制作中，请稍候",
+    "READY": "做好了，可以取餐",
+}
+
+
+def _fmt_time(value) -> str:
+    """DATETIME2 直接 str() 会带 7 位小数秒，页面上没意义，统一截到分钟。"""
+    if value is None:
+        return ""
+    try:
+        return value.strftime("%Y-%m-%d %H:%M")
+    except AttributeError:
+        return str(value)
+
+
+def _order_views(rows: list) -> list:
+    """把 `list_orders` 的裸行翻成模板可直接用的字段，避免模板里写 o[7] 这种下标。"""
+    views = []
+    for row in rows:
+        (order_id, order_no, business_date, pickup_no, amount_due,
+         amount_paid, pay_status, order_status, order_time) = row
+        views.append({
+            "order_id": order_id,
+            "order_no": order_no,
+            "business_date": business_date,
+            "pickup_no": pickup_no,
+            "amount_due": amount_due,
+            "amount_paid": amount_paid,
+            "pay_status": pay_status,
+            "status": order_status,
+            "status_label": _ORDER_STATUS_LABEL.get(order_status, order_status),
+            "status_tone": _ORDER_STATUS_TONE.get(order_status, "secondary"),
+            "status_hint": _ORDER_STATUS_HINT.get(order_status, ""),
+            "order_time": _fmt_time(order_time),
+            "is_active": order_status in ACTIVE_ORDER_STATUSES,
+        })
+    return views
+
+
 def profile(member_id: int) -> dict:
     """「我的」页面：积分余额 + 最近流水 + 最近订单。"""
     with db.open_session(db_user_for("MEMBER")) as s:
@@ -97,6 +161,7 @@ def profile(member_id: int) -> dict:
                 raise
             points_denied = True
         orders = member_dao.list_orders(s, member_id)
+        views = _order_views(orders)
         return {
             "member": {
                 "member_id": row[0],
@@ -108,6 +173,8 @@ def profile(member_id: int) -> dict:
             "points": points,
             "points_denied": points_denied,
             "orders": orders,
+            "active_orders": [o for o in views if o["is_active"]],
+            "history_orders": [o for o in views if not o["is_active"]],
         }
 
 
