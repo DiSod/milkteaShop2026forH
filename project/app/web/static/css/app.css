@@ -661,6 +661,161 @@ hr {
   color: var(--md-on-primary-container);
 }
 
+/* ===== 底部悬浮价格栏 + 购物车面板 ===== */
+body.has-cart-bar {
+  padding-bottom: 6rem;
+}
+
+.cart-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1030;
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: .7rem max(1rem, calc((100vw - 1180px) / 2));
+  background-color: var(--md-surface);
+  border-top: 1px solid var(--md-outline-variant);
+  box-shadow: 0 -6px 20px rgba(16, 34, 28, .10);
+}
+
+.cart-bar-summary {
+  flex: 1 1 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  min-width: 0;
+  padding: .35rem .5rem;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--md-on-surface);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cart-bar-summary:hover { background-color: var(--md-surface-dim); }
+
+.cart-bar-summary .bi { color: var(--md-primary); }
+
+.cart-bar-count {
+  padding: .15rem .6rem;
+  border-radius: 999px;
+  background-color: var(--md-primary-container);
+  color: var(--md-on-primary-container);
+  font-size: .8125rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.cart-bar-total {
+  font-size: 1.0625rem;
+  font-weight: 500;
+  color: var(--md-primary-dark);
+  white-space: nowrap;
+}
+
+.cart-bar-hint {
+  margin-left: auto;
+  font-size: .8125rem;
+  color: var(--md-on-surface-variant);
+  white-space: nowrap;
+}
+
+.cart-bar.is-empty .cart-bar-total { color: var(--md-on-surface-variant); }
+.cart-bar.is-empty .cart-bar-hint { visibility: hidden; }
+
+.cart-bar-submit { flex: 0 0 auto; }
+.cart-bar-submit:disabled { opacity: .45; }
+
+/* 购物车底部面板 */
+/* 选择器必须带上 .offcanvas 前缀：Bootstrap 用 `.offcanvas.offcanvas-bottom`
+   （两个类，优先级 0,2,0）定了 height: var(--bs-offcanvas-height) 与
+   max-height:100%；只用 `.cart-sheet` 一个类压不住它，弹层会固定成 30vh。 */
+.offcanvas.cart-sheet {
+  border-radius: 24px 24px 0 0;
+  background-color: var(--md-surface);
+  box-shadow: var(--md-e3);
+  height: auto;
+  max-height: 74vh;
+}
+
+.cart-sheet .offcanvas-header {
+  padding: 1.15rem 1.5rem .6rem;
+}
+
+.cart-sheet .offcanvas-title {
+  font-size: 1.125rem;
+  font-weight: 500;
+}
+
+.cart-sheet .offcanvas-body {
+  padding: .25rem 1.5rem 1rem;
+  overflow-y: auto;
+}
+
+.cart-sheet .offcanvas-footer {
+  display: flex;
+  gap: .5rem;
+  justify-content: flex-end;
+  padding: .9rem 1.5rem calc(.9rem + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--md-outline-variant);
+}
+
+.cart-empty {
+  padding: 2rem 0 2.5rem;
+  text-align: center;
+  font-size: .875rem;
+  color: var(--md-on-surface-variant);
+}
+
+.cart-line {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: .75rem 0;
+  border-bottom: 1px solid var(--md-outline-variant);
+}
+
+.cart-line:last-child { border-bottom: 0; }
+
+.cart-line-main {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: .1rem;
+  min-width: 0;
+}
+
+.cart-line-name {
+  font-size: .9375rem;
+  font-weight: 500;
+  color: var(--md-on-surface);
+}
+
+.cart-line-sub {
+  font-size: .75rem;
+  color: var(--md-on-surface-variant);
+}
+
+.cart-line-right {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  flex: 0 0 auto;
+}
+
+.cart-line-price {
+  min-width: 4.5rem;
+  text-align: right;
+  font-size: .9375rem;
+  font-weight: 500;
+  color: var(--md-primary-dark);
+}
+
 .is-soldout {
   background-color: var(--md-surface-dim);
   border-style: dashed;

@@ -1,0 +1,35 @@
+{# 底部悬浮价格栏 + 购物车面板：会员点单页与收银台共用。
+   必须放在 <form> 内 —— 栏上的「提交订单」是 type="submit"，提交的就是当前表单。
+   无 JS 时整条栏保持 hidden，页面底部那个 `data-page-submit` 按钮照常可用。 #}
+
+<div class="cart-bar" data-cart-bar hidden>
+  <button type="button" class="cart-bar-summary" data-bs-toggle="offcanvas"
+          data-bs-target="#cartSheet" aria-controls="cartSheet" aria-label="查看购物车">
+    <i class="bi bi-bag"></i>
+    <span class="cart-bar-count" data-cart-count>0 杯</span>
+    <span class="cart-bar-total" data-cart-total>¥0.00</span>
+    <span class="cart-bar-hint">查看购物车</span>
+  </button>
+  <button type="submit" class="btn btn-primary cart-bar-submit" data-cart-submit>
+    <i class="bi bi-bag-check me-1"></i>提交订单
+  </button>
+</div>
+
+<div class="offcanvas offcanvas-bottom cart-sheet" tabindex="-1" id="cartSheet"
+     aria-labelledby="cartSheetLabel">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title" id="cartSheetLabel">购物车</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="关闭"></button>
+  </div>
+  <div class="offcanvas-body">
+    <div class="cart-empty" data-cart-empty>还没有选择饮品。点一下菜单里的卡片开始。</div>
+    <div class="cart-list" data-cart-list></div>
+  </div>
+  <div class="offcanvas-footer">
+    <button type="button" class="btn btn-outline-secondary me-auto" data-cart-clear>清空</button>
+    <button type="button" class="btn btn-outline-primary" data-bs-dismiss="offcanvas">继续点单</button>
+    <button type="submit" class="btn btn-primary" data-cart-submit>
+      <i class="bi bi-bag-check me-1"></i>提交订单
+    </button>
+  </div>
+</div>
