@@ -74,6 +74,7 @@ sqlcmd -S .\SQLEXPRESS -E -C -d milktea_shop -f 65001 -b -i regression.sql
 | 03 | [`migration-03-points-opening-ledger.sql`](migration-03-points-opening-ledger.sql) | 第 7 周 | 积分台账期初结转：DOM-09 增 `OPENING`、放宽 `ck_points_ledger_target`、回填 80 条期初流水 | ✅ 已并入 `main`，已接入 `99-rebuild.sql` |
 | 04 | [`migration-04-order-time-constraints.sql`](migration-04-order-time-constraints.sql) | 第 7 周 | 订单时间序：新增 `ck_order_header_pay_time`（付款 ≥ 下单）与 `ck_order_header_finish_after_pay`（完成 ≥ 付款） | ✅ 已接入 `99-rebuild.sql`；自证通过 `CHECK` 46 → 48 |
 | 05 | [`migration-05-price-precision.sql`](migration-05-price-precision.sql) | 第 7 周 | 单价 / 成本精度：6 个列统一到 `DECIMAL(12,4)`（`02-sql-style.md` §6.3） | ✅ 已接入 `99-rebuild.sql`；6 条 `CHECK` 摘除后重建、6 个视图 `sp_refreshview` |
+| 06 | [`migration-06-order-cancellation.sql`](migration-06-order-cancellation.sql) | 第 9 周 | 订单取消的流水类别：`ledger_type` 增 `CANCEL_BACK`、`point_type` 增 `REVOKE`（三条 `CHECK` 定义改写，**条数不变**） | ✅ 已接入 `99-rebuild.sql`；自证 `CHECK` 仍 48 条、三条均 `is_not_trusted = 0` |
 
 > **02 为什么需要**：全库实查确认**用户表没有任何登录凭据列**，而第 7—9 周课程要求
 > 「用户登录 → Web 界面操作 → 数据写入」。没有凭据就无法验证"你是你"，

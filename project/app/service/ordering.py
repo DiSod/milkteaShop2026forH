@@ -9,8 +9,13 @@
 
 from decimal import Decimal
 
-from dao import catalog_dao, db, member_dao, order_dao
-from service.errors import BusinessRuleViolation, ValidationError
+from dao import catalog_dao, db, member_dao, order_dao, stock_dao
+from service.errors import (
+    BusinessRuleViolation,
+    NotFound,
+    PermissionDenied,
+    ValidationError,
+)
 
 MAX_LINES = 20
 MAX_QTY_PER_LINE = 20
@@ -173,3 +178,83 @@ def place_order(member_id, items, cashier_id=None) -> dict:
         "earned_points": earned,
         "lines": len(priced),
     }
+
+# ── 订单取消 ──────────────────────────────────────────────────────────
+CANCELLABLE_STATUS = "PENDING"
+_CANCEL_STATUS_LABEL = {
+    "PENDING": "待制作",
+    "MAKING": "制作中",
+    "READY": "待取餐",
+    "COMPLETED": "已完成",
+    "CANCELLED": "已取消",
+}
+
+
+def cancel_order(order_id: int, member_id: int = None) -> dict:
+    """取消一张**还没开始做**的订单，并把代价还回去。
+
+    ``member_id`` 非空表示「会员自助取消」，必须与订单归属一致；
+    为空表示店员代为取消（制作台 / 店长台），不做归属校验。
+
+    三件事一个事务：
+      ① 状态：PENDING → CANCELLED（带前置条件，避免和制作台推进互相覆盖）
+      ② 库存：按该单实际写下的 SALES_USE 流水逐条回冲，写 CANCEL_BACK（正数），
+               ``qty_on_hand`` 同事务加回 —— 保住 A6「结存 = Σ流水」
+      ③ 积分：若该单给会员加过分，写一条 REVOKE（负数）并扣回余额
+
+    为什么只允许 PENDING：MAKING 之后原料已经进了杯子，回冲库存就是假账；
+    退款属于 v2.0（整单退 + 退款单），不在本次范围。
+    """
+    with db.open_session() as s:
+        header = order_dao.get_for_cancel(s, order_id)
+        if header is None:
+            raise NotFound("订单不存在")
+        owner_id, status, coupon_id, order_no = header
+
+        if status != CANCELLABLE_STATUS:
+            raise BusinessRuleViolation(
+                "只有「待制作」的订单可以取消，这张单现在是「%s」"
+                % _CANCEL_STATUS_LABEL.get(status, status)
+            )
+
+        if member_id is not None and owner_id != member_id:
+            raise PermissionDenied("这张单不属于当前会员")
+
+        if coupon_id is not None and order_dao.coupon_is_used(s, coupon_id):
+            raise BusinessRuleViolation(
+                "该单使用的券已核销，取消需要人工处理（退券属于 v2.0）"
+            )
+
+        restored = 0
+        for ingredient_id, qty in order_dao.list_sales_moves(s, order_id):
+            stock_dao.apply_movement(
+                s,
+                ingredient_id,
+                -_dec(qty),          # 原流水是负数，取反即为回冲量
+                "CANCEL_BACK",
+                "ORDER",
+                remark="订单取消回冲",
+                order_id=order_id,
+            )
+            restored += 1
+
+        revoked = 0
+        earned = int(order_dao.sum_earned_points(s, order_id) or 0)
+        if owner_id is not None and earned > 0:
+            order_dao.insert_points_revoke(s, owner_id, order_id, -earned)
+            member_dao.add_points(s, owner_id, -earned)
+            revoked = earned
+
+        if order_dao.mark_cancelled(s, order_id) != 1:
+            # 并发：在读完状态到写之间，制作台可能已经把它推到 MAKING
+            raise BusinessRuleViolation("订单状态已被其他操作改变，请刷新后重试")
+
+        s.commit()
+
+    return {
+        "order_id": order_id,
+        "order_no": order_no,
+        "restored_ingredients": restored,
+        "points_revoked": revoked,
+    }
+

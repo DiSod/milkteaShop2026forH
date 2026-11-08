@@ -95,12 +95,12 @@
 | DOM-01 | **岗位** `position` | `tbl_employee.position` | `MANAGER` / `CASHIER` / `MAKER` / `STOCKER` | 店长 / 收银员 / 制作员 / 库管员 | ✅ week1 §2.5 |
 | DOM-02 | **商品状态** | `tbl_product.product_status` | `ON_SALE` / `OFF_SALE` | 在售 / 停售。**下架用状态，不删行** | ✅ week1 §3.8 |
 | DOM-03 | **订单状态** | `tbl_order_header.order_status` | `PENDING` / `MAKING` / `READY` / `COMPLETED` / `ABANDONED` / `CANCELLED` | 待制作 / 制作中 / 待取餐 / 已完成 / 已弃取 / 已取消 | ✅ week1 §3.2 |
-| DOM-04 | **库存流水类型** | `tbl_stock_ledger.ledger_type` | `PURCHASE_IN` / `SALES_USE` / `LOSS` | 采购入库(+) / 销售耗用(−) / 报损(−)。**v1.0 增 `STOCKTAKE`** | ✅ D2 |
-| DOM-05 | **流水来源** | `tbl_stock_ledger.ref_type` | `PURCHASE` / `ORDER` / **`MANUAL`** / `OPENING` | 采购单 / 订单 / **手工登记（报损等无来源单据的流水）** / 期初结转。**v1.0 增 `STOCKTAKE`** | ✅ D-09 · D2 |
+| DOM-04 | **库存流水类型** | `tbl_stock_ledger.ledger_type` | `PURCHASE_IN` / `SALES_USE` / `LOSS` / `CANCEL_BACK` | 采购入库(+) / 销售耗用(−) / 报损(−) / **取消回冲(+)**。盘点会再增 `STOCKTAKE`（D5 延后） | ✅ D2 · 第 9 周 |
+| DOM-05 | **流水来源** | `tbl_stock_ledger.ref_type` | `PURCHASE` / `ORDER` / **`MANUAL`** / `OPENING` | 采购单 / 订单 / **手工登记（报损、取消回冲）** / 期初结转。盘点会再增 `STOCKTAKE`（D5 延后） | ✅ D-09 · D2 |
 | DOM-06 | **支付方式** | `tbl_order_header.pay_method` | `CASH` / `WECHAT` / `ALIPAY` / `CARD` | 现金 / 微信 / 支付宝 / 刷卡 | 🟡 week1 §4.1 #11 只写"在线支付/现金"，此处细化 |
 | DOM-07 | **券来源** | `tbl_coupon.source` | `POINTS_EXCHANGE` / `CAMPAIGN` | 积分兑换 / 活动赠与 | ✅ week1 §3.7 |
 | DOM-08 | **券状态** | `tbl_coupon.status` | `UNUSED` / `USED` / `EXPIRED` | 未使用 / 已核销 / 已过期 | ✅ D-11 |
-| DOM-09 | **积分流水类型** | `tbl_points_ledger.point_type` | `EARN` / `REDEEM` / `OPENING` | 消费累积(+) / 兑换扣减(−) / **期初结转(+)** | ✅ week1 §3.7；`OPENING` 由 `migration-03` 第 7 周补入 |
+| DOM-09 | **积分流水类型** | `tbl_points_ledger.point_type` | `EARN` / `REDEEM` / `OPENING` / `REVOKE` | 消费累积(+) / 兑换扣减(−) / **期初结转(+)** | ✅ week1 §3.7；`OPENING` 由 `migration-03` 第 7 周补入 |
 | DOM-10 | **规格类型** | `tbl_spec_option.spec_type` | `CUP` / `SUGAR` / `ICE` | 杯型 / 糖度 / 冰量 | ✅ 漏洞 1 |
 | DOM-11 | **杯型** | `tbl_spec_option.spec_code`（`spec_type='CUP'`） | `M` / `L` | 中杯 / 大杯（**大杯 +3.00 元**） | ✅ 漏洞 1 |
 | DOM-12 | **糖度** | `tbl_spec_option.spec_code`（`spec_type='SUGAR'`） | `NONE` / `S30` / `S50` / `S70` / `FULL` | 无糖 / 三分 / 五分 / 七分 / 全糖<br>⚠️ **没有 `ANY`** —— "该原料用量与糖度无关"由 `tbl_recipe.sugar_spec_id IS NULL` 表达，**不是**一个糖度档（D-05a） | ✅ week1 §3.1 · D-05a |
@@ -373,7 +373,7 @@ PK      : ingredient_id
 |---|---|---|---|---|---|---|---|
 | `ledger_id` | INT | — | 否 | IDENTITY | 正整数 | **代理主码** | **PK** |
 | `ingredient_id` | INT | — | 否 | — | `tbl_ingredient.ingredient_id` | 原料 | **FK** |
-| `ledger_type` | VARCHAR | 12 | 否 | — | **DOM-04 流水类型** | 采购入库(+) / 销售耗用(−) / 报损(−) | |
+| `ledger_type` | VARCHAR | 12 | 否 | — | **DOM-04 流水类型** | 采购入库(+) / 销售耗用(−) / 报损(−) / 取消回冲(+) | |
 | `qty` | DECIMAL | (12,3) | 否 | — | **≠ 0** | 变动量，**正负号区分增减** | |
 | `ref_type` | VARCHAR | 10 | 否 | — | **DOM-05 流水来源** | 来源类型；**报损等无来源单据的流水填 `MANUAL`** | |
 | `purchase_order_id` | INT | — | **是** | — | `tbl_purchase_order.purchase_order_id` | 采购单（`ref_type='PURCHASE'` 时非空） | **FK** |
@@ -511,7 +511,7 @@ PK      : od_topping_id
 |---|---|---|---|---|---|---|---|
 | `point_ledger_id` | INT | — | 否 | IDENTITY | 正整数 | **代理主码** | **PK** |
 | `member_id` | INT | — | 否 | — | `tbl_member.member_id` | 会员 | **FK** |
-| `point_type` | VARCHAR | 10 | 否 | — | **DOM-09** `EARN` / `REDEEM` / `OPENING` | 消费累积(+) / 兑换扣减(−) / 期初结转(+) | |
+| `point_type` | VARCHAR | 10 | 否 | — | **DOM-09** `EARN` / `REDEEM` / `OPENING` / `REVOKE` | 消费累积(+) / 兑换扣减(−) / 期初结转(+) | |
 | `point_change` | INT | — | 否 | — | **≠ 0** | 变动值，正负号区分 | |
 | `order_id` | INT | — | **是** | — | `tbl_order_header.order_id` | 关联订单（累积时非空） | **FK** |
 | `coupon_id` | INT | — | **是** | — | `tbl_coupon.coupon_id` | 关联券（兑换时非空） | **FK** |

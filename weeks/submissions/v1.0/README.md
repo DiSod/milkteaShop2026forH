@@ -39,7 +39,7 @@
 | 视图 | 5 | **6**（+`vw_coupon_legacy` 兼容视图） |
 | 角色 | 4 | 4（`role_manager` 从架构级全权改为 **22 条逐对象授权**） |
 | 数据行 | 20,979 | **21,061**（+2 模板行、+80 条积分期初流水） |
-| 应用 | 无 | **三层结构 + 四个岗位工作台 + 38 条测试** |
+| 应用 | 无 | **三层结构 + 四个岗位工作台 + 订单取消 + 41 条测试** |
 | 界面 | — | 全站 **Material Design 3** 视觉层（薄荷绿，离线 vendored） |
 
 **五段迁移**（`project/sql/11-migration/`）：
@@ -105,4 +105,4 @@ powershell -ExecutionPolicy Bypass -File capture-app.ps1      # 11 组应用类�
 | 下单下沉存储过程 + `EXECUTE AS OWNER` | 当前下单跨域写入走 `dbo`（P-2） | 第 11—12 周 |
 | 行级数据隔离（RLS） | 表级授权数据库会真查；行级只能靠应用 `WHERE`（P-3） | 登记为待议 |
 | 并发抢库存的严格防护 | 现为"先查后扣"，未加 `UPDLOCK` / 序列化 | 第 11—12 周 |
-| 13 条已知边界的其余项 | 见报告 §3.2 与 [`manual.md`](../../../project/docs/manual.md) §9 | 按表内标注 |
+| 13 条已知边界的其余项 | 见 [`harness/issues/017`](../../../harness/issues/017-v1.0-known-boundaries.md) 与 [`manual.md`](../../../project/docs/manual.md) §9（报告已不再收录该表） | 按表内标注 |

@@ -78,6 +78,25 @@ def orders():
     )
 
 
+@bp.route("/orders/<int:order_id>/cancel", methods=["POST"])
+@member_required
+def cancel_order(order_id):
+    """会员自助取消 —— 只允许自己的、还没开始做的单。"""
+    member = current_member()
+    result = ordering.cancel_order(order_id, member_id=member["member_id"])
+    log.info("订单取消 member_id=%s order_no=%s", member["member_id"], result["order_no"])
+    flash(
+        "订单 %s 已取消：回冲 %d 种原料%s"
+        % (
+            result["order_no"],
+            result["restored_ingredients"],
+            "，扣回 %d 积分" % result["points_revoked"] if result["points_revoked"] else "",
+        ),
+        "success",
+    )
+    return redirect(url_for("member.orders"))
+
+
 @bp.route("/me")
 @member_required
 def me():

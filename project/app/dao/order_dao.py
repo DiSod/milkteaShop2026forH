@@ -161,3 +161,87 @@ def update_status(s, order_id: int, status: str) -> int:
         "UPDATE tbl_order_header SET order_status = ? WHERE order_id = ?",
         (status, order_id),
     )
+
+
+# ── 订单取消（v1.0，仅 PENDING）────────────────────────────────────────
+def get_for_cancel(s, order_id: int):
+    """取取消所需的订单快照；不存在返回 None。
+
+    返回 ``(member_id, order_status, coupon_id, order_no)``。
+    """
+    return s.query_one(
+        """
+        SET NOCOUNT ON;
+        SELECT member_id, order_status, coupon_id, order_no
+        FROM tbl_order_header
+        WHERE order_id = ?
+        """,
+        (order_id,),
+    )
+
+
+def list_sales_moves(s, order_id: int) -> list:
+    """该单实际写下的销售耗用流水 ``[(ingredient_id, qty)]``，qty 为负数。"""
+    return s.query(
+        """
+        SELECT ingredient_id, qty
+        FROM tbl_stock_ledger
+        WHERE order_id = ? AND ledger_type = 'SALES_USE'
+        ORDER BY ingredient_id
+        """,
+        (order_id,),
+    )
+
+
+def sum_earned_points(s, order_id: int):
+    """该单累计获得的积分（EARN 合计）；没有则 0。"""
+    return s.query_one(
+        """
+        SET NOCOUNT ON;
+        SELECT ISNULL(SUM(point_change), 0)
+        FROM tbl_points_ledger
+        WHERE order_id = ? AND point_type = 'EARN'
+        """,
+        (order_id,),
+    )[0]
+
+
+def insert_points_revoke(s, member_id: int, order_id: int, point_change) -> None:
+    """订单取消扣回积分：``point_change`` 传负数。"""
+    s.execute(
+        """
+        SET NOCOUNT ON;
+        INSERT INTO tbl_points_ledger
+            (member_id, point_type, point_change, order_id, change_time)
+        VALUES (?, 'REVOKE', ?, ?, SYSDATETIME())
+        """,
+        (member_id, point_change, order_id),
+    )
+
+
+def coupon_is_used(s, coupon_id: int) -> bool:
+    """券是否已核销（``status = 'USED'`` 或 ``used_time`` 非空）。"""
+    row = s.query_one(
+        """
+        SET NOCOUNT ON;
+        SELECT CASE WHEN status = 'USED' OR used_time IS NOT NULL THEN 1 ELSE 0 END
+        FROM tbl_coupon
+        WHERE coupon_id = ?
+        """,
+        (coupon_id,),
+    )
+    return bool(row and row[0])
+
+
+def mark_cancelled(s, order_id: int) -> int:
+    """置为已取消 —— 带状态前置条件，避免与制作台的推进互相覆盖。"""
+    # 注意：这里不能加 SET NOCOUNT ON —— 那会让 cursor.rowcount 变成 -1，
+    # 调用方就无法用返回值判断"这一行到底改没改"（并发保护就失效了）。
+    return s.execute(
+        """
+        UPDATE tbl_order_header
+        SET order_status = 'CANCELLED'
+        WHERE order_id = ? AND order_status = 'PENDING'
+        """,
+        (order_id,),
+    )

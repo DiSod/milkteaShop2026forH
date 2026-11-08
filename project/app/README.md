@@ -5,7 +5,7 @@
 
 | 项目 | 内容 |
 |---|---|
-| 当前状态 | 🟢 **第 9 周**：四岗位工作台、商品维护、库存查询与调整、38 条自动化测试全部通过；界面已完成 **Material Design 3 重构**（18 条路由 / 13 个模板） |
+| 当前状态 | 🟢 **第 9 周**：四岗位工作台、商品维护、库存查询与调整、订单取消（仅待制作）、41 条自动化测试全部通过；界面已完成 **Material Design 3 重构**（20 条路由 / 13 个模板） |
 | 技术栈 | Flask 3 + Jinja2 + 本地 Bootstrap 5.3.3（**Material Design 3 视觉层**）+ Chart.js 4 图表 + pyodbc（**方案 B**，见 `../../weeks/week07/README.md` §七） |
 | Python | 3.12（`SQL Server` 与 `ODBC Driver 17 for SQL Server` 均可） |
 | 数据库 | `milktea_shop`，Windows 认证连接，**每请求切换数据库身份** |
@@ -115,7 +115,7 @@ python app.py                    # http://127.0.0.1:5000
 
 ```powershell
 cd project\app
-python -m pytest -q      # 期望 38 passed
+python -m pytest -q      # 期望 41 passed
 ```
 
 其中 `tests/test_layering.py` 与 `tests/test_auth_hash.py` 共 8 条是本机就能跑的
@@ -164,6 +164,7 @@ SQL、口令哈希与数据库侧定标一致）；`tests/test_permissions.py` 9
 | 8 | **RBAC 只到表级，管不了行级** | 顾客与收银员共用表级授权：`usr_test_cashier` 能读全部 1963 张订单头、80 个会员手机号；行级隔离**全靠应用写 `WHERE member_id = ?`**（`dao/member_dao.py`），`WHERE` 漏写数据库不会报警 | 行级安全只有 SQL Server RLS 能下沉（本库 `sys.security_policies` = 0，从未启用）；`tests/test_permissions.py` 用断言把「只出现自己的单号」钉住，作为补偿 |
 | 9 | 角色是**封闭的 4 个** | 与 `ck_employee_position` 的 4 个取值（MANAGER/CASHIER/MAKER/STOCKER）严格一一对应；顾客不是岗位、在 `tbl_employee` 不占行，故**不设** `role_member`，界面层用 `member_required` 区分 | 若将来要给顾客独立数据库身份，只加**用户**（`usr_member`）不加角色，配合行级过滤——保持 4 角色不变 |
 | 10 | **登录即会员，系统没有"游客态"** | 顾客侧四个页面（`/`、`/order`、`/orders`、`/me`）全部 `@member_required`：**能登录的人，登录那一刻就是会员**。库层 `tbl_order_header.member_id` 仍允许 NULL，只为承载 v0.1 的 764 张历史散客单（38.9%），**不代表 v1.0 支持散客自助下单**。新会员的录入不在应用职责内（造数 / 后台补录），课程第 7—9 周任务也不含"会员注册" | 见 `../docs/business-rules.md` A12；收银台另有散客下单通道，用于店员代客下单 |
+| 11 | **取消只到「待制作」，退款仍不做** | 会员在 `/orders`、店员在 `/maker` 可以取消 `PENDING` 单：逐条写 `CANCEL_BACK` 回冲原料、写 `REVOKE` 扣回积分、状态置 `CANCELLED`（`service/ordering.py::cancel_order`，一个事务）。**进入 `MAKING` 之后不能取消**——原料已经进杯子，回冲就是假账；退款 / 退券 / 部分退款仍不做 | 退款与退券属于 v2.0 的「整单退 + 退款单」；接口位置与状态机已留好 |
 
 ## 7. 放什么 / 不放什么
 
