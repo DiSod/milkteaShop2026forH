@@ -20,7 +20,7 @@
 | 2 | **实现代码** | [`project/sql/`](../../../project/sql/)（含 `11-migration/`）、[`project/app/`](../../../project/app/) | ✅ |
 | 3 | **结果证据 `result/`** | [`result/README.md`](result/)（**30 组**：19 数据库 + 11 应用） | ✅ |
 | 4 | **阶段报告** | [`report.md`](report.md)（三章 18 节 + 附录 A/B） | 🟡 仅剩附录 B（组内分工） |
-| 5 | **AI 使用记录** | [`ai-log.md`](ai-log.md)（15 条使用记录 + **14 条纠错** + 10 条被否决方案） | ✅ |
+| 5 | **AI 使用记录** | [`ai-log.md`](ai-log.md)（11 条使用记录 + **6 条业务纠错** + 10 条被否决方案） | ✅ |
 | 6 | **组内分工表** | 附录 B（同一份 `report.md`） | 🟡 等 hezhlin5 回 [`ISSUE-016`](../../../harness/issues/016-v1.0-delivery-handoff.md) |
 
 > **操作手册**不在课程清单里，但为了让"应用可用性"可被复核，单独写了一份：
@@ -87,7 +87,7 @@ powershell -ExecutionPolicy Bypass -File capture-app.ps1      # 11 组应用类�
 | 路径 | 内容 |
 |---|---|
 | [`report.md`](report.md) | 阶段报告：设计思路 / 实验过程 / 实验总结 + 附录 A（决策与 AI 纠错）、附录 B（分工） |
-| [`ai-log.md`](ai-log.md) | AI 使用记录（分级统计、15 条明细、**14 条纠错**、10 条被否决方案、提示词记录方式） |
+| [`ai-log.md`](ai-log.md) | AI 使用记录（分级统计、11 条明细、**6 条业务纠错**、10 条被否决方案、提示词记录方式） |
 | [`result/`](result/) | 30 组证据，`xxx.png` + 同名 `xxx.txt`；两组脚本 `capture.ps1` / `capture-app.ps1` |
 | [`v0.1/`](../v0.1/) | 第一阶段提交快照（只读对照） |
 
