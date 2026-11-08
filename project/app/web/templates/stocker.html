@@ -20,7 +20,7 @@
 {% if open_lines %}
 <div class="table-responsive">
   <table class="table align-middle">
-    <thead class="table-light">
+    <thead>
       <tr><th>采购单</th><th>原料</th><th class="text-end">订购</th>
           <th class="text-end">已收</th><th class="text-end">待收</th>
           <th class="text-end">单价</th><th style="width:14rem">本次收货</th></tr>
@@ -55,7 +55,7 @@
 {% if alerts %}
 <div class="table-responsive">
   <table class="table">
-    <thead class="table-light">
+    <thead>
       <tr><th>原料</th><th>单位</th><th class="text-end">结存</th>
           <th class="text-end">补货点</th><th class="text-end">目标水位</th>
           <th class="text-end">建议进货</th><th>预警</th></tr>
@@ -81,10 +81,17 @@
 <p class="text-muted">所有原料都在补货点之上。</p>
 {% endif %}
 
-<h6 class="mt-4">库存查询与报损（{{ ingredients|length }} 种原料）</h6>
-<div class="table-responsive">
+<details class="fold-block">
+  <summary class="fold-summary">
+    <i class="bi bi-box-seam"></i>
+    <span>库存查询与报损</span>
+    <span class="fold-count">{{ ingredients|length }} 种原料 · 按需处理程度排序</span>
+    <i class="bi bi-chevron-down fold-chevron"></i>
+  </summary>
+
+  <div class="table-responsive">
   <table class="table align-middle">
-    <thead class="table-light">
+    <thead>
       <tr><th>#</th><th>编码</th><th>原料</th><th>单位</th><th>规格</th>
           <th class="text-end">结存</th><th class="text-end">补货点</th>
           <th class="text-end">成本</th><th>状态</th><th style="width:18rem">报损</th></tr>
@@ -92,7 +99,7 @@
     <tbody>
     {% for i in ingredients %}
       <tr>
-        <td>{{ i[0] }}</td>
+        <td>{{ loop.index }}</td>
         <td><code>{{ i[1] }}</code></td>
         <td>{{ i[2] }}</td>
         <td>{{ i[3] }}</td>
@@ -103,6 +110,7 @@
         <td>
           {% if i[9] %}<span class="badge bg-secondary">手工沽清</span>{% endif %}
           {% if not i[10] %}<span class="badge bg-dark">停用</span>{% endif %}
+          {% if i[5] < i[6] %}<span class="badge bg-warning">低于补货点</span>{% endif %}
         </td>
         <td>
           <form class="d-flex gap-1" method="post" action="{{ url_for('stocker.report_loss') }}">
@@ -118,5 +126,6 @@
     {% endfor %}
     </tbody>
   </table>
-</div>
+  </div>
+</details>
 {% endblock %}

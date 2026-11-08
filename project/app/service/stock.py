@@ -37,12 +37,29 @@ def _positive_qty(text, field: str = "数量") -> Decimal:
     return qty
 
 
+def _attention_rank(row) -> int:
+    """原料列表的排序权重：越需要处理越靠前。
+
+    0 停用 / 1 手工沽清 / 2 结存低于补货点 / 3 正常。
+    库管员打开页面第一眼该看到的是这几类，而不是 60 条按编码排的原料。
+    """
+    if not row[10]:
+        return 0
+    if row[9]:
+        return 1
+    if (row[5] or 0) < (row[6] or 0):
+        return 2
+    return 3
+
+
 def overview(role: str) -> dict:
     """库存查询：原料全量 + 低于补货点的预警 + 待收货明细。"""
     _require_stock(role)
     with db.open_session(db_user_for(role)) as s:
+        ingredients = list(stock_dao.list_ingredients(s))
+        ingredients.sort(key=lambda r: (_attention_rank(r), r[1]))
         return {
-            "ingredients": stock_dao.list_ingredients(s),
+            "ingredients": ingredients,
             "alerts": stock_dao.list_alerts(s),
             "open_lines": purchase_dao.list_open_lines(s),
             "drift": stock_dao.ledger_drift(s),
