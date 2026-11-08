@@ -1,0 +1,117 @@
+{# 菜单卡片：会员点单页与收银台共用。
+   数据来自 service.catalog.menu_cards()，用到的键：
+     cards.groups   = [{category_name, cards:[...]}]，同类饮品聚在一起
+     cards.sold_out = 全杯型都做不了的商品（只展示，不给选项）
+   每张卡带 cups（可做杯型在前）。
+   表单契约沿用平行列表（product_id / cup_spec_id / sugar_spec_id / ice_spec_id / qty
+   + topping_id_<序号>），由 web.routes_member._parse_items 解析，
+   所以每张卡必须同时输出这四个控件，且卡序就是列表下标序——加料序号用全局计数器，
+   不能各分类从 0 重来。 #}
+
+{% set ns = namespace(i=0) %}
+{% for g in cards.groups %}
+  <h6 class="menu-section">{{ g.category_name }}</h6>
+  <div class="row row-cols-1 row-cols-md-2 g-3">
+    {% for p in g.cards %}
+      {% set i = ns.i %}
+      {% set ns.i = ns.i + 1 %}
+      <div class="col">
+        <details class="drink-card">
+          <summary class="drink-summary">
+            <span class="drink-main">
+              <span class="drink-name">{{ p.product_name }}</span>
+              <span class="drink-meta">{{ p.product_code }}</span>
+            </span>
+            <span class="drink-price">
+              ¥{{ '%.2f'|format(p.price_min) }}{% if p.price_max > p.price_min %} 起{% endif %}
+            </span>
+            <span class="drink-chevron"><i class="bi bi-chevron-down"></i></span>
+          </summary>
+
+          <div class="drink-body">
+            <input type="hidden" name="product_id" value="{{ p.product_id }}">
+
+            <div class="opt-group">
+              <span class="opt-label">杯型</span>
+              <div class="opt-controls">
+                <select class="form-select form-select-sm" name="cup_spec_id" aria-label="{{ p.product_name }} 杯型">
+                  {% for c in p.cups %}
+                    <option value="{{ c.cup_spec_id }}"
+                      {% if c.sold_out %} disabled{% elif loop.first %} selected{% endif %}>
+                      {{ c.cup_spec_name }} · ¥{{ '%.2f'|format(c.price) }}{% if c.sold_out %}（售罄）{% endif %}
+                    </option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+
+            <div class="opt-group">
+              <span class="opt-label">糖度</span>
+              <div class="opt-controls">
+                <select class="form-select form-select-sm" name="sugar_spec_id" aria-label="{{ p.product_name }} 糖度">
+                  {% for s in options.specs.SUGAR %}
+                    <option value="{{ s.spec_option_id }}">{{ s.spec_name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+
+            <div class="opt-group">
+              <span class="opt-label">冰量</span>
+              <div class="opt-controls">
+                <select class="form-select form-select-sm" name="ice_spec_id" aria-label="{{ p.product_name }} 冰量">
+                  {% for s in options.specs.ICE %}
+                    <option value="{{ s.spec_option_id }}">{{ s.spec_name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+
+            <div class="opt-group">
+              <span class="opt-label">数量</span>
+              <div class="opt-controls">
+                <select class="form-select form-select-sm" name="qty" aria-label="{{ p.product_name }} 数量">
+                  <option value="0">0 杯</option>
+                  {% for n in range(1, 6) %}<option value="{{ n }}">{{ n }} 杯</option>{% endfor %}
+                </select>
+              </div>
+            </div>
+
+            {% if options.toppings %}
+              <div class="opt-group">
+                <span class="opt-label">加料</span>
+                <div class="opt-controls">
+                  {% for t in options.toppings %}
+                    <label class="chip">
+                      <input type="checkbox" name="topping_id_{{ i }}" value="{{ t.topping_id }}">
+                      <span>{{ t.topping_name }} +{{ '%.1f'|format(t.extra_price) }}</span>
+                    </label>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endif %}
+          </div>
+        </details>
+      </div>
+    {% endfor %}
+  </div>
+{% endfor %}
+
+{% if cards.sold_out %}
+  <h6 class="menu-section">今日售罄</h6>
+  <div class="row row-cols-1 row-cols-md-2 g-3">
+    {% for p in cards.sold_out %}
+      <div class="col">
+        <div class="drink-card is-soldout">
+          <div class="drink-summary">
+            <span class="drink-main">
+              <span class="drink-name">{{ p.product_name }}</span>
+              <span class="drink-meta">{{ p.product_code }} · {{ p.category_name }}</span>
+            </span>
+            <span class="badge-soldout">售罄</span>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}

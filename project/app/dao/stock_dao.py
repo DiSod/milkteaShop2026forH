@@ -34,12 +34,18 @@ def get_ingredient(s, ingredient_id: int):
 
 
 def list_alerts(s) -> list:
-    """低于补货点的原料（视图已算好建议进货量）。"""
+    """低于补货点的原料（视图已算好建议进货量）。
+
+    视图对**所有**原料都给出 ``alert_priority``（5 = 库存健康），所以这里必须
+    过滤 —— 不过滤的话「补货预警」会变成一张 60 行的全量台账。
+    """
     return s.query(
         "SELECT ingredient_id, ingredient_code, ingredient_name, unit, spec, "
         "       qty_on_hand, reorder_point, target_level, suggested_order_qty, "
         "       alert_level, alert_priority "
-        "  FROM vw_ingredient_reorder_alert ORDER BY alert_priority, ingredient_id"
+        "  FROM vw_ingredient_reorder_alert "
+        " WHERE alert_priority < 5 "
+        " ORDER BY alert_priority, ingredient_id"
     )
 
 

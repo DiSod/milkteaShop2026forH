@@ -3,21 +3,26 @@
 {% block content %}
 <div class="row justify-content-center">
   <div class="col-md-5">
+    <div class="login-hero login-hero--compact">
+      <img class="login-logo" src="{{ url_for('static', filename='img/logo.png') }}"
+           alt="茶颜小铺 · Tea Face Shop">
+    </div>
     <div class="card shadow-sm">
       <div class="card-body">
         <h4 class="card-title mb-3">员工登录</h4>
         <form method="post" novalidate>
-          <div class="mb-3">
-            <label class="form-label" for="employee_code">工号</label>
-            <input class="form-control" id="employee_code" name="employee_code"
-                   maxlength="10" required placeholder="如 E003">
-            <div class="form-text">演示环境：口令为小写工号。</div>
+          <div class="md-field mb-3">
+            <input class="md-input" id="employee_code" name="employee_code"
+                   maxlength="10" required placeholder=" " autocomplete="username">
+            <label class="md-label" for="employee_code">工号</label>
+            <div class="md-support">演示环境：口令为小写工号。</div>
           </div>
-          <div class="mb-3">
-            <label class="form-label" for="password">密码</label>
-            <input class="form-control" id="password" name="password" type="password" required>
+          <div class="md-field mb-3">
+            <input class="md-input" id="password" name="password" type="password"
+                   required placeholder=" " autocomplete="current-password">
+            <label class="md-label" for="password">密码</label>
           </div>
-          <button class="btn btn-dark w-100" type="submit">进入工作台</button>
+          <button class="btn btn-primary w-100" type="submit">进入工作台</button>
         </form>
         <hr>
         <a class="small" href="{{ url_for('auth.login') }}">我是顾客，走会员登录</a>

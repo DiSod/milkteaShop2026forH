@@ -19,7 +19,7 @@
 <h6 class="mt-4">待收货采购明细（{{ open_lines|length }} 条）</h6>
 {% if open_lines %}
 <div class="table-responsive">
-  <table class="table table-sm bg-white align-middle">
+  <table class="table align-middle">
     <thead class="table-light">
       <tr><th>采购单</th><th>原料</th><th class="text-end">订购</th>
           <th class="text-end">已收</th><th class="text-end">待收</th>
@@ -54,7 +54,7 @@
 <h6 class="mt-4">低于补货点的原料（{{ alerts|length }} 条）</h6>
 {% if alerts %}
 <div class="table-responsive">
-  <table class="table table-sm bg-white">
+  <table class="table">
     <thead class="table-light">
       <tr><th>原料</th><th>单位</th><th class="text-end">结存</th>
           <th class="text-end">补货点</th><th class="text-end">目标水位</th>
@@ -69,7 +69,9 @@
         <td class="text-end">{{ a[6] }}</td>
         <td class="text-end">{{ a[7] }}</td>
         <td class="text-end"><strong>{{ a[8] }}</strong></td>
-        <td><span class="badge bg-warning text-dark">{{ a[12] }}</span></td>
+        <td>
+          <span class="badge {{ 'bg-danger' if a[10] == 2 else ('bg-warning' if a[10] == 3 else 'bg-secondary') }}">{{ a[9] }}</span>
+        </td>
       </tr>
     {% endfor %}
     </tbody>
@@ -81,7 +83,7 @@
 
 <h6 class="mt-4">库存查询与报损（{{ ingredients|length }} 种原料）</h6>
 <div class="table-responsive">
-  <table class="table table-sm bg-white align-middle">
+  <table class="table align-middle">
     <thead class="table-light">
       <tr><th>#</th><th>编码</th><th>原料</th><th>单位</th><th>规格</th>
           <th class="text-end">结存</th><th class="text-end">补货点</th>

@@ -1,10 +1,30 @@
 {% extends "base.html" %}
 {% block title %}操作未完成{% endblock %}
 {% block content %}
-<div class="alert alert-danger">
-  <h5 class="alert-heading">{{ error.code }}</h5>
-  <p class="mb-1">{{ error.message }}</p>
-  {% if error.ref %}<p class="small text-muted mb-0">请求标识 {{ error.ref }}，可凭此在服务端日志中定位。</p>{% endif %}
+{% set icon = 'bi-shield-lock' if error.code == 'PERMISSION_DENIED'
+   else ('bi-search' if error.code == 'NOT_FOUND'
+   else ('bi-plug' if error.code == 'DB_CONNECTION_FAILED'
+   else 'bi-exclamation-octagon')) %}
+<div class="error-page">
+  <div class="error-card">
+    <div class="error-icon"><i class="bi {{ icon }}"></i></div>
+    <p class="error-code">{{ error.code }}</p>
+    <h1 class="error-message">{{ error.message }}</h1>
+    {% if error.ref %}
+      <p class="error-ref">请求标识 <code>{{ error.ref }}</code>，可凭此在服务端日志中定位。</p>
+    {% endif %}
+    <div class="error-actions">
+      {% if g.member %}
+        <a class="btn btn-primary" href="{{ url_for('member.menu') }}">回到菜单</a>
+        <a class="btn btn-outline-secondary" href="{{ url_for('member.orders') }}">我的订单</a>
+      {% elif g.staff %}
+        <a class="btn btn-primary" href="{{ url_for('member.menu') }}">回到首页</a>
+        <a class="btn btn-outline-secondary" href="{{ url_for('auth.logout') }}">退出登录</a>
+      {% else %}
+        <a class="btn btn-primary" href="{{ url_for('auth.login') }}">会员登录</a>
+        <a class="btn btn-outline-secondary" href="{{ url_for('auth.staff_login') }}">员工登录</a>
+      {% endif %}
+    </div>
+  </div>
 </div>
-<a class="btn btn-outline-secondary" href="{{ url_for('member.menu') if g.member else url_for('auth.login') }}">返回</a>
 {% endblock %}

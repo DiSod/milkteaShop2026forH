@@ -5,42 +5,46 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}茶颜小铺{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap-icons/bootstrap-icons.min.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
 </head>
-<body class="bg-light">
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-3">
+<body>
+{% set ep = request.endpoint %}
+<nav class="navbar navbar-expand-lg mb-3">
   <div class="container">
-    <a class="navbar-brand" href="{{ url_for('member.menu') if g.member else url_for('auth.login') }}">茶颜小铺 · 点单</a>
+    <a class="navbar-brand" href="{{ url_for('member.menu') if g.member else url_for('auth.login') }}">
+      <i class="bi bi-cup-straw"></i> 茶颜小铺 · 点单
+    </a>
     <div class="navbar-nav me-auto">
       {% if g.member %}
-        <a class="nav-link" href="{{ url_for('member.menu') }}">菜单</a>
-        <a class="nav-link" href="{{ url_for('member.orders') }}">我的订单</a>
-        <a class="nav-link" href="{{ url_for('member.me') }}">我的积分</a>
+        <a class="nav-link {{ 'active' if ep == 'member.menu' }}" href="{{ url_for('member.menu') }}"><i class="bi bi-card-list"></i>菜单</a>
+        <a class="nav-link {{ 'active' if ep == 'member.orders' }}" href="{{ url_for('member.orders') }}"><i class="bi bi-receipt"></i>我的订单</a>
+        <a class="nav-link {{ 'active' if ep == 'member.me' }}" href="{{ url_for('member.me') }}"><i class="bi bi-coin"></i>我的积分</a>
       {% elif g.staff %}
         {% if g.current_role in ('CASHIER', 'MANAGER') %}
-          <a class="nav-link" href="{{ url_for('cashier.index') }}">收银台</a>
+          <a class="nav-link {{ 'active' if ep == 'cashier.index' }}" href="{{ url_for('cashier.index') }}"><i class="bi bi-cash-register"></i>收银台</a>
         {% endif %}
         {% if g.current_role in ('MAKER', 'MANAGER') %}
-          <a class="nav-link" href="{{ url_for('maker.board') }}">制作台</a>
+          <a class="nav-link {{ 'active' if ep == 'maker.board' }}" href="{{ url_for('maker.board') }}"><i class="bi bi-cup-hot"></i>制作台</a>
         {% endif %}
         {% if g.current_role in ('STOCKER', 'MANAGER') %}
-          <a class="nav-link" href="{{ url_for('stocker.index') }}">库存</a>
+          <a class="nav-link {{ 'active' if ep == 'stocker.index' }}" href="{{ url_for('stocker.index') }}"><i class="bi bi-box-seam"></i>库存</a>
         {% endif %}
         {% if g.current_role == 'MANAGER' %}
-          <a class="nav-link" href="{{ url_for('manager.index') }}">店长台</a>
+          <a class="nav-link {{ 'active' if ep == 'manager.index' }}" href="{{ url_for('manager.index') }}"><i class="bi bi-speedometer2"></i>店长台</a>
         {% endif %}
       {% endif %}
     </div>
     <div class="navbar-nav">
       {% if g.member %}
-        <span class="navbar-text me-3">{{ g.member.member_name }}（{{ g.member.member_phone }}）</span>
-        <a class="nav-link" href="{{ url_for('auth.logout') }}">退出</a>
+        <span class="navbar-text me-3"><i class="bi bi-person-circle"></i> {{ g.member.member_name }}（{{ g.member.member_phone }}）</span>
+        <a class="nav-link" href="{{ url_for('auth.logout') }}"><i class="bi bi-box-arrow-right"></i>退出</a>
       {% elif g.staff %}
-        <span class="navbar-text me-3">{{ g.staff.employee_name }} · {{ g.staff.role }}</span>
-        <a class="nav-link" href="{{ url_for('auth.logout') }}">退出</a>
+        <span class="navbar-text me-3"><i class="bi bi-person-badge"></i> {{ g.staff.employee_name }} · {{ g.staff.role }}</span>
+        <a class="nav-link" href="{{ url_for('auth.logout') }}"><i class="bi bi-box-arrow-right"></i>退出</a>
       {% else %}
-        <a class="nav-link" href="{{ url_for('auth.login') }}">会员登录</a>
-        <a class="nav-link" href="{{ url_for('auth.staff_login') }}">员工登录</a>
+        <a class="nav-link {{ 'active' if ep == 'auth.login' }}" href="{{ url_for('auth.login') }}"><i class="bi bi-box-arrow-in-right"></i>会员登录</a>
+        <a class="nav-link {{ 'active' if ep == 'auth.staff_login' }}" href="{{ url_for('auth.staff_login') }}"><i class="bi bi-person-gear"></i>员工登录</a>
       {% endif %}
     </div>
   </div>
@@ -49,19 +53,13 @@
 <main class="container pb-5">
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% for category, message in messages %}
-      <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} alert-dismissible fade show">
+      <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} alert-dismissible fade show" role="alert">
+        <i class="bi {{ 'bi-check-circle' if category == 'success' else 'bi-exclamation-octagon' }} me-1"></i>
         {{ message }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="关闭"></button>
       </div>
     {% endfor %}
   {% endwith %}
-
-  {% if error %}
-    <div class="alert alert-danger">
-      <strong>{{ error.code }}</strong> · {{ error.message }}
-      {% if error.ref %}<span class="text-muted small ms-2">（请求标识 {{ error.ref }}）</span>{% endif %}
-    </div>
-  {% endif %}
 
   {% block content %}{% endblock %}
 </main>

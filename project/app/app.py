@@ -10,6 +10,7 @@ import time
 import uuid
 
 from flask import Flask, g, jsonify, render_template, request
+from werkzeug.exceptions import HTTPException
 
 from config import Config
 from dao import db
@@ -128,6 +129,29 @@ def create_app(config_object=Config) -> Flask:
     def _not_found(_exc):
         error = type("E", (), {"code": "NOT_FOUND", "message": "页面不存在", "ref": None})()
         return render_template("error.html", error=error), 404
+
+    _HTTP_MESSAGE = {
+        400: "请求内容无法解析",
+        405: "不支持用这种方式访问该地址",
+        413: "提交的内容过大",
+        415: "不支持的内容类型",
+        429: "操作过于频繁，请稍后再试",
+    }
+
+    @app.errorhandler(HTTPException)
+    def _http_error(exc: HTTPException):
+        """Flask/Werkzeug 自己抛的 HTTP 异常（405 等）也走统一错误页，别落进 500 兜底。"""
+        code = exc.code or 500
+        error = type(
+            "E",
+            (),
+            {
+                "code": (exc.name or "HTTP_ERROR").upper().replace(" ", "_"),
+                "message": _HTTP_MESSAGE.get(code, exc.description or "请求无法完成"),
+                "ref": g.get("request_id"),
+            },
+        )()
+        return render_template("error.html", error=error), code
 
     @app.errorhandler(Exception)
     def _unhandled(exc: Exception):

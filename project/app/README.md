@@ -6,7 +6,7 @@
 | 项目 | 内容 |
 |---|---|
 | 当前状态 | 🟢 **第 7 周七项任务已全部达成**（3 个岗位工作台、商品维护、库存查询与调整、38 条自动化测试） |
-| 技术栈 | Flask 3 + Jinja2 + 本地 Bootstrap 5.3.3 + pyodbc（**方案 B**，见 `../../weeks/week07/README.md` §七） |
+| 技术栈 | Flask 3 + Jinja2 + 本地 Bootstrap 5.3.3（**Material Design 3 视觉层**）+ pyodbc（**方案 B**，见 `../../weeks/week07/README.md` §七） |
 | Python | 3.12（`SQL Server` 与 `ODBC Driver 17 for SQL Server` 均可） |
 | 数据库 | `milktea_shop`，Windows 认证连接，**每请求切换数据库身份** |
 
@@ -56,8 +56,8 @@ web/
   routes_maker.py         /maker /maker/order/<id>/next
   routes_stocker.py       /stocker /stocker/receive /stocker/loss
   routes_manager.py       /manager /manager/product/{new,<id>/edit,<id>/retire}
-  templates/              11 个 Jinja2 模板
-  static/                 本地 Bootstrap 5.3.3 + app.css（离线可用）
+  templates/              12 个 Jinja2 模板（含共用片段 `_menu_cards.html`）
+  static/                 本地 Bootstrap 5.3.3 + Bootstrap Icons + Roboto + app.css（离线可用）
 tests/
   test_layering.py        分层边界三条断言
   test_auth_hash.py       口令摘要与 SQL 侧一致性
@@ -65,7 +65,23 @@ tests/
   test_staff_workbench.py 四个工作台、商品维护、收货与报损（21 条）
 ```
 
-## 3. 启动
+## 3. 界面风格（Material Design 3）
+
+界面按 **Material Design 3** 重构，但**没有换掉 Bootstrap**，也没有引入构建步骤：
+
+| 事项 | 做法 |
+|---|---|
+| 排版引擎 | 仍是 Bootstrap 5.3.3 的栅格与工具类，模板里的 `row` / `col-*` / `d-flex` 全部保留 |
+| 设计语言 | `static/css/app.css` 用 CSS 变量定义 MD3 角色色（`--md-primary` / `--md-surface` / `--md-outline` …），再逐组件覆写外观 |
+| 主色 | 薄荷绿种子色（`#3eb489`），主色 `--md-primary: #146b56`，白字对比度约 7:1 |
+| 组件 | 导航胶囊高亮、表格卡片化、filled text field（浮动标签）、胶囊按钮、tonal 徽章与提示条、饮品折叠卡、独立错误页 |
+| 离线 | Bootstrap / Bootstrap Icons / Roboto 全部 vendored 在 `static/vendor/`，无 CDN、无 npm |
+| 字体 | Roboto（latin 子集 woff2），中文回落到系统字体栈 |
+
+**没有做的**：涟漪（ripple）动效需要 JS，未实现；未做暗色主题；MD3 只覆盖了页面用到的组件，
+不是完整组件库。
+
+## 4. 启动
 
 ```powershell
 cd project\app
@@ -95,7 +111,7 @@ SQL、口令哈希与数据库侧定标一致）；`tests/test_permissions.py` 9
 可用 `harness/logs/tmp-repair-qty.py` 那种「把 `qty_on_hand` 校正回 Σ流水」的
 幂等脚本复原，再用 `dao.stock_dao.ledger_drift()` 确认漂移为 0。
 
-## 4. 两个入口
+## 5. 两个入口
 
 | 入口 | 账号 | 口令（演示） | 落点 |
 |---|---|---|---|
@@ -117,7 +133,7 @@ SQL、口令哈希与数据库侧定标一致）；`tests/test_permissions.py` 9
 口令约定与 `../sql/11-migration/migration-02-login-credentials.sql` 完全一致：
 盐 = `m<member_id>` / `e<employee_id>`，摘要 = `UPPER(HEX(SHA-256(盐+口令)))`。
 
-## 5. 已知边界（答辩要主动说）
+## 6. 已知边界（答辩要主动说）
 
 | # | 情况 | 现状 | 计划 |
 |---|---|---|---|
@@ -132,7 +148,7 @@ SQL、口令哈希与数据库侧定标一致）；`tests/test_permissions.py` 9
 | 9 | 角色是**封闭的 4 个** | 与 `ck_employee_position` 的 4 个取值（MANAGER/CASHIER/MAKER/STOCKER）严格一一对应；顾客不是岗位、在 `tbl_employee` 不占行，故**不设** `role_member`，界面层用 `member_required` 区分 | 若将来要给顾客独立数据库身份，只加**用户**（`usr_member`）不加角色，配合行级过滤——保持 4 角色不变 |
 | 10 | **登录即会员，系统没有"游客态"** | 顾客侧四个页面（`/`、`/order`、`/orders`、`/me`）全部 `@member_required`：**能登录的人，登录那一刻就是会员**。库层 `tbl_order_header.member_id` 仍允许 NULL，只为承载 v0.1 的 764 张历史散客单（38.9%），**不代表 v1.0 支持散客自助下单**。新会员的录入不在应用职责内（造数 / 后台补录），课程第 7—9 周任务也不含"会员注册" | 见 `../docs/business-rules.md` A12；收银台另有散客下单通道，用于店员代客下单 |
 
-## 6. 放什么 / 不放什么
+## 7. 放什么 / 不放什么
 
 | ✅ | ❌ |
 |---|---|

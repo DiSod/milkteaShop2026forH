@@ -19,7 +19,7 @@ from service.errors import ValidationError
 
 def menu_data(role: str) -> dict:
     """收银台要看的菜单与规格（收银员对商品/规格/加料只有 SELECT）。"""
-    return {"menu": catalog.menu(role), "options": catalog.options(role)}
+    return {"cards": catalog.menu_cards(role), "options": catalog.options(role)}
 
 
 def resolve_member(role: str, phone) -> dict:

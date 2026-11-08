@@ -15,10 +15,11 @@ bp = Blueprint("member", __name__)
 @member_required
 def menu():
     member = current_member()
+    cards = catalog.menu_cards("MEMBER")
     return render_template(
         "menu.html",
         member=member,
-        menu=catalog.menu("MEMBER"),
+        cards=cards,
         options=catalog.options("MEMBER"),
     )
 

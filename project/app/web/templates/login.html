@@ -3,19 +3,24 @@
 {% block content %}
 <div class="row justify-content-center">
   <div class="col-md-5">
+    <div class="login-hero">
+      <img class="login-logo" src="{{ url_for('static', filename='img/logo.png') }}"
+           alt="茶颜小铺 · Tea Face Shop">
+    </div>
     <div class="card shadow-sm">
       <div class="card-body">
         <h4 class="card-title mb-3">会员登录</h4>
         <form method="post" novalidate>
-          <div class="mb-3">
-            <label class="form-label" for="phone">手机号</label>
-            <input class="form-control" id="phone" name="phone" inputmode="numeric"
-                   maxlength="11" required placeholder="11 位手机号">
-            <div class="form-text">演示环境：口令为手机号后 6 位。</div>
+          <div class="md-field mb-3">
+            <input class="md-input" id="phone" name="phone" inputmode="numeric"
+                   maxlength="11" required placeholder=" " autocomplete="username">
+            <label class="md-label" for="phone">手机号</label>
+            <div class="md-support">演示环境：口令为手机号后 6 位。</div>
           </div>
-          <div class="mb-3">
-            <label class="form-label" for="password">密码</label>
-            <input class="form-control" id="password" name="password" type="password" required>
+          <div class="md-field mb-3">
+            <input class="md-input" id="password" name="password" type="password"
+                   required placeholder=" " autocomplete="current-password">
+            <label class="md-label" for="password">密码</label>
           </div>
           <button class="btn btn-primary w-100" type="submit">登录</button>
         </form>
