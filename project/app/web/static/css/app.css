@@ -717,6 +717,30 @@ hr {
 .fold-block .table-responsive { margin-top: .75rem; }
 
 /* 分节标题后面的计数小字（如「需要关注（5 个饮品）」） */
+/* ===== 店长台的图表卡（Chart.js） ===== */
+.chart-card {
+  height: 100%;
+}
+
+.chart-card .card-body {
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+}
+
+.chart-sub {
+  margin: 0 0 .5rem;
+  font-size: .75rem;
+  color: var(--md-on-surface-variant);
+}
+
+.chart-holder {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 260px;
+  height: 260px;
+}
+
 .section-count {
   font-size: .8125rem;
   font-weight: 400;

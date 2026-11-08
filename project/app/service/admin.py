@@ -56,15 +56,44 @@ def overview(role: str) -> dict:
         }
 
 
+def _chart_payload(daily, top_products) -> dict:
+    """把报表行折成图表能直接吃的纯量（float / int / str）。
+
+    放在服务层而不是模板里：模板里做浮点运算既不好读，也会把 Decimal 带进 JSON
+    （Flask 的 tojson 不认识 Decimal）。
+    """
+    rows = sorted(daily, key=lambda r: r[0])          # 日期升序，折线才从旧到新
+    trend = {
+        "labels": [
+            r[0].strftime("%m-%d") if hasattr(r[0], "strftime") else str(r[0])[:10]
+            for r in rows
+        ],
+        "orders": [int(r[1] or 0) for r in rows],
+        "net": [float(r[7] or 0) for r in rows],
+        "gross": [float(r[5] or 0) for r in rows],
+    }
+    ranked = list(top_products)          # 已是杯数降序
+    top = {
+        # Chart.js 的横向柱状图把数组第 0 项画在最上面，所以这里保持降序
+        "labels": [t[1] for t in ranked],
+        "cups": [int(t[2] or 0) for t in ranked],
+        "amount": [float(t[3] or 0) for t in ranked],
+    }
+    return {"trend": trend, "top": top}
+
+
 def dashboard(role: str, days: int = 7) -> dict:
     """店长工作台首页：经营日报 + 商品销量 Top 10 + 商品档案。"""
     _require_manager(role)
     with db.open_session(db_user_for(role)) as s:
+        daily = list(report_dao.daily_summary(s, days))
+        top_products = list(report_dao.product_sales(s))
         return {
-            "daily": report_dao.daily_summary(s, days),
-            "top_products": report_dao.product_sales(s),
+            "daily": daily,
+            "top_products": top_products,
             "products": product_dao.list_products(s),
             "categories": product_dao.list_categories(s),
+            "charts": _chart_payload(daily, top_products),
         }
 
 

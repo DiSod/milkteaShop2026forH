@@ -8,10 +8,31 @@
   历史订单仍指向这个商品，硬删会让明细失去引用。
 </p>
 
+<div class="row g-3 mt-1">
+  <div class="col-lg-7">
+    <div class="card chart-card">
+      <div class="card-body">
+        <h6 class="card-title mb-1">近 7 天趋势</h6>
+        <p class="chart-sub">柱＝实收（元，左轴）　线＝订单数（右轴）· 只列有订单的营业日</p>
+        <div class="chart-holder"><canvas id="trendChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card chart-card">
+      <div class="card-body">
+        <h6 class="card-title mb-1">销量 Top 10</h6>
+        <p class="chart-sub">杯数降序（有效口径 <code>pay_status = 'SUCCESS'</code>）</p>
+        <div class="chart-holder"><canvas id="topChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <h6 class="mt-4">最近 7 天经营日报</h6>
 <div class="table-responsive">
   <table class="table">
-    <thead class="table-light">
+    <thead>
       <tr>
         <th>营业日</th><th class="text-end">订单</th><th class="text-end">完成</th>
         <th class="text-end">取消</th><th class="text-end">杯数</th>
@@ -40,7 +61,7 @@
 <h6 class="mt-4">商品销量 Top 10（有效口径：<code>pay_status = 'SUCCESS'</code>）</h6>
 <div class="table-responsive">
   <table class="table">
-    <thead class="table-light">
+    <thead>
       <tr><th>#</th><th>商品</th><th class="text-end">杯数</th><th class="text-end">销售额</th></tr>
     </thead>
     <tbody>
@@ -59,7 +80,7 @@
 <h6 class="mt-4">商品档案（{{ products|length }} 个）</h6>
 <div class="table-responsive">
   <table class="table align-middle">
-    <thead class="table-light">
+    <thead>
       <tr><th>#</th><th>编码</th><th>名称</th><th>分类</th>
           <th class="text-end">单价</th><th>状态</th><th style="width:30rem">操作</th></tr>
     </thead>
@@ -141,4 +162,123 @@
     <button class="btn btn-sm btn-primary" type="submit">新建</button>
   </div>
 </form>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='vendor/chartjs/chart.umd.min.js') }}"></script>
+<script>
+  (function () {
+    if (typeof Chart === "undefined") return;   // 没加载成功就保持表格，不报错
+    var data = {{ charts|tojson }};
+    var C = {
+      primary: "#146b56",
+      container: "rgba(20, 107, 86, .20)",
+      hover: "rgba(20, 107, 86, .32)",
+      variant: "#dfeee8",
+      ink: "#14201b",
+      muted: "#43564d"
+    };
+    Chart.defaults.font.family = "Roboto, 'Microsoft YaHei', sans-serif";
+    Chart.defaults.font.size = 12;
+    Chart.defaults.color = C.muted;
+
+    var trend = document.getElementById("trendChart");
+    if (trend && data.trend.labels.length) {
+      new Chart(trend, {
+        data: {
+          labels: data.trend.labels,
+          datasets: [
+            {
+              type: "bar",
+              label: "实收（元）",
+              data: data.trend.net,
+              backgroundColor: C.container,
+              hoverBackgroundColor: C.hover,
+              borderColor: C.primary,
+              borderWidth: 1,
+              borderRadius: 6,
+              maxBarThickness: 34,
+              yAxisID: "y"
+            },
+            {
+              type: "line",
+              label: "订单数",
+              data: data.trend.orders,
+              borderColor: C.primary,
+              backgroundColor: C.primary,
+              borderWidth: 2,
+              tension: 0.35,
+              pointRadius: 3,
+              pointBackgroundColor: "#fff",
+              pointBorderWidth: 2,
+              yAxisID: "y1"
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: "index", intersect: false },
+          plugins: {
+            legend: { position: "bottom", labels: { usePointStyle: true, boxWidth: 8 } }
+          },
+          scales: {
+            y: {
+              position: "left",
+              beginAtZero: true,
+              grid: { color: C.variant },
+              title: { display: true, text: "实收（元）" }
+            },
+            y1: {
+              position: "right",
+              beginAtZero: true,
+              grid: { display: false },
+              title: { display: true, text: "订单数" }
+            },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+    }
+
+    var top = document.getElementById("topChart");
+    if (top && data.top.labels.length) {
+      new Chart(top, {
+        type: "bar",
+        data: {
+          labels: data.top.labels,
+          datasets: [{
+            label: "杯数",
+            data: data.top.cups,
+            backgroundColor: C.container,
+            hoverBackgroundColor: C.hover,
+            borderColor: C.primary,
+            borderWidth: 1,
+            borderRadius: 6
+          }]
+        },
+        options: {
+          indexAxis: "y",
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                afterLabel: function (item) {
+                  return "销售额 ¥" + data.top.amount[item.dataIndex].toFixed(2);
+                }
+              }
+            }
+          },
+          scales: {
+            x: { beginAtZero: true, grid: { color: C.variant }, title: { display: true, text: "杯数" } },
+            y: { grid: { display: false } }
+          }
+        }
+      });
+    }
+  })();
+</script>
 {% endblock %}

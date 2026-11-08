@@ -6,7 +6,7 @@
 | 项目 | 内容 |
 |---|---|
 | 当前状态 | 🟢 **第 7 周七项任务已全部达成**（3 个岗位工作台、商品维护、库存查询与调整、38 条自动化测试） |
-| 技术栈 | Flask 3 + Jinja2 + 本地 Bootstrap 5.3.3（**Material Design 3 视觉层**）+ pyodbc（**方案 B**，见 `../../weeks/week07/README.md` §七） |
+| 技术栈 | Flask 3 + Jinja2 + 本地 Bootstrap 5.3.3（**Material Design 3 视觉层**）+ Chart.js 4 图表 + pyodbc（**方案 B**，见 `../../weeks/week07/README.md` §七） |
 | Python | 3.12（`SQL Server` 与 `ODBC Driver 17 for SQL Server` 均可） |
 | 数据库 | `milktea_shop`，Windows 认证连接，**每请求切换数据库身份** |
 
@@ -57,7 +57,7 @@ web/
   routes_stocker.py       /stocker /stocker/receive /stocker/loss
   routes_manager.py       /manager /manager/product/{new,<id>/edit,<id>/retire}
   templates/              12 个 Jinja2 模板（含共用片段 `_menu_cards.html`）
-  static/                 本地 Bootstrap 5.3.3 + Bootstrap Icons + Roboto + app.css（离线可用）
+  static/                 本地 Bootstrap 5.3.3 + Bootstrap Icons + Roboto + Chart.js + app.css（离线可用）
   static/js/menu.js       点单页交互增强（小计、加入订单、卡片已选徽标；无 JS 也能提交）
 tests/
   test_layering.py        分层边界三条断言
@@ -76,7 +76,7 @@ tests/
 | 设计语言 | `static/css/app.css` 用 CSS 变量定义 MD3 角色色（`--md-primary` / `--md-surface` / `--md-outline` …），再逐组件覆写外观 |
 | 主色 | 薄荷绿种子色（`#3eb489`），主色 `--md-primary: #146b56`，白字对比度约 7:1 |
 | 组件 | 导航胶囊高亮、表格卡片化、filled text field（浮动标签）、胶囊按钮、tonal 徽章与提示条、饮品卡片 + 二级菜单对话框、独立错误页 |
-| 离线 | Bootstrap / Bootstrap Icons / Roboto 全部 vendored 在 `static/vendor/`，无 CDN、无 npm |
+| 离线 | Bootstrap / Bootstrap Icons / Roboto / Chart.js 全部 vendored 在 `static/vendor/`，无 CDN、无 npm |
 | 字体 | Roboto（latin 子集 woff2），中文回落到系统字体栈 |
 
 **没有做的**：涟漪（ripple）动效需要 JS，未实现；未做暗色主题；MD3 只覆盖了页面用到的组件，
