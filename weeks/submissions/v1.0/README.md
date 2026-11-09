@@ -18,7 +18,7 @@
 |---|---|---|---|
 | 1 | **README**（范围 / 环境 / 链路 / 复现步骤） | 本文件 + 根 [`README.md`](../../../README.md) | ✅ |
 | 2 | **实现代码（sql 目录）** | [`code/`](code/) —— `project/sql/` 的**冻结快照**（19 个文件，含 `11-migration/` 七段）；完整应用在 [`project/app/`](../../../project/app/) | ✅ |
-| 3 | **结果证据 `result/`** | [`result/README.md`](result/)（**31 组**：19 数据库 + 12 应用） | ✅ |
+| 3 | **结果证据 `result/`** | [`result/README.md`](result/)（**37 图 + 20 原始输出**：设计 3 项 / 数据库 19 组 / 应用 12 组 / 错误 4 张） | ✅ |
 | 4 | **阶段报告** | [`report.md`](report.md)（三章 18 节 + 附录 A/B） | ✅ |
 | 5 | **AI 使用记录** | [`ai-log.md`](ai-log.md)（11 条使用记录 + **6 条业务纠错** + 10 条被否决方案） | ✅ |
 | 6 | **组内分工表** | [`contributions.md`](contributions.md) + 报告附录 B | 🟡 已建，等何争霖确认 §4；请见 [`ISSUE-020`](../../../harness/issues/016-v1.0-delivery-handoff.md) |
@@ -63,7 +63,7 @@
 cd project\sql
 sqlcmd -S .\SQLEXPRESS -E -C -f 65001 -i 99-rebuild.sql
 
-# 2) 数据库自检（期望 14/14）
+# 2) 数据库自检（期望 15/15）
 sqlcmd -S .\SQLEXPRESS -E -C -f 65001 -d milktea_shop -i ..\tests\regression.sql
 
 # 3) 应用测试（期望 46 passed）
@@ -74,7 +74,7 @@ python -m pytest -q
 # 4) 启动应用 → http://127.0.0.1:5000
 python app.py
 
-# 5) 重新生成全部证据（31 组）
+# 5) 重新生成全部证据（37 图 + 20 原始输出）
 cd ..\..\weeks\submissions\v1.0\result
 powershell -ExecutionPolicy Bypass -File capture.ps1          # 19 组数据库类
 powershell -ExecutionPolicy Bypass -File capture-app.ps1      # 12 组应用类（需第 4 步在跑）
@@ -90,7 +90,7 @@ powershell -ExecutionPolicy Bypass -File capture-app.ps1      # 12 组应用类�
 |---|---|
 | [`report.md`](report.md) | 阶段报告：设计思路 / 实验过程 / 实验总结 + 附录 A（决策与 AI 纠错）、附录 B（分工） |
 | [`ai-log.md`](ai-log.md) | AI 使用记录（分级统计、11 条明细、**6 条业务纠错**、10 条被否决方案、提示词记录方式） |
-| [`result/`](result/) | 31 组证据，`xxx.png` + 同名 `xxx.txt`；两组脚本 `capture.ps1` / `capture-app.ps1` |
+| [`result/`](result/) | 37 图 + 20 原始输出；三组脚本 `capture.ps1` / `capture-app.ps1` / `08-errors/capture-errors.ps1` |
 | [`code/`](code/) | **`project/sql/` 的冻结快照**（19 个文件：建库 / 建表 / 约束 / 索引 / 种子 / CRUD / 查询 / 视图 / 角色 / 七段迁移 / `99-rebuild.sql`），逐字节复制 |
 | [`v0.1/`](../v0.1/) | 第一阶段提交快照（只读对照） |
 

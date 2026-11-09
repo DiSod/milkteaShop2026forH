@@ -231,7 +231,7 @@ ORDER BY 表, 列;
 }
 
 # ============================================================
-#  03-regression —— 14 项自动化断言
+#  03-regression —— 15 项自动化断言
 # ============================================================
 if ($Only -eq '' -or $Only -eq '03') {
     Write-Host ''
@@ -247,8 +247,8 @@ if ($Only -eq '' -or $Only -eq '03') {
     if (Test-Path $regTxt) {
         $reg = @(Get-Content $regTxt -Encoding UTF8 |
                  Where-Object { $_ -notmatch '已将数据库上下文|Changed database context' })
-        Do-TextShot -Id '03-regression/regression-full-log' -Title 'regression.sql · 14 项断言完整输出' -Lines $reg
-        Do-TextShot -Id '03-regression/regression-verdict' -Title 'regression.sql · 总览与结论（14 / 14 全绿）' -Lines @($reg | Select-Object -Last 6)
+        Do-TextShot -Id '03-regression/regression-full-log' -Title 'regression.sql · 15 项断言完整输出' -Lines $reg
+        Do-TextShot -Id '03-regression/regression-verdict' -Title 'regression.sql · 总览与结论（15 / 15 全绿）' -Lines @($reg | Select-Object -Last 6)
         Do-TextShot -Id '03-regression/regression-pass-list' -Title 'regression.sql · 逐条 PASS 明细' -Lines @($reg | Where-Object { $_ -match '\[PASS\]|\[FAIL\]' })
     } else {
         Fail-Shot -Id '03-regression/regression-full-log' -Why '缺少输出文件'

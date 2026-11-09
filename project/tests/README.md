@@ -32,7 +32,7 @@
 
 | 文件 | 类型 | 用途 | 退出码机制 |
 |---|---|---|---|
-| [`regression.sql`](regression.sql) | 全库自动化回归入口 | 覆盖 18 表结构、券模板、销售额 D 口径、明细不变量、积分台账对账、登录凭据质量等 14 项硬断言 | 失败触发 `THROW 51000`，`sqlcmd -b` 退出码 1 |
+| [`regression.sql`](regression.sql) | 全库自动化回归入口 | 覆盖 18 表结构、券模板、销售额 D 口径、明细不变量、积分台账对账、登录凭据质量等 15 项硬断言 | 失败触发 `THROW 51000`，`sqlcmd -b` 退出码 1 |
 | [`01-migration-verification.sql`](01-migration-verification.sql) | 迁移专项正反例 | 针对核销有效区间 `ck_coupon_used_time_range` 与外键 `fk_coupon_template` 5 项测试 | 失败触发 `THROW 51000`，`sqlcmd -b` 退出码 1 |
 | [`01-migration-verification.md`](01-migration-verification.md) | 测试报告与记录 | 迁移测试输入输出、执行日志与全链路证据 | 文档归档 |
 | [`baseline/`](baseline/README.md) | 迁移基线对比 | 迁移前后明细（S1）、销售（S2）、库存（S3）无损比对 | 人工与快照比对（0 差异） |

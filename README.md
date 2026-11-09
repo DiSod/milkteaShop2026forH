@@ -8,7 +8,7 @@
 > 表格卡片化、filled text field（浮动标签）、饮品卡片 + 弹窗定制、底部悬浮价格栏与购物车抽屉、
 > 折叠区与店长台图表。改动集中在 `project/app/web/**`。
 > 数据层（`project/sql/**`）、测试（`project/tests/**`）、文档（`project/docs/**`）未受影响：
-> `99-rebuild.sql` exit=0、`regression.sql` 14/14、`pytest` **46 passed**。**现在可以正常拉取 `main`。**
+> `99-rebuild.sql` exit=0、`regression.sql` 15/15、`pytest` **46 passed**。**现在可以正常拉取 `main`。**
 
 ## 项目范围
 
@@ -155,9 +155,27 @@ flowchart TD
     → 函数依赖 / 范式判定 / 五段迁移（第6周）      ✅ 已完成
          ⤷ 17→18 表 / 132→139 字段 / 43→49 CHECK
         → 数据访问层 / 业务层 / 页面层（第7周）    ✅ 已完成
-           → 四岗位工作台 + 订单取消 + 券核销 + 46 条应用测试 / 14 项库回归（第8—9周） ✅ 已完成
+           → 四岗位工作台 + 订单取消 + 券核销 + 46 条应用测试 / 15 项库回归（第8—9周） ✅ 已完成
               → 界面 MD3 重构 + 阶段交付（第9周）    ✅ 已完成   ← v1.0 交付（第10周周二截止）
 ```
+
+## 设计分析速览（ER / 依赖 / 范式 / 分解）
+
+![ER 图：18 个实体、31 条联系](project/docs/er-diagram.png)
+
+**① ER 模型**：18 个实体与 18 张表**一对一**（[`er-diagram.md`](project/docs/er-diagram.md) §3 有对照表）；31 条联系全部落地为外码，§2.1 逐条给出「关系编号 R01—R31 → 约束名」。三处多对多用关联表表达（`tbl_recipe`、`tbl_order_detail_topping`、`tbl_purchase_order_detail`），其中 `tbl_recipe` 是**带属性的联系**（商品 × 杯型 × 糖度的用量）。
+
+**② 函数依赖**：依赖来自**业务规则**，不是从样例数据里"归纳"出来的 —— 典型例子是「商品编号 → 当前商品名称，但**不** → 历史成交价」，成交价在开单那一刻由 `tbl_order_detail.unit_price` 固化，之后商品调价不影响历史订单（[`normalization.md`](project/docs/normalization.md) §1 逐表列出 FD 与决定因素）。18 个唯一约束覆盖 17 张表；积分与库存两张流水表按设计没有业务候选码。
+
+**③ 更新异常**：三类异常都用**本项目自己的表**举例（插入 / 修改 / 删除，§2），而不是只讲教科书反例。**18 张表经检查没有这三类异常** —— 所以第 6 周没有"为了规范化而拆表"，只做了 5 处有据可查的结构变更（§4）。
+
+**④ 范式判断**：**15 张纯净 BCNF + 3 张受控反规范化**。后三张是 `tbl_member.points_balance`、`tbl_order_header.amount_due`、`tbl_order_detail.subtotal`，它们的冗余列都是**跨表派生**而非表内传递依赖，属于被显式论证并保留的工程取舍（§3 逐表判据、§4 五个案例）。
+
+**⑤ 分解方案**：券表拆成「模板 + 实例」是最完整的一次分解，附**无损连接**与**依赖保持**两段证明 —— `tbl_coupon_template ⟕ tbl_coupon` 能还原原关系，且模板上的函数依赖不因拆表而丢失（§5.3）；会员积分（§5.1）与订单小计（§5.2）两组分解同样带证明。
+
+**⑥ 为什么拆、为什么留**：五个取舍案例逐条写"拆的收益 / 不拆的代价"（§4）。例如 `tbl_stock_ledger.ref_type` 的多态列（指向订单 / 采购单 / 手工调整），若改成每种来源一张流水表，三种来源的结存核对就要 UNION 五次，反而更容易错。
+
+项目结构图见 [`STRUCTURE.md`](STRUCTURE.md)（ASCII 树，含各层职责与硬约束）。
 
 ## 关键文档入口
 
@@ -170,7 +188,7 @@ flowchart TD
 | **怎么用这个系统（操作手册）** | [`project/docs/manual.md`](project/docs/manual.md) ← 新同学先看这个 |
 | **应用分层与启动** | [`project/app/README.md`](project/app/README.md) |
 | **v1.0 阶段报告** | [`weeks/submissions/v1.0/report.md`](weeks/submissions/v1.0/report.md) |
-| **v1.0 结果证据（31 组）** | [`weeks/submissions/v1.0/result/README.md`](weeks/submissions/v1.0/result/README.md) |
+| **v1.0 结果证据（37 图 + 20 原始输出）** | [`weeks/submissions/v1.0/result/README.md`](weeks/submissions/v1.0/result/README.md) |
 | 与搭档的技术裁决记录 | [`harness/issues/`](harness/issues/README.md)（15 条已闭环） |
 | 怎么协作、怎么提交 | [`harness/README.md`](harness/README.md) |
 

@@ -82,7 +82,7 @@ git log --no-merges --numstat --format='@@%an|%ad' --date=short --all
 
 ### 3.4 我负责的交付材料
 
-`weeks/submissions/v1.0/` 下的 **README / report.md / ai-log.md / result/（31 组证据 + 两个采集脚本）/ code/（SQL 冻结快照）**，以及 `project/docs/manual.md`（操作手册）。
+`weeks/submissions/v1.0/` 下的 **README / report.md / ai-log.md / result/（37 图 + 20 原始输出 + 三个采集脚本）/ code/（SQL 冻结快照）**，以及 `project/docs/manual.md`（操作手册）。
 
 ### 3.5 我明确**没有**做的事
 

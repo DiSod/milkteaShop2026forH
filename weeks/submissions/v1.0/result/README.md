@@ -6,7 +6,7 @@
 > ⚠️ **截图只是证据** —— 每张图背后都必须有一条**可重新执行的命令**。
 > 本目录的**数据库类**每一张 .png 都配一份同名 .txt（未经修改的 sqlcmd 原始输出），图糊了也能查、能 diff；**应用类**的原始输入是「登录会话 + 该页路由」，见上一节。
 
-**本版共 31 组证据：19 组数据库类 + 12 组应用类。**
+**本版共 37 张图 + 20 份原始输出**：设计类 3 项（`00-design/`）、数据库类 19 组（`01`—`06`）、应用类 12 组（`07-app/`）、错误类 4 张（`08-errors/`）。
 
 ---
 
@@ -58,10 +58,14 @@
 cd weeks\submissions\v1.0\result
 
 # 1) 数据库类 19 张（约 3 分钟；含一次完整 99-rebuild 日志）
+#    00-design/ 里的两张图与一份摘录由 harness/logs/tmp-make-design.py 从 project/docs 生成（不是运行输出）
 powershell -ExecutionPolicy Bypass -File capture.ps1
 
-# 2) 应用类 11 张（需先 cd project\app 并 python app.py）
+# 2) 应用类 12 张（需先 cd project\app 并 python app.py）
 powershell -ExecutionPolicy Bypass -File capture-app.ps1
+
+# 3) 错误类 4 张（400 / 409 / 404 / 405，每张都断言状态码）
+powershell -File result\08-errors\capture-errors.ps1
 
 # 只重跑某一组 / 只重截图片（源 .txt 已存在）
 powershell -ExecutionPolicy Bypass -File capture.ps1 -Only 05-query
@@ -70,6 +74,18 @@ powershell -ExecutionPolicy Bypass -File capture-app.ps1 -Only manager
 ```
 
 ---
+
+## 〇、`00-design/` —— 设计分析的静态证据
+
+课程的结果目录要求里含「设计」与「分析」两项，这两项**不是运行输出**，所以单独放一组并标注清楚：
+
+| 文件 | 是什么 | 怎么来 |
+|---|---|---|
+| `er-diagram.png` | ER 图（18 实体 / 31 联系，Crow's Foot） | 与 `project/docs/er-diagram.png` **逐字节相同**的副本 |
+| `er-legend.png` | 图例（`||` / `o|` / `o{` / `|{` 四种符号怎么读） | 与 `project/docs/er-legend.png` 相同 |
+| `normalization-verdict.txt` | 范式判定表 + 反规范化取舍论证 | 由脚本从 `project/docs/normalization.md` 的 §3/§4 **原文抽取**，避免手抄走样 |
+
+> 为什么不做成截图？范式判定是对「关系模式」的静态分析，不存在一条 SQL 能"查"出 BCNF —— 硬凑一张 `SELECT` 截图反而是假证据。所以这里给的是**可追溯的原文**，其余各组才是可执行的数据库输出。
 
 ## 二、`01-build/` —— 数据库建成后的形状
 
@@ -91,7 +107,7 @@ powershell -ExecutionPolicy Bypass -File capture-app.ps1 -Only manager
 | `rebuild-full-log.png` | `sqlcmd -i 99-rebuild.sql` 完整输出 | 12 段（00→01→02→03→04→07→08→11 五支）逐段 `【重建】`，无报错 |
 | `rebuild-summary.png` | 同上末 16 行 | 汇总行与 `schema-object-summary.png` 一致 |
 
-## 四、`03-regression/` —— 14 项回归断言
+## 四、`03-regression/` —— 15 项回归断言
 
 | 文件 | 命令 | 预期结果 |
 |---|---|---|
@@ -140,11 +156,24 @@ powershell -ExecutionPolicy Bypass -File capture-app.ps1 -Only manager
 
 ---
 
-## 九、与 v0.1 的差异
+## 九、`08-errors/` —— 四类错误的界面
+
+课程要求「有错误提示」与「测试结果（正确 + 出错）」。原来只有 403 一张（`07-app/forbidden.png`），这里补齐另外四类：
+
+| 图 | 用例 | 期望状态码 | 断言方式 |
+|---|---|---|---|
+| `error-400.png` | 下单时把数量写成 `abc` | 400 | 服务端参数校验拦住，不产生任何写入 |
+| `error-409.png` | 库管报损 `99999999g`（远超结存） | 409 | 业务规则拦住，事务回滚，结存不变 |
+| `error-404.png` | 访问不存在的路由 `/nope` | 404 | 统一错误页 |
+| `error-405.png` | 用 GET 访问只接受 POST 的 `/order` | 405 | 历史上它曾被兜底 handler 吞成 500，这条专门盯着这个回归 |
+
+生成脚本 `08-errors/capture-errors.ps1`，每个用例都会先断言状态码再截图，**状态码不对就 FAIL 并返回非零**，避免"截了一张但其实是 200"。
+
+## 十、与 v0.1 的差异
 
 | 维度 | v0.1 | v1.0 |
 |---|---|---|
-| 证据组数 | 35 组（建库 / CRUD / 查询 / 权限） | **31 组**（少了 CRUD 的逐条图，多了迁移、回归、基线、三口径、应用界面） |
+| 证据组数 | 35 组（建库 / CRUD / 查询 / 权限） | **37 张图 + 20 份原始输出**（少了 CRUD 的逐条图，多了设计分析、迁移、回归、基线、三口径、券核销、应用界面与四类错误页） |
 | 建库规模 | 17 表 / 132 字段 / 30 外键 / 43 CHECK / 21 索引 / 5 视图 | **18 表 / 139 字段 / 31 外键 / 49 CHECK / 22 索引 / 6 视图** |
 | 新类别 | — | `02-migration/`（五段迁移自证）、`03-regression/`、`04-baseline/`、`07-app/`（应用界面与角色视图） |
 | 应用截图 | 无 | 11 张，由 `capture-app.ps1` 生成 |

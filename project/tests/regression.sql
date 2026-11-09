@@ -32,7 +32,7 @@ GO
 
 DECLARE @pass_count INT = 0;
 DECLARE @fail_count INT = 0;
-DECLARE @total_tests INT = 14;
+DECLARE @total_tests INT = 15;
 
 -- 测试辅助变量
 DECLARE @test_member_id INT;
@@ -418,6 +418,85 @@ BEGIN
 END;
 
 /* ------------------------------------------------------------
+ * 断言 15：角色授权与越权防护（第 9 周追加，对应课程要求的「权限」检查）
+ *   1) 四个业务角色都在，且授权条数与覆盖对象数固定 —— 结构冻结后不应漂移；
+ *   2) 没有任何架构级（class=3）授权 —— role_manager 已从 SCHEMA::dbo 全权
+ *      改为 22 条逐对象授权，若有人重新用 GRANT ... ON SCHEMA::dbo，这里会失败；
+ *   3) 三组关键越权必须「无权限」：制作员读会员、收银员改商品、收银员读原料。
+ *      用 HAS_PERMS_BY_NAME 在 EXECUTE AS 下判定，比"真跑一条被拒的语句"更稳定
+ *      （不依赖错误号，也不会污染日志）。
+ * ------------------------------------------------------------ */
+PRINT N'[TC-15] 角色授权与越权防护：四角色授权条数 / 架构级授权 0 / 关键越权必须被拒 ...';
+
+DECLARE @perm_mgr INT, @obj_mgr INT, @perm_cash INT, @obj_cash INT;
+DECLARE @perm_stock INT, @obj_stock INT, @perm_maker INT, @obj_maker INT;
+DECLARE @schema_grants INT;
+DECLARE @deny_maker_member INT, @deny_cashier_product INT, @deny_cashier_ingredient INT;
+DECLARE @deny_stocker_order INT, @allow_manager_product INT;
+
+SELECT @perm_mgr = COUNT(*), @obj_mgr = COUNT(DISTINCT p.major_id)
+FROM sys.database_permissions p
+JOIN sys.database_principals r ON r.principal_id = p.grantee_principal_id
+WHERE r.name = N'role_manager' AND p.state IN (N'G', N'W');
+
+SELECT @perm_cash = COUNT(*), @obj_cash = COUNT(DISTINCT p.major_id)
+FROM sys.database_permissions p
+JOIN sys.database_principals r ON r.principal_id = p.grantee_principal_id
+WHERE r.name = N'role_cashier' AND p.state IN (N'G', N'W');
+
+SELECT @perm_stock = COUNT(*), @obj_stock = COUNT(DISTINCT p.major_id)
+FROM sys.database_permissions p
+JOIN sys.database_principals r ON r.principal_id = p.grantee_principal_id
+WHERE r.name = N'role_stocker' AND p.state IN (N'G', N'W');
+
+SELECT @perm_maker = COUNT(*), @obj_maker = COUNT(DISTINCT p.major_id)
+FROM sys.database_permissions p
+JOIN sys.database_principals r ON r.principal_id = p.grantee_principal_id
+WHERE r.name = N'role_maker' AND p.state IN (N'G', N'W');
+
+SELECT @schema_grants = COUNT(*) FROM sys.database_permissions WHERE class = 3;
+
+EXECUTE AS USER = N'usr_test_maker';
+SELECT @deny_maker_member = HAS_PERMS_BY_NAME(N'tbl_member', N'OBJECT', N'SELECT');
+REVERT;
+
+EXECUTE AS USER = N'usr_test_cashier';
+SELECT @deny_cashier_product = HAS_PERMS_BY_NAME(N'tbl_product', N'OBJECT', N'UPDATE'),
+       @deny_cashier_ingredient = HAS_PERMS_BY_NAME(N'tbl_ingredient', N'OBJECT', N'SELECT');
+REVERT;
+
+EXECUTE AS USER = N'usr_test_stocker';
+SELECT @deny_stocker_order = HAS_PERMS_BY_NAME(N'tbl_order_header', N'OBJECT', N'SELECT');
+REVERT;
+
+EXECUTE AS USER = N'usr_test_manager';
+SELECT @allow_manager_product = HAS_PERMS_BY_NAME(N'tbl_product', N'OBJECT', N'UPDATE');
+REVERT;
+
+IF @perm_mgr = 78 AND @obj_mgr = 24
+   AND @perm_cash = 20 AND @obj_cash = 13
+   AND @perm_stock = 10 AND @obj_stock = 6
+   AND @perm_maker = 9 AND @obj_maker = 8
+   AND @schema_grants = 0
+   AND ISNULL(@deny_maker_member, 1) = 0
+   AND ISNULL(@deny_cashier_product, 1) = 0
+   AND ISNULL(@deny_cashier_ingredient, 1) = 0
+   AND ISNULL(@deny_stocker_order, 1) = 0
+   AND ISNULL(@allow_manager_product, 0) = 1
+BEGIN
+    PRINT FORMATMESSAGE(N'  --> ✅ [PASS] 权限边界符合设计（店长 78/24、收银 20/13、库管 10/6、制作 9/8；架构级授权 0；4 组越权均被拒、店长改商品为允许）。');
+    SET @pass_count = @pass_count + 1;
+END
+ELSE
+BEGIN
+    PRINT FORMATMESSAGE(N'  --> ❌ [FAIL] 权限边界异常！店长 %d/%d、收银 %d/%d、库管 %d/%d、制作 %d/%d；架构级 %d；越权检查(制作读会员 %d, 收银改商品 %d, 收银读原料 %d, 库管读订单 %d, 店长改商品 %d)',
+        @perm_mgr, @obj_mgr, @perm_cash, @obj_cash, @perm_stock, @obj_stock, @perm_maker, @obj_maker,
+        @schema_grants, ISNULL(@deny_maker_member, -1), ISNULL(@deny_cashier_product, -1),
+        ISNULL(@deny_cashier_ingredient, -1), ISNULL(@deny_stocker_order, -1), ISNULL(@allow_manager_product, -1));
+    SET @fail_count = @fail_count + 1;
+END;
+
+/* ------------------------------------------------------------
  * 汇总评定与非零退出码机制
  * ------------------------------------------------------------ */
 PRINT N'============================================================';
@@ -431,6 +510,6 @@ BEGIN
 END
 ELSE
 BEGIN
-    PRINT N'【回归测试结论】🎉 14 项自动化断言全绿通过！模式演进、数据完整性与基线语义 100% 保持！';
+    PRINT N'【回归测试结论】🎉 15 项自动化断言全绿通过！模式演进、数据完整性与基线语义 100% 保持！';
 END;
 GO

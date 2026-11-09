@@ -68,7 +68,7 @@ Exit code: 0
 
 ## 4. 全库一键重建与基线回归集成验证
 
-在 `project/sql` 目录下运行 `99-rebuild.sql` 并执行全库 14 项自动化断言 [`regression.sql`](regression.sql)：
+在 `project/sql` 目录下运行 `99-rebuild.sql` 并执行全库 15 项自动化断言 [`regression.sql`](regression.sql)：
 
 ```text
 ============================================================
@@ -90,7 +90,7 @@ Exit code: 0
 ```powershell
 sqlcmd -S .\SQLEXPRESS -E -C -d milktea_shop -f 65001 -b -i regression.sql
 ```
-- **测试结果**：14/14 断言全绿，退出码 `0`。
+- **测试结果**：15/15 断言全绿，退出码 `0`。
 
 ---
 

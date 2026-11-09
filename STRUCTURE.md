@@ -111,7 +111,7 @@ databaseExp/
 │  │  └─ tests/                       #     46 条自动化测试（分层边界 / 权限 / 四个工作台 / 订单取消 / 券核销）
 │  ├─ docs/                           #   ER图、数据字典、设计说明
 │  └─ tests/                          #   测试用例与运行记录
-│     ├─ regression.sql               #     14 项数据库断言（迁移后必须全绿，失败返回非零）
+│     ├─ regression.sql               #     15 项数据库断言（迁移后必须全绿，失败返回非零）
 │     ├─ baseline/                    #     迁移前后数据快照（三脚本 + before/after 结果）
 │     └─ 01-migration-verification.*  #     迁移 02 的正反例验证记录
 │

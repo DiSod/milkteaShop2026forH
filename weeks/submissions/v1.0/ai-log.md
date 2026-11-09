@@ -128,7 +128,7 @@
 | 固定开场 | `harness/prompts/agent-session-start.md`（开工对齐 SOP） |
 | 需求来源 | 用户直接发指令；每次由 AI 先给**方案选项 + 代价**，用户拍板 |
 | 记录落点 | 周报（`weeks/week05`—`week07`）+ Issue 文档（`harness/issues/011`—`015`）+ 本文档 |
-| 验证证据 | `project/tests/`（14 项回归 + 41 条应用测试 + 三份基线）、`weeks/submissions/v1.0/result/`（30 组截图） |
+| 验证证据 | `project/tests/`（15 项回归 + 46 条应用测试 + 三份基线）、`weeks/submissions/v1.0/result/`（37 图 + 20 原始输出） |
 
 > **提示词不可追溯的部分如实说明**：本阶段的对话是连续长会话，
 > 本文档记录的是**每次任务的目标、AI 给的关键输出、以及人工改了什么**，

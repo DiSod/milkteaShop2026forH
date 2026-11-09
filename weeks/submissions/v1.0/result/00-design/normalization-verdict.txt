@@ -1,0 +1,80 @@
+规范化判定与反规范化取舍（摘录）
+============================================================
+来源：project/docs/normalization.md 的 §3 与 §4（内容与文档逐字一致，非运行输出）
+重新生成：python harness/logs/tmp-make-design.py（本文件由脚本从文档抽取，避免手抄走样）
+说明：范式判定是对「关系模式」的静态分析，不是某条 SQL 的查询结果，
+      因此本组以「ER 图 + 判定表摘录」的形式入档，其余组才是可执行的数据库输出。
+
+============================================================
+一、全库范式判定汇总表
+============================================================
+
+| 序号 | 关系表名 | 主码 (PK) | 候选码 (CK) | 单表范式 / 工程定性 | 结构设计与取舍说明 |
+|:---:|---|---|---|:---:|---|
+| 1 | `tbl_employee` | `employee_id` | `employee_code` | **纯净 BCNF** | 决定因素全为超码，无部分或传递依赖 |
+| 2 | `tbl_member` | `member_id` | `member_code`, `member_phone` | **BCNF / 工程反规范化** | 单表形式上满足 BCNF；保留受控跨表派生冗余列 `points_balance`（交易性能取舍） |
+| 3 | `tbl_product_category` | `category_id` | `category_code` | **纯净 BCNF** | 自引用树形结构，分类自身决定全属性 |
+| 4 | `tbl_spec_option` | `spec_option_id` | `(spec_type, spec_code)` | **纯净 BCNF** | 复合候选码，非主属性完全依赖 |
+| 5 | `tbl_ingredient` | `ingredient_id` | `ingredient_code` | **纯净 BCNF** | 单店 1:1 三表合一，决定因素均为超码 |
+| 6 | `tbl_supplier` | `supplier_id` | `supplier_code` | **纯净 BCNF** | 极简实体，决定因素均为超码 |
+| 7 | `tbl_product` | `product_id` | `product_code` | **纯净 BCNF** | 决定因素均为超码，品类仅以外码关联 |
+| 8 | `tbl_topping` | `topping_id` | `topping_code` | **纯净 BCNF** | 决定因素均为超码，原料仅以外码关联 |
+| 9 | `tbl_recipe` | `recipe_id` | `(product, cup, sugar, ingredient)` | **纯净 BCNF** | 决定因素均为超码（含 `sugar_spec_id IS NULL` 特许域语义） |
+| 10 | `tbl_purchase_order` | `purchase_order_id` | `purchase_no` | **纯净 BCNF** | 采购单头单据，决定因素均为超码 |
+| 11 | `tbl_purchase_order_detail` | `purchase_order_detail_id` | `(purchase_order_id, ingredient_id)` | **纯净 BCNF** | 采购明细，采购单价完全依赖复合候选码 |
+| 12 | `tbl_coupon_template` | `template_id` | `template_code` | **纯净 BCNF** | 券种元数据字典，决定因素均为超码 |
+| 12a | `tbl_coupon` | `coupon_id` | `coupon_code` | **纯净 BCNF** | 优惠券实例，外键关联模板，唯一券码决定全属性 |
+| 13 | `tbl_order_header` | `order_id` | `order_no`, `(business_date, pickup_no)` | **BCNF / 工程反规范化** | 单表形式上满足 BCNF；保留受控跨表派生列 `amount_due`（免明细扫描对账） |
+| 14 | `tbl_order_detail` | `order_detail_id` | `(order_id, line_no)` | **BCNF / 工程反规范化** | 单表形式上满足 BCNF；保留受控跨表派生列 `subtotal`（含加料汇总快照） |
+| 15 | `tbl_order_detail_topping` | `od_topping_id` | `(order_detail_id, topping_id)` | **纯净 BCNF** | 快照单价完全依赖于复合候选码 |
+| 16 | `tbl_points_ledger` | `point_ledger_id` | 无业务候选码 | **纯净 BCNF** | 纯净只增追加账本 |
+| 17 | `tbl_stock_ledger` | `ledger_id` | 无业务候选码 | **纯净 BCNF** | 纯净流水账本（含外码互斥约束） |
+
+> **口径汇总（严密闭环）**：全库 18 张表中，**15 张为纯净 BCNF**，**3 张为含受控跨表派生冗余列的工程反规范化表**（在单表封闭体系下亦完全满足 BCNF）。全库合计 15 + 3 = 18。
+
+---
+
+
+============================================================
+二、反规范化取舍论证
+============================================================
+
+课程第 5 周提示：「**设计合理的部分写明保留理由，重复与异常得到解释**」。以下 5 大案例构成本项目的核心架构决策论据：
+
+### 4.1 案例一：`tbl_recipe.sugar_spec_id IS NULL` 的域语义 vs 范式
+- **争议焦点**：在 `tbl_recipe` 中，当某种原料用量与糖度维度无关（例如：幽兰拿铁无论全糖还是无糖，红茶茶汤的用量都是 200ml），`sugar_spec_id` 填入 `NULL`。部分学者认为关系模型不应允许候选码中出现 `NULL`，主张拆分为两张子表：`tbl_recipe_sugar_dependent` 与 `tbl_recipe_base`。
+- **取舍论证**：
+  1. **域语义保真（DOM-12）**：`NONE` 在业务中是真实的「无糖」选项（需要店员按标准操作规程不加糖浆，这本身是一种糖度选择），而不是「与糖度无关」；用 `NULL` 表达**维度不参与**在语义上最为精准；
+  2. **查询与维护成本**：如果拆分为两张表，则每次收银结账扣减库存（BOM 反冲计算）时，必须对两张子表执行 `UNION ALL`，并维护两套不同的候选码与外码关联，不仅使得 SQL 变长变慢，而且极易漏扣；
+  3. **SQL Server 唯一性保证**：SQL Server 将 `NULL` 视为参与唯一性校验的值。借助 `uq_recipe_product_cup_sugar_ingredient`，`('幽兰拿铁', '大杯', NULL, '红茶汤')` 在全库依然只被允许存在唯一一行，**引用完整性硬性闭环（D-05a）**。
+
+### 4.2 案例二：`tbl_stock_ledger` 多态来源（判别列 + 3 真外键）
+- **争议焦点**：流水表通过判别列 `ref_type`（`PURCHASE` / `ORDER` / `MANUAL` / `OPENING`）配合可空的真外键（`purchase_order_id` / `order_id`）表达来源，导致表内存在可空列。学术上常建议拆分为 3 张各自拥有非空外键的子流水表。
+- **取舍论证**：
+  1. **全链路进销存审计性能（Q4 审计）**：单店打烊对账是系统最核心的高频业务。若拆为 3 张子表，计算任意原料的期末库存平衡式（$\text{期初} + \text{入库} - \text{耗用} - \text{报损} = \text{现存}$）需做 3 表全量扫描并做大并集连接；
+  2. **类型安全不妥协（D-09）**：本项目坚决**不用无约束的弱类型字符串 `ref_no`**，而是保留真实外键约束，由数据库底层强制校验引用目标的存在性；
+  3. **跨列互斥 CHECK 兜底**：通过 `ck_stock_ledger_ref_consistency` 强制约束当 `ref_type = 'PURCHASE'` 时必须且只能关联 `purchase_order_id`，杜绝了悬空与多态乱挂。
+
+### 4.3 案例三：`tbl_member.points_balance` 冗余积分余额（D-12 决策）
+- **争议焦点**：会员积分余额是派生属性，严格规范化要求不存余额，查余额时现场对 `tbl_points_ledger` 进行 `SUM(point_change)` 计算。
+- **取舍论证**：
+  1. **收银场景高并发与低延迟**：奶茶店高峰期点单以秒计，前台必须毫秒级读取会员可用积分并完成抵扣核验；若每次点单均全扫描该会员历史所有流水（随年限增加数据量不断膨胀），会导致点单事务严重锁死与 I/O 劣化；
+  2. **一致性保证机制**：反规范化冗余的 `points_balance` 绝不由前端盲改，其修改必须且只能与 `tbl_points_ledger` 的插入包裹在同一 ACID 事务中（详见第 10/13 周事务控制），保证余额与流水账账相符。
+
+### 4.4 案例四：`tbl_order_detail.subtotal` 冗余金额与跨表小料一致性
+- **争议焦点**：明细小计本可通过公式计算，是否应在数据库中加行级 `CHECK (subtotal = qty * unit_price)` 或直接删掉该列？
+- **实测与反转证据（ISSUE-011 关键定案）**：
+  - 工程侧穿透实测：全库 2,629 行明细中，614 行加料明细的 $subtotal \ne qty \times unit\_price$；
+  - 联合检验恒等式：$subtotal = (qty \times unit\_price) + \sum(topping\_qty \times topping\_unit\_price)$，实测 **2,629 行 100% 严丝合缝匹配，0 差额**！
+- **取舍论证**：
+  1. **坚决否决单表 CHECK**：若盲目加行级 CHECK 将直接打崩 23.4% 的合法加料订单；
+  2. **对账与打印吞吐**：收银小票打印与日结对账无需每次对加料表明细执行 `LEFT JOIN` 与 `SUM()`，显著提升单据拉取速度；
+  3. **一致性落点**：跨表一致性由业务应用层事务与阶段三触发器共同筑牢防线。
+
+### 4.5 案例五：`tbl_ingredient` 三表合一（单店物理设计）
+- **争议焦点**：静态字典信息（名称/规格）、动态库存（现存量）、采购控制（预警线/目标水位/移动平均价）合并在一张表。
+- **取舍论证**：
+  - 在连锁大集团架构中，通常拆分为「全局物料主数据」「门店库存表」「采购参数表」；
+  - 但本项目边界清晰定义为**单店系统**，单店下三种实体严格 1:1。强行拆成三张表仅会增加两个冗余的外键和无谓的 `INNER JOIN`，属于无意义的「过度设计」。
+
+---
