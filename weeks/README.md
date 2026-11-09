@@ -27,7 +27,7 @@ project/sql/NN-xxx/ 正式脚本
 
 ## 周次索引
 
-> 目录按需创建（当前 `week01/` — `week07/`），索引表先行，便于查看全局进度。
+> 目录按需创建（当前 `week01/` — `week07/` 与合并的 `week08-09/`），索引表先行，便于查看全局进度。
 > 状态：✅ 已完成　🔄 进行中　⬜ 未开始
 
 | 周次 | 理论内容 | 当周产出 | 状态 | 目录 |
@@ -39,8 +39,8 @@ project/sql/NN-xxx/ 正式脚本
 | 5 | ch6 ER 模型 | **ER 图、业务规则与映射清单、v0.1 问题清单**；兼**阶段一 v0.1 交付**（交接见 [`week05/README.md`](week05/README.md)） | ✅ | [`week05/`](week05/) → `project/docs/` |
 | 6 | ch7 函数依赖与规范化 | 依赖分析、分解方案、`migration.sql`、回归测试 | ✅ | [`week06/`](week06/) → `project/docs/normalization.md`、`project/sql/11-migration/` |
 | 7 | ch8 应用开发（一） | 选型定案（Flask 三层）→ 连接配置 / DAO / 登录 / 基础 CRUD 界面落地；四岗位工作台、登录凭据迁移、全员 MD3 界面 | ✅ | [`week07/`](week07/) → `project/app/` |
-| 8 | ch8 应用开发（二） | 可运行应用（20 条路由 / 13 个模板）、测试脚本（**41 条 pytest + 14 项库回归**）、[操作手册](../project/docs/manual.md) | ✅ | `project/app/` + `project/tests/` + `project/docs/manual.md` |
-| 9 | ch8 应用开发（二·续） | 角色界面（四个岗位工作台 + 顾客 4 页）、**订单取消（仅「待制作」）**、集成测试与证据归档（30 组 `result/`） | ✅ | `weeks/submissions/v1.0/` |
+| 8 | ch8 应用开发（二） | 可运行应用（20 条路由 / 13 个模板）、测试脚本（**41 条 pytest + 14 项库回归**）、[操作手册](../project/docs/manual.md) | ✅ | [`week08-09/`](week08-09/) → `project/app/` + `project/tests/` + `project/docs/manual.md` |
+| 9 | ch8 应用开发（二·续） | 角色界面（四个岗位工作台 + 顾客 4 页）、**订单取消（仅「待制作」）**、集成测试与证据归档（30 组 `result/`） | ✅ | [`week08-09/`](week08-09/) → `weeks/submissions/v1.0/` |
 | 10 | — | **阶段二提交 v1.0** + 展示（第 10 周）；六件材料 5/6 齐（缺组内分工表） | 🟡 | `weeks/submissions/v1.0/` |
 | 11 | 存储过程与函数 | 过程、函数 | ⬜ | — |
 | 12 | 触发器 | 触发器 | ⬜ | — |
