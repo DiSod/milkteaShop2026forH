@@ -172,7 +172,7 @@
 
 | 口径 | 定义 | 用途 |
 |---|---|---|
-| **D（主口径）** | `pay_status='SUCCESS'` 的 `SUM(amount_paid)` | 系统里所有"销售额"都用它 |
+| **D（主口径）** | `pay_status='SUCCESS'` **且** `order_status <> 'CANCELLED'` 的 `SUM(amount_paid)` | 系统里所有"销售额"都用它（取消单已退款，不计入） |
 | A | 全量 `SUM(amount_paid)` | 对照用，含 `FAILED`（已退款） |
 | B | 仅 `order_status='COMPLETED'` | 对照用，不含进行中 |
 | 净收入 | `vw_daily_business_summary.net_revenue` | 该视图**无 WHERE**，含 446 元退款，**不是 D 口径** |

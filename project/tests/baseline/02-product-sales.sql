@@ -7,6 +7,8 @@
  * ⭐ 销售额口径（第 6 周裁定，见 weeks/week06/README.md §六）：
  *   A 全量      —— 不分状态，1,963 单
  *   D 已收款    —— pay_status = 'SUCCESS'，**主口径**
+ *                   （应用层第 9 周起追加 order_status <>'CANCELLED'；本快照脚本
+ *                     未改，因为种子数据里没有"SUCCESS 且 CANCELLED"的行，结果一致）
  *   B 已完成    —— order_status = 'COMPLETED'
  *   三者是包含关系 A ⊃ D ⊃ B，数字互不相同，三个都要留档。
  *

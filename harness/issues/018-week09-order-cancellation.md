@@ -72,4 +72,5 @@ PENDING → MAKING → READY → COMPLETED
 
 ## 7. 解决记录
 
-- **2026-11-09**：实现并合入 `main`（提交 `60639e9`）。报告 `§1.4` 改为六段迁移、`§2.2` 执行顺序补第 13 步、`§2.3` 增「订单取消」小节；`business-rules.md` A14 补"第 9 周起新取消会回冲"；应用 README 增边界 11。
+- **2026-11-09**：实现并合入 `main`（提交 `60639e9`）。
+- **2026-11-09（同日追加）**：修掉取消功能暴露的口径缺陷 —— `pay_status='SUCCESS'` 只排除了未支付单，不排除"已收款又取消"的单，报表会把退款算成营业额。D 口径统一追加 `order_status <> 'CANCELLED'`（`dao/report_dao.py` 的 Top N、`regression.sql` TC-10 的主查询与运行期查询）；`business-rules.md` A10、`manual.md` §8、报告 §3 同步。种子数据里没有 "SUCCESS 且 CANCELLED" 的行，故 1,926 单 / 23,762.00 不变；实测"下单 +1 单 4.00 → 取消后回到基线"，旧口径仍会把它算进去。`vw_daily_business_summary` 有意不动（保持全量口径，`cancelled_orders` 单独成列）。报告 `§1.4` 改为六段迁移、`§2.2` 执行顺序补第 13 步、`§2.3` 增「订单取消」小节；`business-rules.md` A14 补"第 9 周起新取消会回冲"；应用 README 增边界 11。

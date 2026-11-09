@@ -26,6 +26,7 @@ def product_sales(s, limit: int = 10) -> list:
         "  JOIN tbl_product p ON p.product_id = d.product_id "
         "  JOIN tbl_order_header h ON h.order_id = d.order_id "
         " WHERE h.pay_status = 'SUCCESS' "
+        "   AND h.order_status <> 'CANCELLED' "   # 取消单不计销售额
         " GROUP BY p.product_id, p.product_name "
         " ORDER BY cups DESC, p.product_id",
         (limit,),

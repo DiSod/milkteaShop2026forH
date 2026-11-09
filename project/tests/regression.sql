@@ -248,20 +248,22 @@ DELETE FROM tbl_coupon WHERE coupon_code LIKE 'REG-CPN-%';
  * 改坏」，不是「业务数据不许增长」。
  * ------------------------------------------------------------ */
 DECLARE @baseline_cutoff DATE = '2026-10-01';
-PRINT N'[TC-10] 基线断言：已收款销售额 D 口径校验 (pay_status = ''SUCCESS'' 且 business_date < 2026-10-01) ...';
+PRINT N'[TC-10] 基线断言：已收款销售额 D 口径校验 (pay_status = ''SUCCESS'' 且 order_status <> ''CANCELLED'' 且 business_date < 2026-10-01) ...';
 DECLARE @sales_orders INT, @sales_amt DECIMAL(12,2);
 SELECT
     @sales_orders = COUNT(*),
     @sales_amt = ISNULL(SUM(amount_paid), 0)
 FROM tbl_order_header
-WHERE pay_status = 'SUCCESS' AND business_date < @baseline_cutoff;
+WHERE pay_status = 'SUCCESS' AND order_status <> 'CANCELLED'
+  AND business_date < @baseline_cutoff;
 
 DECLARE @live_orders INT, @live_amt DECIMAL(12,2);
 SELECT
     @live_orders = COUNT(*),
     @live_amt = ISNULL(SUM(amount_paid), 0)
 FROM tbl_order_header
-WHERE pay_status = 'SUCCESS' AND business_date >= @baseline_cutoff;
+WHERE pay_status = 'SUCCESS' AND order_status <> 'CANCELLED'
+  AND business_date >= @baseline_cutoff;
 
 PRINT FORMATMESSAGE(N'      种子口径 %d 单 / %s 元；运行期新增（不参与断言）%d 单 / %s 元',
     @sales_orders, CAST(@sales_amt AS VARCHAR(20)),
