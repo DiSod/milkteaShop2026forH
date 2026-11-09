@@ -8,7 +8,7 @@
 > 表格卡片化、filled text field（浮动标签）、饮品卡片 + 弹窗定制、底部悬浮价格栏与购物车抽屉、
 > 折叠区与店长台图表。改动集中在 `project/app/web/**`。
 > 数据层（`project/sql/**`）、测试（`project/tests/**`）、文档（`project/docs/**`）未受影响：
-> `99-rebuild.sql` exit=0、`regression.sql` 14/14、`pytest` 38 passed。**现在可以正常拉取 `main`。**
+> `99-rebuild.sql` exit=0、`regression.sql` 14/14、`pytest` **41 passed**。**现在可以正常拉取 `main`。**
 
 ## 项目范围
 
@@ -216,7 +216,7 @@ sqlcmd -S .\SQLEXPRESS -E -C -f 65001 -i 99-rebuild.sql
 
 ```powershell
 sqlcmd -S .\SQLEXPRESS -E -C -f 65001 -d milktea_shop -i project\tests\regression.sql   # 期望 14/14
-cd project\app; python -m pytest -q                                                      # 期望 38 passed
+cd project\app; python -m pytest -q                                                      # 期望 41 passed
 ```
 
 > ⚠️ **含中文的 `.sql` 必须存为 UTF-8 带 BOM** —— 否则 `sqlcmd` 会**静默失效**（无报错，但一行都不生效）。
