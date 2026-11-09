@@ -12,6 +12,8 @@
 
 ---
 
+这一版是从 v0.1 那 17 张表接着往前做的：结构上多了券模板与登录凭据，应用从零写到四个岗位都能跑通，界面整体换成 Material Design 3。下面按提交清单逐件交代落点，再给复现步骤和这一版没做的事。
+
 ## 一、六件提交物
 
 | # | 提交物 | 落点 | 状态 |
@@ -21,7 +23,7 @@
 | 3 | **结果证据 `result/`** | [`result/README.md`](result/)（**37 图 + 20 原始输出**：设计 3 项 / 数据库 19 组 / 应用 12 组 / 错误 4 张） | ✅ |
 | 4 | **阶段报告** | [`report.md`](report.md)（三章 18 节 + 附录 A/B） | ✅ |
 | 5 | **AI 使用记录** | [`ai-log.md`](ai-log.md)（11 条使用记录 + **6 条业务纠错** + 10 条被否决方案） | ✅ |
-| 6 | **组内分工表** | [`contributions.md`](contributions.md) + 报告附录 B | 🟡 已建，等何争霖确认 §4；请见 [`ISSUE-020`](../../../harness/issues/016-v1.0-delivery-handoff.md) |
+| 6 | **组内分工表** | [`contributions.md`](contributions.md) + 报告附录 B | 🟡 已建，等何争霖确认 §4；请见 [`ISSUE-020`](../../../harness/issues/020-v1.0-contributions-fill-in.md) |
 
 > **操作手册**不在课程清单里，但为了让"应用可用性"可被复核，单独写了一份：
 > [`project/docs/manual.md`](../../../project/docs/manual.md)。
@@ -94,13 +96,13 @@ powershell -ExecutionPolicy Bypass -File capture-app.ps1      # 12 组应用类�
 | [`code/`](code/) | **`project/sql/` 的冻结快照**（19 个文件：建库 / 建表 / 约束 / 索引 / 种子 / CRUD / 查询 / 视图 / 角色 / 七段迁移 / `99-rebuild.sql`），逐字节复制 |
 | [`v0.1/`](../v0.1/) | 第一阶段提交快照（只读对照） |
 
-> **为什么 `code/` 只放 SQL**：课程第 2 项要求的是「sql 目录」的五类脚本，评审要能直接读到 `.sql`；
-> 而应用（Flask 三层）留在 `project/app/`，避免把整棵代码树复制两遍后立刻与 `main` 分叉。
-> `code/` 与 `project/sql/` 在冻结时刻**逐字节相同**（复制时已用 sha256 逐个核对）。
+课程第 2 项要的是「sql 目录」的五类脚本，所以 `code/` 只放 SQL，评审能直接读到 `.sql`。
+应用（Flask 三层）留在 `project/app/`，避免把整棵代码树复制两遍、复制完立刻就和 `main` 分叉。
+`code/` 与 `project/sql/` 在冻结时刻逐字节相同（复制时用 sha256 逐个核对过）。
 
 ---
 
-## 五、这一版没做什么（如实交代）
+## 五、这一版没做的事
 
 | 未做 | 原因 | 何时 |
 |---|---|---|
