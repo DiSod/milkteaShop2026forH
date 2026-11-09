@@ -77,7 +77,7 @@ powershell -ExecutionPolicy Bypass -File capture-app.ps1 -Only manager
 |---|---|---|
 | `schema-object-summary.png` | `sys.*` 统计脚本（`capture.ps1` 内联） | **18 表 / 139 字段 / 18 主键 / 18 唯一约束 / 31 外键 / 48 CHECK / 22 业务索引 / 6 视图 / 4 自定义角色** |
 | `db-settings.png` | `SELECT name, collation_name, compatibility_level, recovery_model_desc FROM sys.databases` | `Chinese_PRC_CI_AS` / **160** / `SIMPLE` |
-| `table-row-counts.png` | 18 表逐表 `COUNT(*)` | 合计 **21,061** 行（订单 1,963 / 明细 2,629 / 加料 614 / 库存流水 13,851 / 积分流水 1,259） |
+| `table-row-counts.png` | 18 表逐表 `COUNT(*)` | 合计 **21,067** 行（订单 1,963 / 明细 2,629 / 加料 614 / 库存流水 13,851 / 积分流水 1,259） |
 
 ## 三、`02-migration/` —— 五段迁移的落地证据
 

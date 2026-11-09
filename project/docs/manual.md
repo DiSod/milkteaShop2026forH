@@ -218,3 +218,51 @@
 | 中文乱码 / 数据没进去 | `.sql` 是否 **UTF-8 带 BOM**、`sqlcmd` 是否带 `-f 65001` |
 | 改了模板没生效 | Flask 非 debug 模式会**缓存 Jinja 模板** —— 重启进程；改 CSS/JS 不用重启 |
 | 回归变红 | `regression.sql` 只断言**种子区间**（`business_date < '2026-10-01'`），运行期新增订单不参与断言；若断言红，先看它打印的实际值 |
+
+---
+
+## 11. 怎么验一遍（10 分钟验收清单）
+
+> 服务地址默认 `http://127.0.0.1:5000`；`/health` 返回 `tables:18` 说明库连上了。
+
+| # | 操作 | 预期 |
+|---|---|---|
+| 1 | 会员 `13800000001` / `000001` 登录 | 进「今日菜单」，导航有 菜单 / 我的订单 / 我的券 / 我的积分 |
+| 2 | 「我的券」 | 可用 2 张（5 元无门槛、有效期至 2026-12-09） |
+| 3 | 点一张饮品卡 → 选杯型/糖度/冰量/数量/加料 | 弹窗底部小计随选择实时变化 |
+| 4 | 「加入订单」→ 底部悬浮栏 → 选券 → 提交 | flash 显示「实付 X 元，用券抵扣 5.00 元，获得 N 积分」 |
+| 5 | 「我的订单」 | 进行中 1 单，实付旁有被划掉的原价 |
+| 6 | 点「取消订单」 | 移入历史订单、状态「已取消」，券回到可用 |
+| 7 | 「我的积分」 | 下单 +N、取消 −N，余额与下单前一致 |
+| 8 | 员工 `E002` / `e002` → `/cashier`，手机号留空下单 | 成功，但**不产生积分**（散客单） |
+| 9 | `E003` / `e003` → `/maker`，推状态 | 待制作 → 制作中 → 待取餐 → 完成 |
+| 10 | `E005` / `e005` 访问 `/manager` | **403**「当前岗位无权进入该页面」 |
+| 11 | 浏览器直接开 `/order`（GET） | **405**（不是 500） |
+| 12 | 浏览器开 `/nope` | **404** |
+
+**数据库侧四条自证**（`sqlcmd -d milktea_shop`）：
+
+```sql
+-- 一券一单：应为 0 行
+SELECT coupon_id, COUNT(*) FROM tbl_order_header
+WHERE coupon_id IS NOT NULL GROUP BY coupon_id HAVING COUNT(*) > 1;
+
+-- 库存不变量 A6：应为 0 行
+SELECT i.ingredient_id FROM tbl_ingredient i
+WHERE i.qty_on_hand <> (SELECT SUM(qty) FROM tbl_stock_ledger l
+                        WHERE l.ingredient_id = i.ingredient_id);
+
+-- 积分对账 A4：两个数必须相等
+SELECT (SELECT SUM(points_balance) FROM tbl_member) AS 余额,
+       (SELECT SUM(point_change) FROM tbl_points_ledger) AS 流水;
+
+-- 券状态分布：24 USED + 6 UNUSED
+SELECT status, COUNT(*) FROM tbl_coupon GROUP BY status;
+```
+
+**验完想恢复种子基线**（会清掉演示单，约 20 秒）：
+
+```bash
+cd project/sql
+sqlcmd -S .\SQLEXPRESS -E -C -b -f 65001 -i .\99-rebuild.sql
+```
