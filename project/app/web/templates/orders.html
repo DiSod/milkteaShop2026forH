@@ -32,7 +32,10 @@
               {% if o.status_hint %}<span class="order-hint">{{ o.status_hint }}</span>{% endif %}
             </div>
           </td>
-          <td class="text-end">{{ '%.2f'|format(o.amount_paid) }}</td>
+          <td class="text-end">
+            {{ '%.2f'|format(o.amount_paid) }}
+            {% if o.amount_due and o.amount_due > o.amount_paid %}<span class="price-was">{{ '%.2f'|format(o.amount_due) }}</span>{% endif %}
+          </td>
           <td class="text-muted small">{{ o.order_time }}</td>
           <td class="text-end">
             {% if o.status == 'PENDING' %}
@@ -81,7 +84,10 @@
           <td><code>{{ o.order_no }}</code></td>
           <td>{{ o.business_date }}</td>
           <td>{{ o.pickup_no }}</td>
-          <td class="text-end">{{ '%.2f'|format(o.amount_paid) }}</td>
+          <td class="text-end">
+            {{ '%.2f'|format(o.amount_paid) }}
+            {% if o.amount_due and o.amount_due > o.amount_paid %}<span class="price-was">{{ '%.2f'|format(o.amount_due) }}</span>{% endif %}
+          </td>
           <td>{{ o.pay_status }}</td>
           <td><span class="badge bg-{{ o.status_tone }}">{{ o.status_label }}</span></td>
           <td class="text-muted small">{{ o.order_time }}</td>

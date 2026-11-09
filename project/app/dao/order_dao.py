@@ -26,24 +26,41 @@ def next_sequence(s, business_date: str):
 
 def insert_header(s, order_no, business_date, pickup_no, member_id,
                   discount_amount, amount_due, amount_paid, pay_method,
-                  pay_status, order_status, cashier_id=None) -> int:
+                  pay_status, order_status, cashier_id=None, coupon_id=None) -> int:
     row = s.query_one(
         """
         SET NOCOUNT ON;
         INSERT INTO tbl_order_header
-            (order_no, business_date, pickup_no, member_id, discount_amount,
-             amount_due, amount_paid, pay_method, pay_status, order_status,
-             order_time, cashier_id)
+            (order_no, business_date, pickup_no, member_id, coupon_id,
+             discount_amount, amount_due, amount_paid, pay_method, pay_status,
+             order_status, order_time, cashier_id)
         OUTPUT INSERTED.order_id
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, SYSDATETIME(), ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, SYSDATETIME(), ?)
         """,
         (
-            order_no, business_date, pickup_no, member_id, discount_amount,
-            amount_due, amount_paid, pay_method, pay_status, order_status,
+            order_no, business_date, pickup_no, member_id, coupon_id,
+            discount_amount, amount_due, amount_paid, pay_method, pay_status,
+            order_status,
             cashier_id if cashier_id is not None else SYSTEM_CASHIER_ID,
         ),
     )
     return int(row[0])
+
+
+def detach_coupon(s, order_id: int) -> int:
+    """把订单上的券解绑（``coupon_id`` 置空）。退券前必须先做这一步。
+
+    ``uq_order_header_coupon`` 是过滤唯一索引：券退回 ``UNUSED`` 但仍挂在这张
+    单上时，下一单再用同一张券会撞唯一索引。
+    """
+    return s.execute(
+        """
+        UPDATE tbl_order_header
+           SET coupon_id = NULL
+         WHERE order_id = ? AND coupon_id IS NOT NULL
+        """,
+        (order_id,),
+    )
 
 
 def insert_detail(s, order_id, line_no, product_id, qty, unit_price,

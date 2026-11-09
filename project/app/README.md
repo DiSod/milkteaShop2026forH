@@ -1,11 +1,11 @@
 # app · 应用界面（v1.0）
 
-第 2 阶段的应用层实现：在 **18 表 / 139 字段 / 31 外键 / 48 CHECK** 的 v1.0 库上，
+第 2 阶段的应用层实现：在 **18 表 / 139 字段 / 31 外键 / 49 CHECK** 的 v1.0 库上，
 完成「登录 → 点单 → 写库 → 工作台接单」的全流程。
 
 | 项目 | 内容 |
 |---|---|
-| 当前状态 | 🟢 **第 9 周**：四岗位工作台、商品维护、库存查询与调整、订单取消（仅待制作）、41 条自动化测试全部通过；界面已完成 **Material Design 3 重构**（20 条路由 / 13 个模板） |
+| 当前状态 | 🟢 **第 9 周**：四岗位工作台、商品维护、库存查询与调整、订单取消（仅待制作）、券核销、46 条自动化测试全部通过；界面已完成 **Material Design 3 重构**（21 条路由 / 13 个模板） |
 | 技术栈 | Flask 3 + Jinja2 + 本地 Bootstrap 5.3.3（**Material Design 3 视觉层**）+ Chart.js 4 图表 + pyodbc（**方案 B**，见 `../../weeks/week07/README.md` §七） |
 | Python | 3.12（`SQL Server` 与 `ODBC Driver 17 for SQL Server` 均可） |
 | 数据库 | `milktea_shop`，Windows 认证连接，**每请求切换数据库身份** |
@@ -115,7 +115,7 @@ python app.py                    # http://127.0.0.1:5000
 
 ```powershell
 cd project\app
-python -m pytest -q      # 期望 41 passed
+python -m pytest -q      # 期望 46 passed
 ```
 
 其中 `tests/test_layering.py` 与 `tests/test_auth_hash.py` 共 8 条是本机就能跑的

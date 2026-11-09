@@ -81,12 +81,16 @@ END;
 /* ------------------------------------------------------------
  * 断言 3：优惠券实例总数与孤儿数据校验
  * ------------------------------------------------------------ */
-PRINT N'[TC-03] 校验 tbl_coupon 实例总数是否为 24 且无孤儿券记录 ...';
-DECLARE @cpn_cnt INT, @cpn_orphan INT;
-SELECT @cpn_cnt = COUNT(*), @cpn_orphan = SUM(CASE WHEN template_id IS NULL THEN 1 ELSE 0 END) FROM tbl_coupon;
+PRINT N'[TC-03] 校验种子区间 tbl_coupon 实例数是否为 24 且无孤儿券记录 ...';
+-- 口径：只锁 v0.1 种子区间（valid_from < 2026-10-01）的 24 张券。
+-- 第 9 周 migration-07 默认发放的 CPDEF 券属于运行期数据，单独统计、不参与断言。
+DECLARE @cpn_cnt INT, @cpn_orphan INT, @cpn_all INT;
+SELECT @cpn_cnt = COUNT(*), @cpn_orphan = SUM(CASE WHEN template_id IS NULL THEN 1 ELSE 0 END)
+FROM tbl_coupon WHERE valid_from < '2026-10-01';
+SELECT @cpn_all = COUNT(*) FROM tbl_coupon;
 IF @cpn_cnt = 24 AND @cpn_orphan = 0
 BEGIN
-    PRINT FORMATMESSAGE(N'  --> ✅ [PASS] 优惠券实例总数 24，孤儿券记录数 0。');
+    PRINT FORMATMESSAGE(N'  --> ✅ [PASS] 种子券 24 张、孤儿券 0；全库现有 %d 张（第 9 周默认发放的可用券不计入断言）。', @cpn_all);
     SET @pass_count = @pass_count + 1;
 END
 ELSE
@@ -102,11 +106,11 @@ PRINT N'[TC-04] 校验向后兼容视图 vw_coupon_legacy 可用性 ...';
 DECLARE @vw_cnt INT, @vw_nulls INT;
 SELECT @vw_cnt = COUNT(*), 
        @vw_nulls = SUM(CASE WHEN coupon_name IS NULL OR discount_amount IS NULL OR min_order_amount IS NULL THEN 1 ELSE 0 END)
-FROM vw_coupon_legacy;
+FROM vw_coupon_legacy WHERE valid_from < '2026-10-01';
 
 IF @vw_cnt = 24 AND @vw_nulls = 0
 BEGIN
-    PRINT FORMATMESSAGE(N'  --> ✅ [PASS] 兼容视图返回 24 行且模板字段 100%% 完整投影。');
+    PRINT FORMATMESSAGE(N'  --> ✅ [PASS] 兼容视图按种子口径返回 24 行且模板字段 100%% 完整投影。');
     SET @pass_count = @pass_count + 1;
 END
 ELSE

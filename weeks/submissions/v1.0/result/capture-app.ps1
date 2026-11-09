@@ -162,7 +162,7 @@ if (-not (Test-App)) {
 }
 New-Dir $outDir
 
-$targets = if ($Only -eq '') { @('login','menu','menu-modal','cart','orders','me','cashier','maker','stocker','manager','forbidden') }
+$targets = if ($Only -eq '') { @('login','menu','menu-modal','cart','orders','coupons','me','cashier','maker','stocker','manager','forbidden') }
            else { $Only.Split(',') | ForEach-Object { $_.Trim() } }
 
 $memberSess = New-Session
@@ -187,6 +187,7 @@ foreach ($t in $targets) {
                 'menu-modal'{ Save-Source 'menu-modal' '/' $memberSess $scriptModal | Out-Null }
                 'cart'      { Save-Source 'cart' '/' $memberSess $scriptCart | Out-Null }
                 'orders'    { Save-Source 'orders' '/orders' $memberSess | Out-Null }
+                'coupons'   { Save-Source 'coupons' '/coupons' $memberSess | Out-Null }
                 'me'        { Save-Source 'me' '/me' $memberSess | Out-Null }
                 'cashier'   { Save-Source 'cashier' '/cashier' $staffSess['CASHIER'] | Out-Null }
                 'maker'     { Save-Source 'maker' '/maker' $staffSess['MAKER'] | Out-Null }

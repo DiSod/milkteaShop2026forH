@@ -9,7 +9,7 @@
 
 from decimal import Decimal
 
-from dao import catalog_dao, db, member_dao, order_dao, stock_dao
+from dao import catalog_dao, coupon_dao, db, member_dao, order_dao, stock_dao
 from service.errors import (
     BusinessRuleViolation,
     NotFound,
@@ -45,11 +45,13 @@ def _validate(items) -> None:
                 raise ValidationError("商品选项不完整，请重新选择")
 
 
-def place_order(member_id, items, cashier_id=None) -> dict:
+def place_order(member_id, items, cashier_id=None, coupon_id=None) -> dict:
     """下单。
 
-    ``member_id`` 为 ``None`` 表示散客（收银台代客下单），此时不产生积分。
+    ``member_id`` 为 ``None`` 表示散客（收银台代客下单），此时不产生积分，
+    也不能用券 —— 券本来就只属于会员。
     ``cashier_id`` 为空时由 ``order_dao`` 落一个系统收银员（见那里的说明）。
+    ``coupon_id`` 为空表示不用券；门槛按券前金额算，抵扣不超过订单金额。
     """
     _validate(items)
 
@@ -102,7 +104,22 @@ def place_order(member_id, items, cashier_id=None) -> dict:
             )
 
         amount_due = sum((p["subtotal"] for p in priced), Decimal("0.00"))
+
+        # 用券：只认「本人的、未用的、在有效期内的」券。门槛按券前金额算；
+        # 抵扣不超过订单金额（券可能比单贵，此时实付 0 而不是负数）。
         discount = Decimal("0.00")
+        if coupon_id is not None:
+            if member_id is None:
+                raise ValidationError("散客单不能使用会员券")
+            coupon = coupon_dao.get_redeemable(s, coupon_id, member_id)
+            if coupon is None:
+                raise BusinessRuleViolation("这张券不可用（可能已被用掉或已过期）")
+            face, min_amount = _dec(coupon[0]), _dec(coupon[1])
+            if amount_due < min_amount:
+                raise BusinessRuleViolation(
+                    "这张券需要满 %s 元才能用，当前是 %s 元" % (min_amount, amount_due)
+                )
+            discount = face if face < amount_due else amount_due
         amount_paid = amount_due - discount
 
         # 原料总需求先算完再一次性校验，避免逐行扣减后才发现不够
@@ -137,6 +154,7 @@ def place_order(member_id, items, cashier_id=None) -> dict:
             pay_status=PAY_STATUS,
             order_status=ORDER_STATUS,
             cashier_id=cashier_id,
+            coupon_id=coupon_id,
         )
 
         for p in priced:
@@ -168,6 +186,11 @@ def place_order(member_id, items, cashier_id=None) -> dict:
                 order_dao.insert_points(s, member_id, order_id, earned)
                 member_dao.add_points(s, member_id, earned)
 
+        # 券核销放在最后一步：前面库存、积分都写成功了，这里失败就整单回滚
+        if coupon_id is not None:
+            if coupon_dao.mark_used(s, coupon_id, member_id) != 1:
+                raise BusinessRuleViolation("这张券刚刚被用掉或已过期，请换一张再提交")
+
         s.commit()
 
     return {
@@ -177,6 +200,8 @@ def place_order(member_id, items, cashier_id=None) -> dict:
         "amount_paid": amount_paid,
         "earned_points": earned,
         "lines": len(priced),
+        "discount": discount,
+        "coupon_id": coupon_id,
     }
 
 # ── 订单取消 ──────────────────────────────────────────────────────────
@@ -201,6 +226,7 @@ def cancel_order(order_id: int, member_id: int = None) -> dict:
       ② 库存：按该单实际写下的 SALES_USE 流水逐条回冲，写 CANCEL_BACK（正数），
                ``qty_on_hand`` 同事务加回 —— 保住 A6「结存 = Σ流水」
       ③ 积分：若该单给会员加过分，写一条 REVOKE（负数）并扣回余额
+      ④ 券：若该单用过券，把券退回 UNUSED（先解绑再退，见下面注释）
 
     为什么只允许 PENDING：MAKING 之后原料已经进了杯子，回冲库存就是假账；
     退款属于 v2.0（整单退 + 退款单），不在本次范围。
@@ -220,10 +246,12 @@ def cancel_order(order_id: int, member_id: int = None) -> dict:
         if member_id is not None and owner_id != member_id:
             raise PermissionDenied("这张单不属于当前会员")
 
-        if coupon_id is not None and order_dao.coupon_is_used(s, coupon_id):
-            raise BusinessRuleViolation(
-                "该单使用的券已核销，取消需要人工处理（退券属于 v2.0）"
-            )
+        # 退券：先把订单上的券解绑（唯一索引要求），再把券退回 UNUSED
+        coupon_released = False
+        if coupon_id is not None:
+            order_dao.detach_coupon(s, order_id)
+            coupon_dao.release(s, coupon_id)
+            coupon_released = True
 
         restored = 0
         for ingredient_id, qty in order_dao.list_sales_moves(s, order_id):
@@ -256,5 +284,6 @@ def cancel_order(order_id: int, member_id: int = None) -> dict:
         "order_no": order_no,
         "restored_ingredients": restored,
         "points_revoked": revoked,
+        "coupon_released": coupon_released,
     }
 

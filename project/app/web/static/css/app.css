@@ -1368,3 +1368,13 @@ main a:not(.btn):not(.nav-link):not(.dropdown-item):not(.page-link):hover {
   color: var(--md-primary);
   border-bottom-color: var(--md-primary);
 }
+
+/* ===== 我的券 ===== */
+.coupon-card { border-left: 4px solid var(--md-primary); }
+.coupon-face { flex: 0 0 auto; width: 3.75rem; text-align: center; color: var(--md-primary-dark); line-height: 1; }
+.coupon-amount { font-size: 1.75rem; font-weight: 600; }
+.coupon-unit { font-size: .75rem; margin-left: .1rem; }
+.coupon-name { font-weight: 500; }
+.coupon-meta { font-size: .8125rem; color: var(--md-on-surface-variant); margin-top: .15rem; }
+.coupon-code { margin-top: .35rem; font-size: .75rem; }
+.price-was { margin-left: .35rem; font-size: .75rem; color: var(--md-on-surface-variant); text-decoration: line-through; }

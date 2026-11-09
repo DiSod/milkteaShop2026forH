@@ -9,6 +9,21 @@
 <form method="post" action="{{ url_for('member.place_order') }}">
   {% include "_menu_cards.html" %}
 
+  {% if my_coupons %}
+  <div class="card mb-3">
+    <div class="card-body d-flex flex-wrap align-items-center gap-2">
+      <label class="form-label mb-0" for="coupon_id"><i class="bi bi-ticket-perforated me-1"></i>使用优惠券</label>
+      <select class="form-select form-select-sm" id="coupon_id" name="coupon_id" style="max-width:24rem">
+        <option value="">不使用</option>
+        {% for c in my_coupons %}
+        <option value="{{ c.coupon_id }}">{{ c.template_name }}（满 {{ '%.0f'|format(c.min_order_amount) }} 减 {{ '%.0f'|format(c.discount_amount) }}）· 至 {{ c.valid_to.strftime('%Y-%m-%d') }}</option>
+        {% endfor %}
+      </select>
+      <span class="small text-muted">券后实付由服务端重算，提交后在订单里看到金额</span>
+    </div>
+  </div>
+  {% endif %}
+
   <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
     <button class="btn btn-primary px-4" type="submit" data-page-submit>
       <i class="bi bi-bag-check me-1"></i>提交订单

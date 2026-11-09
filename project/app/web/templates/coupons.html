@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}我的券{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap align-items-baseline justify-content-between mb-3">
+  <h4 class="mb-0">我的券</h4>
+  <span class="small text-muted">券在有效期内、且订单金额达到门槛时才能用；一券只能核销一次</span>
+</div>
+
+<h6 class="mb-2">可用{% if wallet.available %}（{{ wallet.available|length }}）{% endif %}</h6>
+
+{% if wallet.available %}
+  <div class="row row-cols-1 row-cols-md-2 g-3 mb-4">
+  {% for c in wallet.available %}
+    <div class="col">
+      <div class="card coupon-card">
+        <div class="card-body d-flex align-items-start gap-3">
+          <div class="coupon-face">
+            <span class="coupon-amount">{{ '%.0f'|format(c.discount_amount) }}</span>
+            <span class="coupon-unit">元</span>
+          </div>
+          <div class="flex-grow-1">
+            <div class="coupon-name">{{ c.template_name }}</div>
+            <div class="coupon-meta">
+              {% if c.min_order_amount and c.min_order_amount > 0 %}满 {{ '%.0f'|format(c.min_order_amount) }} 元可用{% else %}无门槛{% endif %}
+              · 有效期至 {{ c.valid_to.strftime('%Y-%m-%d') }}
+            </div>
+            <div class="coupon-code"><code>{{ c.coupon_code }}</code></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+  </div>
+  <p class="small text-muted">下单时在菜单页底部选券，实付金额由服务端重算。</p>
+{% else %}
+  <div class="alert alert-info">
+    现在没有可用的券。券由活动发放或积分兑换，发完即止。
+  </div>
+{% endif %}
+
+{% if wallet.used or wallet.expired %}
+<details class="fold-block">
+  <summary class="fold-summary">
+    <i class="bi bi-clock-history"></i>
+    <span>已用与已过期</span>
+    <span class="fold-count">{{ wallet.used|length }} 张已用 · {{ wallet.expired|length }} 张已过期</span>
+    <i class="bi bi-chevron-down fold-chevron"></i>
+  </summary>
+
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead>
+        <tr>
+          <th>券号</th>
+          <th>名称</th>
+          <th class="text-end">面额</th>
+          <th class="text-end">门槛</th>
+          <th>有效期</th>
+          <th>状态</th>
+          <th>使用时间</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for c in wallet.used %}
+        <tr>
+          <td><code>{{ c.coupon_code }}</code></td>
+          <td>{{ c.template_name }}</td>
+          <td class="text-end">{{ '%.2f'|format(c.discount_amount) }}</td>
+          <td class="text-end">{{ '%.2f'|format(c.min_order_amount) }}</td>
+          <td class="small text-muted">{{ c.valid_from.strftime('%Y-%m-%d') }} ~ {{ c.valid_to.strftime('%Y-%m-%d') }}</td>
+          <td><span class="badge bg-secondary">已用</span></td>
+          <td class="small text-muted">{{ c.used_time.strftime('%Y-%m-%d %H:%M') if c.used_time else '—' }}</td>
+        </tr>
+      {% endfor %}
+      {% for c in wallet.expired %}
+        <tr>
+          <td><code>{{ c.coupon_code }}</code></td>
+          <td>{{ c.template_name }}</td>
+          <td class="text-end">{{ '%.2f'|format(c.discount_amount) }}</td>
+          <td class="text-end">{{ '%.2f'|format(c.min_order_amount) }}</td>
+          <td class="small text-muted">{{ c.valid_from.strftime('%Y-%m-%d') }} ~ {{ c.valid_to.strftime('%Y-%m-%d') }}</td>
+          <td><span class="badge bg-warning">已过期</span></td>
+          <td class="small text-muted">—</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</details>
+{% endif %}
+{% endblock %}

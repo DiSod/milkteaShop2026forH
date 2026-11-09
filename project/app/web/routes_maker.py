@@ -56,11 +56,12 @@ def cancel_order(order_id: int):
         staff["employee_code"],
     )
     flash(
-        "订单 %s 已取消：回冲 %d 种原料%s"
+        "订单 %s 已取消：回冲 %d 种原料%s%s"
         % (
             result["order_no"],
             result["restored_ingredients"],
             "，扣回 %d 积分" % result["points_revoked"] if result["points_revoked"] else "",
+            "，券已退回" if result.get("coupon_released") else "",
         ),
         "success",
     )

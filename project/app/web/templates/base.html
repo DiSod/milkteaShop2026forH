@@ -19,6 +19,7 @@
       {% if g.member %}
         <a class="nav-link {{ 'active' if ep == 'member.menu' }}" href="{{ url_for('member.menu') }}"><i class="bi bi-card-list"></i>菜单</a>
         <a class="nav-link {{ 'active' if ep == 'member.orders' }}" href="{{ url_for('member.orders') }}"><i class="bi bi-receipt"></i>我的订单</a>
+        <a class="nav-link {{ 'active' if ep == 'member.coupons' }}" href="{{ url_for('member.coupons') }}"><i class="bi bi-ticket-perforated"></i>我的券</a>
         <a class="nav-link {{ 'active' if ep == 'member.me' }}" href="{{ url_for('member.me') }}"><i class="bi bi-coin"></i>我的积分</a>
       {% elif g.staff %}
         {% if g.current_role in ('CASHIER', 'MANAGER') %}
