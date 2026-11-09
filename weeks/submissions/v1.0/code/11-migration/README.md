@@ -1,0 +1,187 @@
+# 11-migration · 模式演进与规范化重构迁移
+
+> **所属周次**：第 6 周（ch7 函数依赖与规范化）  
+> **核心产出**：[`migration.sql`](migration.sql)（满足课程 6 要素的模式重构与数据迁移脚本）  
+> **理论依据**：[`project/docs/normalization.md`](../../docs/normalization.md) §5.3 · [`project/docs/v0.1-issues.md`](../../docs/v0.1-issues.md) §1.1  
+> **协作定案**：[`harness/issues/011-week06-migration-and-subtotal-alignment.md`](../../../harness/issues/011-week06-migration-and-subtotal-alignment.md) · ISSUE-012 · ISSUE-013
+
+---
+
+## 1. 模块定位与职责
+
+本目录承载阶段二（第 6 周）的模式演化与规范化重构脚本，核心目标是：
+1. **消除传递依赖与数据冗余**：将原发放与核销合一的 `tbl_coupon`（17 表形态）规范化拆分为「券模板实体表 `tbl_coupon_template` + 券实例表 `tbl_coupon`」（18 表形态）；
+2. **完整性约束下沉**：新增核销时间有效区间硬约束 `ck_coupon_used_time_range`（保证 `used_time` 落在 `[valid_from, valid_to]` 内）与模板外键约束 `fk_coupon_template`；
+3. **课程 6 要素全面落地**：严格实现新表创建、字段调整、码设置、数据迁移、数据校验、旧表兼容处理。
+
+---
+
+## 2. 课程迁移 6 要素落地对照表
+
+| # | 课程 6 要素 | `migration.sql` 具体实施动作 | 验证与技术保障 |
+|---|---|---|---|
+| **要素 1** | **新表创建** | 创建优惠券模板实体表 `tbl_coupon_template`，抽取券公共元数据（面额、门槛、来源、模板名称等） | `CREATE TABLE ... pk_coupon_template` |
+| **要素 2** | **字段调整** | ① 原表 `tbl_coupon` 增加外键列 `template_id`；<br>② 在数据安全回填后，安全移除 4 个冗余列（`coupon_name`, `source`, `discount_amount`, `min_order_amount`） | `ALTER TABLE tbl_coupon ADD template_id ...`<br>`ALTER TABLE tbl_coupon DROP COLUMN ...` |
+| **要素 3** | **码与约束设置** | ① 新表：主码 `pk_coupon_template`、候选码 `uq_coupon_template_code`、域约束（`ck_...source`, `discount_amount > 0` 等）；<br>② 原表：外键 `fk_coupon_template`、外键覆盖索引 `ix_coupon_template_id`、核销区间约束 `ck_coupon_used_time_range` | 外键、索引、CHECK 均采用幂等探测添加 |
+| **要素 4** | **数据迁移** | 从历史 `tbl_coupon` 抽取唯一模板（实测去重得 2 种模板：`TPL_CAMP_5` 与 `TPL_POINTS_5`）装载至模板表；通过多列关联精准回填 `tbl_coupon.template_id` | `INSERT ... SELECT DISTINCT ...`<br>`UPDATE c SET c.template_id = t.template_id` |
+| **要素 5** | **数据校验与防重** | 校验孤儿数据（`template_id IS NULL` 行数必须为 0）；校验核销时间区间违规数（必须为 0）；校验迁移后券总行数无损保持（24 行） | 若出现孤儿数据或非法时间，立即 `RAISERROR` 阻断事务 |
+| **要素 6** | **旧表处理与平滑过渡** | 建立向后兼容全景视图 `vw_coupon_legacy`（连接 `tbl_coupon` 与 `tbl_coupon_template` 投影全部旧字段）；旧列从基表安全剥离；同步授权 `role_cashier` 与 `role_manager` | 外部历史查询零感知平滑过渡；RBAC 角色立即具备新表与视图权限 |
+
+---
+
+## 3. 双重验证机制（Single Source of Truth）
+
+1. **全新重建流水线（99-rebuild.sql）**：
+   - 接入 `project/sql/99-rebuild.sql` 第 11 步（状态：✅ 已接入，含 01 / 02 / 03 三个脚本）；
+   - 确保从空库一键拉起即为最新重构形态（18 表、139 字段、31 外键、48 CHECK、22 业务索引、6 业务视图、4 安全角色）；
+   - 彻底避免第 7—9 周应用开发时的表结构版本漂移。
+2. **历史库独立重放演练（独立执行测试）**：
+   - 支持在已存在数据的历史库上独立执行：
+     ```powershell
+     cd project\sql
+     sqlcmd -S .\SQLEXPRESS -E -C -f 65001 -i 11-migration\migration.sql
+     ```
+   - 脚本具备**完整幂等性**与**事务回滚保护**，支持重复运行而不产生副作用。
+
+---
+
+## 4. 开发规范守则
+
+1. ⚠️ **文件编码**：含中文字符必须使用 **UTF-8 with BOM** 保存，防止 `sqlcmd` 静默丢行；
+2. ⚠️ **幂等执行**：脚本必须支持重复执行（基于 `IF NOT EXISTS` / `IF EXISTS` 做对象探测）；
+3. ⚠️ **事务安全**：DDL 与数据迁移必须包裹于显式事务 `BEGIN TRANSACTION ... COMMIT` 中，出现错误时整块回滚，不破坏源库。
+
+---
+
+## 5. 运行与验证证据
+
+执行自动化回归测试检验迁移效果：
+```powershell
+cd project\tests
+sqlcmd -S .\SQLEXPRESS -E -C -d milktea_shop -f 65001 -b -i regression.sql
+```
+- **测试结果**：14/14 自动化断言全绿通过（迁移 03 追加 TC-13 积分台账对账、迁移 02 追加 TC-14 登录凭据质量校验）；
+- **基线比对**：`project/tests/baseline/` 抽样订单明细（S1）、销售统计（S2）、库存可用性（S3）对比迁移前快照，**0 差异，指纹完全一致，语义 100% 保持**。
+
+---
+
+## 6. 迁移清单
+
+| # | 脚本 | 周次 | 作用 | 状态 |
+|---|---|---|---|---|
+| 01 | [`migration.sql`](migration.sql) | 第 6 周 | 券表拆分（17 表 → 18 表）+ 核销区间约束 | ✅ 已并入 `main`，已接入 `99-rebuild.sql` |
+| 02 | [`migration-02-login-credentials.sql`](migration-02-login-credentials.sql) | 第 7 周 | 登录凭据列：`tbl_member` / `tbl_employee` 各 +1 列 | ✅ 经 ISSUE-014 裁定已并入 `main`，已接入 `99-rebuild.sql` |
+| 03 | [`migration-03-points-opening-ledger.sql`](migration-03-points-opening-ledger.sql) | 第 7 周 | 积分台账期初结转：DOM-09 增 `OPENING`、放宽 `ck_points_ledger_target`、回填 80 条期初流水 | ✅ 已并入 `main`，已接入 `99-rebuild.sql` |
+| 04 | [`migration-04-order-time-constraints.sql`](migration-04-order-time-constraints.sql) | 第 7 周 | 订单时间序：新增 `ck_order_header_pay_time`（付款 ≥ 下单）与 `ck_order_header_finish_after_pay`（完成 ≥ 付款） | ✅ 已接入 `99-rebuild.sql`；自证通过 `CHECK` 46 → 48 |
+| 05 | [`migration-05-price-precision.sql`](migration-05-price-precision.sql) | 第 7 周 | 单价 / 成本精度：6 个列统一到 `DECIMAL(12,4)`（`02-sql-style.md` §6.3） | ✅ 已接入 `99-rebuild.sql`；6 条 `CHECK` 摘除后重建、6 个视图 `sp_refreshview` |
+| 06 | [`migration-06-order-cancellation.sql`](migration-06-order-cancellation.sql) | 第 9 周 | 订单取消的流水类别：`ledger_type` 增 `CANCEL_BACK`、`point_type` 增 `REVOKE`（三条 `CHECK` 定义改写，**条数不变**） | ✅ 已接入 `99-rebuild.sql`；自证 `CHECK` 仍 48 条、三条均 `is_not_trusted = 0` |
+
+> **02 为什么需要**：全库实查确认**用户表没有任何登录凭据列**，而第 7—9 周课程要求
+> 「用户登录 → Web 界面操作 → 数据写入」。没有凭据就无法验证"你是你"，
+> 后续的角色界面、权限差异、越权拦截全部失去立足点。
+> 口径依据：DiSod 2026-10-28 裁定「**默认顾客就是会员**」。
+
+> **03 为什么需要**：第 7 周的数据库符合性审计发现 `tbl_member.points_balance` 合计
+> **25,224** 而 `tbl_points_ledger.point_change` 合计只有 **14,401**，缺口 **10,823**，
+> **80/80 会员全部对不上**。根因在造数脚本 `generate_seed.py:656` —— 期初积分直接写进
+> 余额列、不生成流水；而台账原有的两条 CHECK 只认 `EARN` / `REDEEM`，期初这种
+> 「开账前就已存在、不对应任何单据」的事实**无处安放**。这与库存流水用
+> `ref_type='OPENING'` 记期初是同一个道理，积分这边当初漏了对应类型。
+
+### 6.1 迁移 02 的实测结果
+
+环境：本机 SQL Server 2022 Express（16.0.1000.6），2026-10-28。
+
+| 验证项 | 结果 |
+|---|---|
+| 独立执行第 1 次 | 加列成功，回填 **80 会员 + 5 员工**，2 个格式约束创建，自证通过 |
+| 独立执行第 2 次 | 全部「已存在，跳过」，回填 **0 行** → **幂等成立** |
+| 从空库 `99-rebuild.sql` | exit=0，总览 **18 表 / 139 字段 / 31 外键 / 48 CHECK / 22 索引 / 6 视图 / 4 角色** |
+| `project/tests/regression.sql` | **14/14 全绿，exit=0**（含 TC-14 登录凭据质量校验） |
+| 三份基线快照 | 与 `result/after-S01~03.txt` 逐行比对：**293/293 行差异 0** |
+| 端到端登录模拟（Python） | **80 会员 + 5 员工**都能用约定口令算出同一哈希；错误口令被拒 |
+| 约束行为 5 例 | 63 位 / 小写 64 位 / 非十六进制 → **全部拒绝**；`NULL` 与合法 64 位 → 接受；回滚后残留 0 |
+
+### 6.2 口令与盐的约定（应用层必须照此实现）
+
+| 主体 | 盐 | 初始口令 | 摘要 |
+|---|---|---|---|
+| 会员 | `'m' + member_id` | 手机号后 6 位 | `UPPER(HEX(SHA-256(盐 + 口令)))`，64 字符 |
+| 员工 | `'e' + employee_id` | 小写工号（如 `e001`） | 同上 |
+
+三条实现约束（写进脚本头注释，这里只列结论）：
+
+1. **拼接只能用 `VARCHAR`**：`HASHBYTES` 对 `NVARCHAR` 按 UTF-16LE 取字节，Python 的
+   `hashlib.sha256` 按 UTF-8 取字节，混用会导致"同一口令两边算出不同哈希"，
+   实测同输入 `'m1'+'000001'` 两边均为 `1E1B7D0D…F4EA4192`。
+2. **盐不能含 `NEWID()`**：随机盐会让每次重建结果不同，直接破坏第 6 周建立的
+   "迁移前后快照逐行一致（293/293）"承诺。
+3. **引用新列的语句必须走动态 SQL**：同批次内语句在编译期就要求列存在，
+   直接写会报「列名 'password_hash' 无效」（消息 207）。
+
+### 6.3 待核心工程确认的四个问题
+
+| # | 问题 | 我的建议 |
+|---|---|---|
+| 1 | 是否解冻「18 表结构冻结」口径以加这 2 列 | 表数仍 18，只 +2 字段，**不新增表、不新增外码、不改主码** |
+| 2 | `password_hash` 是否允许 `NULL` | 建议允许。`05-dml/crud.sql` 有 5 处 INSERT 不带凭据，设 `NOT NULL` 会让演示脚本当场失败；`NULL` = 账号已建但未开通登录，应用侧 fail-closed |
+| 3 | 是否把凭据断言并入 `regression.sql` | 建议**合并之后**再加，避免两边同时改同一文件冲突；迁移脚本内已有自证（逐行重算比对） |
+| 4 | 员工初始口令用「小写工号」是否可接受 | 可接受。这只是初始值，真实系统首次登录应强制改密 |
+
+### 6.4 迁移 03 的实测结果
+
+环境：本机 SQL Server 2022 Express（16.0.1000.6），2026-11-04。
+
+| 验证项 | 结果 |
+|---|---|
+| 迁移前体检 | 80 位会员余额与流水不符，缺口合计 **10,823** 分（与审计数一致） |
+| 回填 | **80 条** `OPENING` 流水，变动合计 10,823 分，时间取会员注册日 00:00 |
+| 自证（脚本内） | 缺口 0；`余额合计 25,224 = 流水合计 25,224`，不符会员 **0** |
+| 从空库 `99-rebuild.sql` | exit=0，总览 **18 表 / 139 字段 / 31 外键 / 46 CHECK / 22 索引 / 6 视图 / 4 角色**（CHECK 条数不变，只有两条定义被替换） |
+| 独立执行 ×2（幂等） | 两次都 exit=0，第二次打印「所有会员均已有期初行，本次跳过回填」，`OPENING` 仍 **80 条**、`tbl_points_ledger` 仍 **3 个** CHECK |
+| `project/tests/regression.sql` | **13/13 全绿，exit=0**（新增 TC-13 积分对账） |
+| 三份基线快照 | 与 `result/after-S01~03.txt` 逐行比对：**293/293 行差异 0**（快照不含积分，本应无影响） |
+| 约束行为 5 例 | `OPENING` 挂订单 / 挂券 / `EARN` 无来源单 / 变动为 0 → **全部被 547 拦截**；`OPENING` 两端皆空 → 放行；回滚后流水 1,259 行（1,179 + 80）、期初 80 行，残留 0 |
+
+> ✅ 迁移 02 / 03 已正式合入 `main` 并接入 `99-rebuild.sql`（经 ISSUE-014 裁定闭环），从空库重建全库 **18 表 / 139 字段 / 31 外键 / 48 CHECK / 22 索引 / 6 视图 / 4 角色**，积分台账 80/80 结转与 TC-14 凭据断言 100% 成立。
+
+### 6.5 明确不做：兑换券的 `REDEEM` 流水（迁移 04 缺席）
+
+**现象**（2026-11-04 实测）：
+
+| 项 | 实测 |
+|---|---|
+| `POINTS_EXCHANGE` 券 | **12 张**（`TPL_POINTS_5`，5.00 元面额、0 门槛） |
+| 这 12 张券是否被用过 | **12/12 全被订单核销**，各抵扣 5.00 元，合计 **60.00 元** |
+| `tbl_points_ledger` 里 `coupon_id` 非空的 `REDEEM` 行 | **0 条** |
+| 台账类型分布 | `OPENING` 80 条（10,823 分）+ `EARN` 1,179 条（14,401 分） |
+
+结论：券被用掉了、60 元让利真实发生，但**"会员为此付过积分"这件事在数据里不存在**。
+
+**为什么不写迁移 04 去补**：
+
+第 1 周给的换算例子是 `weeks/week01/business-requirements.md:620`「**500 积分 → 5 元券**」。
+而这 12 张券的持有人当前余额分别是：
+
+```
+会员 11 → 249   会员 36 → 257   会员 18 → 327   会员 7  → 343
+会员 37 → 358   会员 8  → 369   会员 35 → 413
+```
+
+**最高的只有 413 分，没有一个人够扣 500。** 而 `tbl_member` 上有
+`ck_member_points_balance CHECK (points_balance >= 0)` —— 硬补 500 分扣减
+要么撞约束，要么得先把余额改小到与消费记录对不上。
+
+**用一个假数字去圆另一个假数字，只会把缺口挪个位置。** 所以：
+
+- **认账**：把这 12 张券登记为**造数缺陷**（券有来路字段 `source`，但没有对应的扣分流水）；
+- **不追认历史**：不写迁移 04，不改 `seed_data.sql`，不动 `generate_seed.py`；
+- **只保证今后**：应用侧「积分兑换」动作必须在**一个事务**里完成
+  「扣积分 → 发券 → 写 `REDEEM` 流水（回填 `coupon_id`）」三步，任一步失败整体回滚。
+
+**连带影响**（写报告时要交代）：
+
+- 任何按 `source='POINTS_EXCHANGE'` 统计"积分兑换量"的查询都会偏高（券算了，扣分没算）；
+- 「积分兑换」这个动作**在本项目 v1.0 里不存在**：课程第 7—9 周的 7 项任务也没有它，
+  `project/app/` 未实现兑换界面；
+- 规则层面的登记见 [`project/docs/business-rules.md`](../../docs/business-rules.md) **A11**。

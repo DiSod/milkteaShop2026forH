@@ -17,7 +17,7 @@
 | # | 提交物 | 落点 | 状态 |
 |---|---|---|---|
 | 1 | **README**（范围 / 环境 / 链路 / 复现步骤） | 本文件 + 根 [`README.md`](../../../README.md) | ✅ |
-| 2 | **实现代码** | [`project/sql/`](../../../project/sql/)（含 `11-migration/`）、[`project/app/`](../../../project/app/) | ✅ |
+| 2 | **实现代码（sql 目录）** | [`code/`](code/) —— `project/sql/` 的**冻结快照**（19 个文件，含 `11-migration/` 六段）；完整应用在 [`project/app/`](../../../project/app/) | ✅ |
 | 3 | **结果证据 `result/`** | [`result/README.md`](result/)（**30 组**：19 数据库 + 11 应用） | ✅ |
 | 4 | **阶段报告** | [`report.md`](report.md)（三章 18 节 + 附录 A/B） | 🟡 仅剩附录 B（组内分工） |
 | 5 | **AI 使用记录** | [`ai-log.md`](ai-log.md)（11 条使用记录 + **6 条业务纠错** + 10 条被否决方案） | ✅ |
@@ -42,7 +42,7 @@
 | 应用 | 无 | **三层结构 + 四个岗位工作台 + 订单取消 + 41 条测试** |
 | 界面 | — | 全站 **Material Design 3** 视觉层（薄荷绿，离线 vendored） |
 
-**五段迁移**（`project/sql/11-migration/`）：
+**六段迁移**（`project/sql/11-migration/`）：
 
 | 段 | 内容 | 自证方式 |
 |---|---|---|
@@ -51,6 +51,7 @@
 | `migration-03` | 积分期初：加 `OPENING` 类型 + 回填 80 条 + 脚本自证 | 余额合计 = 流水合计 = 25,224，不符 0 |
 | `migration-04` | `ck_order_header_pay_time`、`ck_order_header_finish_after_pay` | 37 单反例被排除在约束之外 |
 | `migration-05` | 6 个单价 / 成本列升 `DECIMAL(12,4)` | 5 个列类型核对 + 视图刷新 |
+| `migration-06` | 取消需要两类新流水：`CANCEL_BACK` / `REVOKE`，改写三条 CHECK | CHECK 仍 48 条、三条均 `is_disabled=0` |
 
 ---
 
@@ -64,7 +65,7 @@ sqlcmd -S .\SQLEXPRESS -E -C -f 65001 -i 99-rebuild.sql
 # 2) 数据库自检（期望 14/14）
 sqlcmd -S .\SQLEXPRESS -E -C -f 65001 -d milktea_shop -i ..\tests\regression.sql
 
-# 3) 应用测试（期望 38 passed）
+# 3) 应用测试（期望 41 passed）
 cd ..\app
 pip install -r requirements.txt
 python -m pytest -q
@@ -89,10 +90,12 @@ powershell -ExecutionPolicy Bypass -File capture-app.ps1      # 11 组应用类�
 | [`report.md`](report.md) | 阶段报告：设计思路 / 实验过程 / 实验总结 + 附录 A（决策与 AI 纠错）、附录 B（分工） |
 | [`ai-log.md`](ai-log.md) | AI 使用记录（分级统计、11 条明细、**6 条业务纠错**、10 条被否决方案、提示词记录方式） |
 | [`result/`](result/) | 30 组证据，`xxx.png` + 同名 `xxx.txt`；两组脚本 `capture.ps1` / `capture-app.ps1` |
+| [`code/`](code/) | **`project/sql/` 的冻结快照**（19 个文件：建库 / 建表 / 约束 / 索引 / 种子 / CRUD / 查询 / 视图 / 角色 / 六段迁移 / `99-rebuild.sql`），逐字节复制 |
 | [`v0.1/`](../v0.1/) | 第一阶段提交快照（只读对照） |
 
-> **代码不复制进本目录**：`project/` 是唯一可执行的真相源，复制快照会立刻与 `main` 分叉。
-> v0.1 也是这么做的（`v0.1/code/` 里只有重建入口与说明）。
+> **为什么 `code/` 只放 SQL**：课程第 2 项要求的是「sql 目录」的五类脚本，评审要能直接读到 `.sql`；
+> 而应用（Flask 三层）留在 `project/app/`，避免把整棵代码树复制两遍后立刻与 `main` 分叉。
+> `code/` 与 `project/sql/` 在冻结时刻**逐字节相同**（复制时已用 sha256 逐个核对）。
 
 ---
 
@@ -100,7 +103,7 @@ powershell -ExecutionPolicy Bypass -File capture-app.ps1      # 11 组应用类�
 
 | 未做 | 原因 | 何时 |
 |---|---|---|
-| 订单取消 / 退款流程 | 涉及回滚原料、退券、扣积分，属程序对象与事务章节 | 第 11—12 周 |
+| 退款 / 退券流程 | 订单取消已做（仅「待制作」，回冲原料 + 扣回积分）；退款与退券仍属程序对象与事务章节 | 第 11—12 周 |
 | 盘点（`STOCKTAKE`） | 需补两张表，第 6 周明确延后 | 第 13 周 |
 | 下单下沉存储过程 + `EXECUTE AS OWNER` | 当前下单跨域写入走 `dbo`（P-2） | 第 11—12 周 |
 | 行级数据隔离（RLS） | 表级授权数据库会真查；行级只能靠应用 `WHERE`（P-3） | 登记为待议 |
