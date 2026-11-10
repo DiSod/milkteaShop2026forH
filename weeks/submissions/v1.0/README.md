@@ -10,6 +10,10 @@
 > ⚠️ **归档规则**：提交前从 `project/` 与 `weeks/` 复制快照，**截止后本目录不再修改**。
 > 唯一例外是 [`result/`](result/) —— 证据是提交物本体，无法从别处复制。
 
+> **这个包里有什么**：六个条目 —— `README.md`（本文件）、`report.md`、`ai-log.md`、`contributions.md`、`code/`（SQL 冻结快照 19 个文件）、`result/`（37 张图 + 20 份原始输出）。
+> 文中形如 `../../../project/docs/xxx.md` 的链接指向**仓库里的其他位置**，不在这个压缩包里；它们是为了让人回仓库核对时能点过去，包内能直接打开的是 `code/` 与 `result/`。
+> 项目整体结构见仓库根目录的 `STRUCTURE.md`。
+
 ---
 
 这一版是从 v0.1 那 17 张表接着往前做的：结构上多了券模板与登录凭据，应用从零写到四个岗位都能跑通，界面整体换成 Material Design 3。下面按提交清单逐件交代落点，再给复现步骤和这一版没做的事。
@@ -23,7 +27,7 @@
 | 3 | **结果证据 `result/`** | [`result/README.md`](result/)（**37 图 + 20 原始输出**：设计 3 项 / 数据库 19 组 / 应用 12 组 / 错误 4 张） | ✅ |
 | 4 | **阶段报告** | [`report.md`](report.md)（三章 18 节 + 附录 A/B） | ✅ |
 | 5 | **AI 使用记录** | [`ai-log.md`](ai-log.md)（11 条使用记录 + **6 条业务纠错** + 10 条被否决方案） | ✅ |
-| 6 | **组内分工表** | [`contributions.md`](contributions.md) + 报告附录 B | 🟡 已建，等何争霖确认 §4；请见 [`ISSUE-020`](../../../harness/issues/020-v1.0-contributions-fill-in.md) |
+| 6 | **组内分工表** | [`contributions.md`](contributions.md) + 报告附录 B | ✅ 双方均已填写并确认（`ISSUE-020` 已闭环） |
 
 > **操作手册**不在课程清单里，但为了让"应用可用性"可被复核，单独写了一份：
 > [`project/docs/manual.md`](../../../project/docs/manual.md)。
