@@ -214,6 +214,10 @@ flowchart TD
 
 ## 快速开始
 
+**只想把它跑起来看一眼**：双击仓库根目录的 [`start-demo.ps1`](start-demo.ps1)（或在 PowerShell 里 `.\start-demo.ps1`）。它做三件事——检查本机 Python / ODBC 驱动 / SQL 服务，启动 Flask，打开登录页；屏幕上会打印所有账号。加 `-Rebuild` 会先把库恢复成种子基线（约 20 秒），`-Stop` 停服务。**它不安装任何东西**。
+
+手工重建数据库：
+
 ```powershell
 # 唯一入口：从空库一键重建（会先 DROP 再重建）
 cd project\sql
