@@ -155,7 +155,7 @@ Say "  停止服务    .\start-demo.ps1 -Stop"     'DarkGray'
 Say "  服务日志    $LogFile"                    'DarkGray'
 Say ''
 
-Say '  这个窗口保持打开；演示完按 Ctrl+C 或直接关掉它。' 'DarkGray'
+Say '  关掉这个窗口服务仍在跑；要停服务用 .\start-demo.ps1 -Stop' 'DarkGray'
 Say ''
 
 if (-not $NoBrowser) { Start-Process "http://127.0.0.1:$Port/login" }
