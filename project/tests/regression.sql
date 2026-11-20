@@ -32,7 +32,7 @@ GO
 
 DECLARE @pass_count INT = 0;
 DECLARE @fail_count INT = 0;
-DECLARE @total_tests INT = 15;
+DECLARE @total_tests INT = 16;
 
 -- 测试辅助变量
 DECLARE @test_member_id INT;
@@ -497,6 +497,39 @@ BEGIN
 END;
 
 /* ------------------------------------------------------------
+ * TC-16 第 10 周可编程对象（三个函数 + 两个存储过程）
+ * ------------------------------------------------------------ */
+PRINT N'[TC-16] 第 10 周可编程对象：3 个函数 + 2 个存储过程必须在库，且补货量函数取值正确 ...';
+
+DECLARE @fn_cnt INT, @p_cnt INT, @rep_budding DECIMAL(12,3), @rep_coco DECIMAL(12,3), @rep_missing DECIMAL(12,3);
+
+SELECT @fn_cnt = COUNT(*) FROM sys.objects WHERE is_ms_shipped = 0 AND type IN ('FN', 'IF', 'TF')
+  AND name IN (N'fn_replenish_qty', N'fn_sales_summary', N'fn_discount_amount');
+SELECT @p_cnt  = COUNT(*) FROM sys.objects WHERE is_ms_shipped = 0 AND type = 'P'
+  AND name IN (N'usp_sales_report', N'usp_stock_adjust');
+
+/* 三个已知值：有缺口 → 目标 - 结存；编号不存在 → NULL */
+SET @rep_budding = dbo.fn_replenish_qty(19);
+SET @rep_coco    = dbo.fn_replenish_qty(55);
+SET @rep_missing = dbo.fn_replenish_qty(-1);
+
+IF @fn_cnt = 3 AND @p_cnt = 2
+   AND @rep_budding > 0 AND @rep_coco > 0 AND @rep_missing IS NULL
+BEGIN
+    PRINT FORMATMESSAGE(N'  --> ✅ [PASS] 可编程对象齐全（函数 %d 个 / 过程 %d 个）；补货量函数：布丁粉 %s、椰浆 %s、不存在编号返回 NULL。',
+        @fn_cnt, @p_cnt, CONVERT(NVARCHAR(30), @rep_budding), CONVERT(NVARCHAR(30), @rep_coco));
+    SET @pass_count = @pass_count + 1;
+END
+ELSE
+BEGIN
+    PRINT FORMATMESSAGE(N'  --> ❌ [FAIL] 可编程对象异常！函数 %d 个（应 3）、过程 %d 个（应 2）；补货量：布丁粉 %s、椰浆 %s、不存在 %s（应为正数、正数、NULL）。',
+        @fn_cnt, @p_cnt, CONVERT(NVARCHAR(30), ISNULL(@rep_budding, -1)),
+        CONVERT(NVARCHAR(30), ISNULL(@rep_coco, -1)),
+        CONVERT(NVARCHAR(30), ISNULL(@rep_missing, -1)));
+    SET @fail_count = @fail_count + 1;
+END;
+
+/* ------------------------------------------------------------
  * 汇总评定与非零退出码机制
  * ------------------------------------------------------------ */
 PRINT N'============================================================';
@@ -510,6 +543,6 @@ BEGIN
 END
 ELSE
 BEGIN
-    PRINT N'【回归测试结论】🎉 15 项自动化断言全绿通过！模式演进、数据完整性与基线语义 100% 保持！';
+    PRINT N'【回归测试结论】🎉 16 项自动化断言全绿通过！模式演进、数据完整性与基线语义 100% 保持！';
 END;
 GO
