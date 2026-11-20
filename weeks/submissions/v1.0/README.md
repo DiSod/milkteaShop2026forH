@@ -69,7 +69,7 @@
 cd project\sql
 sqlcmd -S .\SQLEXPRESS -E -C -f 65001 -i 99-rebuild.sql
 
-# 2) 数据库自检（期望 15/15）
+# 2) 数据库自检（期望 16/16）
 sqlcmd -S .\SQLEXPRESS -E -C -f 65001 -d milktea_shop -i ..\tests\regression.sql
 
 # 3) 应用测试（期望 46 passed）

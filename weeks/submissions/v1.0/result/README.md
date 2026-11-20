@@ -103,7 +103,7 @@ powershell -ExecutionPolicy Bypass -File capture-app.ps1 -Only manager
 | `rebuild-full-log.png` | `sqlcmd -i 99-rebuild.sql` 完整输出 | 12 段（00→01→02→03→04→07→08→11 五支）逐段 `【重建】`，无报错 |
 | `rebuild-summary.png` | 同上末 16 行 | 汇总行与 `schema-object-summary.png` 一致 |
 
-## 四、`03-regression/` —— 15 项回归断言
+## 四、`03-regression/` —— 16 项回归断言
 
 | 文件 | 命令 | 预期结果 |
 |---|---|---|

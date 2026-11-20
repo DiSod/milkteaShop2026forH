@@ -102,7 +102,7 @@
 | 项 | 结果 |
 |---|---|
 | `pytest -q` | **46 passed** |
-| `regression.sql -b` | **15/15 全绿** |
+| `regression.sql -b` | **16/16 全绿** |
 | 三份基线快照 | S1 80 / S2 62 / S3 151 = **293 行，差异 0** |
 | `99-rebuild.sql` | `exit=0`，**25.4 秒** → 18 表 / 139 字段 / 31 外键 / **48 CHECK** / 22 索引 / 6 视图 / 4 角色 |
 | 库不变量 | `order_header` 1,963 · `stock_ledger` 13,851 · `SUM(qty_on_hand)` 403,371.600 · 积分 25,224 = 25,224 · drift **0** |
@@ -142,7 +142,7 @@
 |---|---|
 | 应用代码 | `project/app/`（`dao/` 10 · `service/` 9 · `web/` 8 · `tests/` 5 个 .py；20 条路由 / 13 个模板） |
 | 迁移 06 | `project/sql/11-migration/migration-06-order-cancellation.sql` |
-| 集成测试 | `project/app/tests/`（46 条）+ `project/tests/regression.sql`（15 项） |
+| 集成测试 | `project/app/tests/`（46 条）+ `project/tests/regression.sql`（16 项） |
 | 证据 | `weeks/submissions/v1.0/result/`（37 图，三个 `capture*.ps1` 可重跑） |
 | 交付材料 | `weeks/submissions/v1.0/`（README / report / ai-log / code / result） |
 | 变更记录 | `harness/issues/015`（界面重构）、`017`（已知边界存档）、`018`（订单取消） |
