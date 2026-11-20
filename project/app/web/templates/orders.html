@@ -41,6 +41,7 @@
             {% if o.status == 'PENDING' %}
               <form method="post" action="{{ url_for('member.cancel_order', order_id=o.order_id) }}"
                     onsubmit="return confirm('取消后原料会退回、积分会扣回，确定取消这张单吗？');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button class="btn btn-sm btn-outline-danger" type="submit">取消订单</button>
               </form>
             {% endif %}

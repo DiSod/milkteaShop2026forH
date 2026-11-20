@@ -23,6 +23,7 @@ def login():
         password = request.form.get("password", "")
         member = auth.login(phone, password)
         session.clear()
+        session.permanent = True
         session["member"] = member
         return redirect(url_for("member.menu"))
     return render_template("login.html")
@@ -35,6 +36,7 @@ def staff_login():
         password = request.form.get("password", "")
         staff = auth.login_employee(code, password)
         session.clear()
+        session.permanent = True
         session["staff"] = staff
         endpoint = WORKBENCH.get(staff["role"])
         if endpoint:
@@ -45,7 +47,7 @@ def staff_login():
     return render_template("staff_login.html")
 
 
-@bp.route("/logout")
+@bp.route("/logout", methods=["POST"])
 def logout():
     session.clear()
     return redirect(url_for("auth.login"))

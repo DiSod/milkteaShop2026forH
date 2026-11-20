@@ -39,10 +39,10 @@
     <div class="navbar-nav">
       {% if g.member %}
         <span class="navbar-text me-3"><i class="bi bi-person-circle"></i> {{ g.member.member_name }}（{{ g.member.member_phone }}）</span>
-        <a class="nav-link" href="{{ url_for('auth.logout') }}"><i class="bi bi-box-arrow-right"></i>退出</a>
+        <form class="d-inline" method="post" action="{{ url_for('auth.logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="nav-link btn btn-link border-0 bg-transparent"><i class="bi bi-box-arrow-right"></i>退出</button></form>
       {% elif g.staff %}
         <span class="navbar-text me-3"><i class="bi bi-person-badge"></i> {{ g.staff.employee_name }} · {{ g.staff.role }}</span>
-        <a class="nav-link" href="{{ url_for('auth.logout') }}"><i class="bi bi-box-arrow-right"></i>退出</a>
+        <form class="d-inline" method="post" action="{{ url_for('auth.logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="nav-link btn btn-link border-0 bg-transparent"><i class="bi bi-box-arrow-right"></i>退出</button></form>
       {% else %}
         <a class="nav-link {{ 'active' if ep == 'auth.login' }}" href="{{ url_for('auth.login') }}"><i class="bi bi-box-arrow-in-right"></i>会员登录</a>
         <a class="nav-link {{ 'active' if ep == 'auth.staff_login' }}" href="{{ url_for('auth.staff_login') }}"><i class="bi bi-person-gear"></i>员工登录</a>

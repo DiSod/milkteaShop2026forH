@@ -11,6 +11,7 @@
       <div class="card-body">
         <h4 class="card-title mb-3">员工登录</h4>
         <form method="post" novalidate>
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <div class="md-field mb-3">
             <input class="md-input" id="employee_code" name="employee_code"
                    maxlength="10" required placeholder=" " autocomplete="username">

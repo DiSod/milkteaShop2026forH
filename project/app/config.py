@@ -5,6 +5,8 @@
 """
 
 import os
+import secrets
+from datetime import timedelta
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -24,19 +26,44 @@ def _load_dotenv(path: Path) -> None:
 
 _load_dotenv(BASE_DIR / ".env")
 
+_WEAK_SECRETS = frozenset({"", "dev-only-change-me", "change-me-to-a-random-string"})
+
+
+def _env_first(*keys: str, default: str = "") -> str:
+    """按优先级读取首个非空环境变量，兼容 APP_* 与 .env.example 命名。"""
+    for key in keys:
+        value = os.environ.get(key)
+        if value is not None and value.strip():
+            return value.strip()
+    return default
+
+
+def _resolve_secret_key() -> tuple:
+    raw = _env_first("APP_SECRET_KEY", "SECRET_KEY")
+    if raw in _WEAK_SECRETS:
+        return secrets.token_hex(32), True
+    return raw, False
+
 
 class Config:
     """应用配置。所有值都可以用环境变量覆盖。"""
 
-    SECRET_KEY = os.environ.get("APP_SECRET_KEY", "dev-only-change-me")
+    SECRET_KEY, SECRET_KEY_EPHEMERAL = _resolve_secret_key()
 
-    SQL_DRIVER = os.environ.get("SQL_DRIVER", "ODBC Driver 17 for SQL Server")
-    SQL_SERVER = os.environ.get("SQL_SERVER", r".\SQLEXPRESS")
-    SQL_DATABASE = os.environ.get("SQL_DATABASE", "milktea_shop")
-    SQL_TRUSTED = os.environ.get("SQL_TRUSTED_CONNECTION", "yes").lower() == "yes"
+    SQL_DRIVER = _env_first("SQL_DRIVER", default="ODBC Driver 17 for SQL Server")
+    SQL_SERVER = _env_first("SQL_SERVER", default=r".\SQLEXPRESS")
+    SQL_DATABASE = _env_first("SQL_DATABASE", default="milktea_shop")
+    SQL_TRUSTED = _env_first("SQL_TRUSTED_CONNECTION", "SQL_TRUSTED", default="yes").lower() in (
+        "yes",
+        "true",
+        "1",
+    )
 
-    SESSION_MINUTES = int(os.environ.get("APP_SESSION_MINUTES", "30"))
-    PERMANENT_SESSION_LIFETIME_MINUTES = SESSION_MINUTES
+    SESSION_MINUTES = int(_env_first("APP_SESSION_MINUTES", "SESSION_MINUTES", default="30"))
+    PERMANENT_SESSION_LIFETIME = timedelta(minutes=SESSION_MINUTES)
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = "Lax"
+    CSRF_ENABLED = True
 
     @classmethod
     def connection_string(cls) -> str:

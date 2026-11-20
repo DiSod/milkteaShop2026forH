@@ -19,7 +19,7 @@
         <a class="btn btn-outline-secondary" href="{{ url_for('member.orders') }}">我的订单</a>
       {% elif g.staff %}
         <a class="btn btn-primary" href="{{ url_for('member.menu') }}">回到首页</a>
-        <a class="btn btn-outline-secondary" href="{{ url_for('auth.logout') }}">退出登录</a>
+        <form class="d-inline" method="post" action="{{ url_for('auth.logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="btn btn-outline-secondary">退出登录</button></form>
       {% else %}
         <a class="btn btn-primary" href="{{ url_for('auth.login') }}">会员登录</a>
         <a class="btn btn-outline-secondary" href="{{ url_for('auth.staff_login') }}">员工登录</a>

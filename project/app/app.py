@@ -25,7 +25,7 @@ from web import (
     routes_member,
     routes_stocker,
 )
-from web.security import load_current_user
+from web.security import get_csrf_token, load_current_user, verify_csrf_token
 
 LOG_FORMAT = (
     "%(asctime)s level=%(levelname)s req=%(request_id)s "
@@ -60,12 +60,18 @@ def create_app(config_object=Config) -> Flask:
     )
     app.config.from_object(config_object)
     _configure_logging(app)
+    app.jinja_env.globals["csrf_token"] = get_csrf_token
+    if app.config.get("SECRET_KEY_EPHEMERAL"):
+        logging.getLogger("app").warning(
+            "未配置强 SECRET_KEY，已为当前进程生成临时随机密钥（重启后会话将失效）"
+        )
 
     @app.before_request
     def _before():
         g.request_id = uuid.uuid4().hex[:12]
         g.started_at = time.time()
         load_current_user()
+        verify_csrf_token()
 
     @app.after_request
     def _after(response):

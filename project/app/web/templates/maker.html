@@ -27,11 +27,13 @@
           <td class="text-end">
             <div class="d-flex gap-1 justify-content-end">
               <form method="post" action="{{ url_for('maker.advance', order_id=o[0]) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button class="btn btn-sm btn-outline-primary" type="submit">推到下一状态</button>
               </form>
               {% if o[3] == 'PENDING' %}
                 <form method="post" action="{{ url_for('maker.cancel_order', order_id=o[0]) }}"
                       onsubmit="return confirm('取消后原料会退回、积分会扣回，确定取消这张单吗？');">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <button class="btn btn-sm btn-outline-danger" type="submit">取消</button>
                 </form>
               {% endif %}

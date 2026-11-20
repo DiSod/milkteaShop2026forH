@@ -103,6 +103,7 @@
           <div class="d-flex flex-wrap gap-1 align-items-center">
             <form class="d-flex gap-1" method="post"
                   action="{{ url_for('manager.edit_product', product_id=p[0]) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <input class="form-control form-control-sm" name="product_name" value="{{ p[2] }}"
                      style="width:8rem" aria-label="商品名称">
               <input class="form-control form-control-sm text-end" name="base_price"
@@ -116,6 +117,7 @@
               <button class="btn btn-sm btn-outline-primary" type="submit">保存</button>
             </form>
             <form method="post" action="{{ url_for('manager.retire_product', product_id=p[0]) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <button class="btn btn-sm btn-outline-danger" type="submit"
                       {% if p[5] != 'ON_SALE' %}disabled{% endif %}>下架</button>
             </form>
@@ -129,6 +131,7 @@
 
 <h6 class="mt-4">新建商品</h6>
 <form class="row g-2 align-items-end" method="post" action="{{ url_for('manager.create_product') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div class="col-auto">
     <label class="form-label small mb-1" for="product_code">编码</label>
     <input class="form-control form-control-sm" id="product_code" name="product_code" style="width:8rem">

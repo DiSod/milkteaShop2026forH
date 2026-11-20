@@ -36,6 +36,7 @@
         <td class="text-end">{{ '%.2f'|format(l[11]) }}</td>
         <td>
           <form class="d-flex gap-1" method="post" action="{{ url_for('stocker.receive') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="detail_id" value="{{ l[0] }}">
             <input class="form-control form-control-sm text-end" name="qty"
                    value="{{ l[10] }}" style="width:6rem">
@@ -114,6 +115,7 @@
         </td>
         <td>
           <form class="d-flex gap-1" method="post" action="{{ url_for('stocker.report_loss') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="ingredient_id" value="{{ i[0] }}">
             <input class="form-control form-control-sm text-end" name="qty"
                    placeholder="数量" style="width:5rem">

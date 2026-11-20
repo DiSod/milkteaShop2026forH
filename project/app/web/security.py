@@ -6,10 +6,37 @@
 """
 
 import functools
+import hmac
+import secrets
 
-from flask import g, redirect, session, url_for
+from flask import current_app, g, redirect, request, session, url_for
 
 from service.errors import PermissionDenied, Unauthenticated
+
+
+def get_csrf_token() -> str:
+    """获取当前会话的 CSRF 口令；不存在时生成并存入 session。"""
+    token = session.get("_csrf_token")
+    if not token:
+        token = secrets.token_urlsafe(32)
+        session["_csrf_token"] = token
+    return token
+
+
+def verify_csrf_token() -> None:
+    """校验状态变更请求的 CSRF 口令；测试模式默认跳过，可用 CSRF_TEST_ENFORCE 开启。"""
+    if request.method not in ("POST", "PUT", "PATCH", "DELETE"):
+        return
+    if not current_app.config.get("CSRF_ENABLED", True):
+        return
+    if current_app.config.get("TESTING", False) and not current_app.config.get(
+        "CSRF_TEST_ENFORCE", False
+    ):
+        return
+    submitted = request.form.get("csrf_token") or request.headers.get("X-CSRF-Token") or ""
+    expected = session.get("_csrf_token") or ""
+    if not expected or not hmac.compare_digest(submitted, expected):
+        raise PermissionDenied("请求校验失败，请刷新页面后重试")
 
 
 def load_current_user() -> None:
