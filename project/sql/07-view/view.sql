@@ -150,29 +150,31 @@ GO
  * 业务背景：
  *   单店店长每日打烊报表与财务对账核心凭证。
  *   聚合订单单头（tbl_order_header）与明细（tbl_order_detail），
- *   按营业日（business_date）统计：
+ *   按营业日（business_date）统计，出杯/营收/客单/渠道均按 D 口径
+ *   （h.pay_status = 'SUCCESS' AND h.order_status <> 'CANCELLED'）过滤：
  *     - 总接单量、完成单量、取消单量
  *     - 总出杯数（物理产品出杯杯数）
  *     - 营业毛收、优惠总额、净实收营收
- *     - 平均客单价（AOV）与会员订单占比
- *     - 微信、支付宝、现金多渠道收银拆解
+ *     - 平均客单价（AOV）与会员订单/营收
+ *     - 微信、支付宝、现金、刷卡（CARD）多渠道收银拆解
  * ============================================================ */
 CREATE OR ALTER VIEW vw_daily_business_summary AS
 SELECT 
-    h.business_date                                                          AS business_date,
-    COUNT(h.order_id)                                                        AS total_orders,
-    SUM(CASE WHEN h.order_status = 'COMPLETED' THEN 1 ELSE 0 END)            AS completed_orders,
-    SUM(CASE WHEN h.order_status = 'CANCELLED' THEN 1 ELSE 0 END)            AS cancelled_orders,
-    ISNULL(SUM(d.cup_count), 0)                                              AS total_cups,
-    SUM(h.amount_due + h.discount_amount)                                    AS gross_sales,
-    SUM(h.discount_amount)                                                   AS total_discount,
-    SUM(h.amount_paid)                                                       AS net_revenue,
-    CAST(AVG(h.amount_paid * 1.0) AS DECIMAL(10,2))                          AS avg_order_amount,
-    COUNT(h.member_id)                                                       AS member_orders,
-    SUM(CASE WHEN h.member_id IS NOT NULL THEN h.amount_paid ELSE 0 END)     AS member_revenue,
-    SUM(CASE WHEN h.pay_method = 'WECHAT' THEN h.amount_paid ELSE 0 END)     AS wechat_revenue,
-    SUM(CASE WHEN h.pay_method = 'ALIPAY' THEN h.amount_paid ELSE 0 END)     AS alipay_revenue,
-    SUM(CASE WHEN h.pay_method = 'CASH'   THEN h.amount_paid ELSE 0 END)     AS cash_revenue
+    h.business_date                                                                                                       AS business_date,
+    COUNT(h.order_id)                                                                                                     AS total_orders,
+    SUM(CASE WHEN h.order_status = 'COMPLETED' THEN 1 ELSE 0 END)                                                         AS completed_orders,
+    SUM(CASE WHEN h.order_status = 'CANCELLED' THEN 1 ELSE 0 END)                                                         AS cancelled_orders,
+    ISNULL(SUM(CASE WHEN h.pay_status = 'SUCCESS' AND h.order_status <> 'CANCELLED' THEN d.cup_count ELSE 0 END), 0)      AS total_cups,
+    SUM(CASE WHEN h.pay_status = 'SUCCESS' AND h.order_status <> 'CANCELLED' THEN h.amount_due + h.discount_amount ELSE 0 END) AS gross_sales,
+    SUM(CASE WHEN h.pay_status = 'SUCCESS' AND h.order_status <> 'CANCELLED' THEN h.discount_amount ELSE 0 END)           AS total_discount,
+    SUM(CASE WHEN h.pay_status = 'SUCCESS' AND h.order_status <> 'CANCELLED' THEN h.amount_paid ELSE 0 END)               AS net_revenue,
+    ISNULL(CAST(AVG(CASE WHEN h.pay_status = 'SUCCESS' AND h.order_status <> 'CANCELLED' THEN h.amount_paid * 1.0 END) AS DECIMAL(10,2)), 0.00) AS avg_order_amount,
+    SUM(CASE WHEN h.member_id IS NOT NULL AND h.pay_status = 'SUCCESS' AND h.order_status <> 'CANCELLED' THEN 1 ELSE 0 END) AS member_orders,
+    SUM(CASE WHEN h.member_id IS NOT NULL AND h.pay_status = 'SUCCESS' AND h.order_status <> 'CANCELLED' THEN h.amount_paid ELSE 0 END) AS member_revenue,
+    SUM(CASE WHEN h.pay_status = 'SUCCESS' AND h.order_status <> 'CANCELLED' AND h.pay_method = 'WECHAT' THEN h.amount_paid ELSE 0 END) AS wechat_revenue,
+    SUM(CASE WHEN h.pay_status = 'SUCCESS' AND h.order_status <> 'CANCELLED' AND h.pay_method = 'ALIPAY' THEN h.amount_paid ELSE 0 END) AS alipay_revenue,
+    SUM(CASE WHEN h.pay_status = 'SUCCESS' AND h.order_status <> 'CANCELLED' AND h.pay_method = 'CASH'   THEN h.amount_paid ELSE 0 END) AS cash_revenue,
+    SUM(CASE WHEN h.pay_status = 'SUCCESS' AND h.order_status <> 'CANCELLED' AND h.pay_method = 'CARD'   THEN h.amount_paid ELSE 0 END) AS card_revenue
 FROM tbl_order_header h
 LEFT JOIN (
     SELECT order_id, SUM(qty) AS cup_count 

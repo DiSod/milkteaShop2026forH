@@ -3,7 +3,7 @@
 {% block content %}
 <h4 class="mb-3">店长工作台</h4>
 <p class="text-muted small">
-  经营日报读 <code>vw_daily_business_summary</code>（含退款口径见文档 §五 指标口径）；
+  经营日报读 <code>vw_daily_business_summary</code>（已按 D 口径排除取消与未支付单）；
   商品档案是<strong>只有店长能写</strong>的对象。删除的等价物是「下架」——
   历史订单仍指向这个商品，硬删会让明细失去引用。
 </p>
@@ -22,7 +22,7 @@
     <div class="card chart-card">
       <div class="card-body">
         <h6 class="card-title mb-1">销量 Top 10</h6>
-        <p class="chart-sub">杯数降序（有效口径 <code>pay_status = 'SUCCESS'</code>）</p>
+        <p class="chart-sub">杯数降序（有效口径 <code>pay_status = 'SUCCESS' AND order_status <> 'CANCELLED'</code>）</p>
         <div class="chart-holder"><canvas id="topChart"></canvas></div>
       </div>
     </div>
