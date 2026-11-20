@@ -192,9 +192,15 @@ def test_member_pays_less_with_coupon(client):
     try:
         row = _latest_order()
         order_id, due, discount, paid, cid, status = row
+        with db.open_session() as s:
+            detail_sum = s.query_one(
+                "SELECT SUM(subtotal) FROM tbl_order_detail WHERE order_id = ?",
+                (order_id,),
+            )[0]
         assert cid == coupon_id, "订单上要记下用了哪张券"
         assert discount == face, "抵扣金额应等于券面额"
-        assert paid == due - discount, "实付 = 券前金额 − 抵扣"
+        assert due == detail_sum - discount, "应付 = 明细合计 − 抵扣"
+        assert paid == due, "实付 = 应付"
         assert status == "PENDING"
         assert _coupon_state(coupon_id)[0] == "USED", "下单成功后券应变成已用"
     finally:

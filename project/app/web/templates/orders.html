@@ -34,7 +34,7 @@
           </td>
           <td class="text-end">
             {{ '%.2f'|format(o.amount_paid) }}
-            {% if o.amount_due and o.amount_due > o.amount_paid %}<span class="price-was">{{ '%.2f'|format(o.amount_due) }}</span>{% endif %}
+            {% if o.discount_amount and o.discount_amount > 0 %}<span class="price-was">{{ '%.2f'|format(o.original_amount) }}</span>{% endif %}
           </td>
           <td class="text-muted small">{{ o.order_time }}</td>
           <td class="text-end">
@@ -87,7 +87,7 @@
           <td>{{ o.pickup_no }}</td>
           <td class="text-end">
             {{ '%.2f'|format(o.amount_paid) }}
-            {% if o.amount_due and o.amount_due > o.amount_paid %}<span class="price-was">{{ '%.2f'|format(o.amount_due) }}</span>{% endif %}
+            {% if o.discount_amount and o.discount_amount > 0 %}<span class="price-was">{{ '%.2f'|format(o.original_amount) }}</span>{% endif %}
           </td>
           <td>{{ o.pay_status }}</td>
           <td><span class="badge bg-{{ o.status_tone }}">{{ o.status_label }}</span></td>

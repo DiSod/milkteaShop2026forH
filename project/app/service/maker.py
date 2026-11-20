@@ -38,7 +38,9 @@ def advance(role: str, order_id: int) -> dict:
             raise BusinessRuleViolation(
                 "当前状态（%s）不能再推进" % STATE_LABEL.get(current, current)
             )
-        order_dao.update_status(s, order_id, target)
+        updated = order_dao.update_status(s, order_id, target, expected_status=current)
+        if updated != 1:
+            raise BusinessRuleViolation("订单状态已被其他操作改变，请刷新后重试")
         s.commit()
     return {"order_id": order_id, "from": current, "to": target, "to_label": STATE_LABEL[target]}
 

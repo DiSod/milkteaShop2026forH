@@ -38,10 +38,11 @@ def _validate(items) -> None:
         raise ValidationError("一张订单最多 %d 种商品" % MAX_LINES)
     for it in items:
         qty = it.get("qty")
-        if not isinstance(qty, int) or qty < 1 or qty > MAX_QTY_PER_LINE:
+        if isinstance(qty, bool) or not isinstance(qty, int) or qty < 1 or qty > MAX_QTY_PER_LINE:
             raise ValidationError("每行数量需在 1—%d 之间" % MAX_QTY_PER_LINE)
         for key in ("product_id", "cup_spec_id", "sugar_spec_id", "ice_spec_id"):
-            if not isinstance(it.get(key), int):
+            val = it.get(key)
+            if isinstance(val, bool) or not isinstance(val, int):
                 raise ValidationError("商品选项不完整，请重新选择")
 
 
@@ -60,6 +61,22 @@ def place_order(member_id, items, cashier_id=None, coupon_id=None) -> dict:
     with db.open_session() as s:
         today = order_dao.today(s)
 
+        spec_types = catalog_dao.spec_types_of(
+            s,
+            {
+                it[key]
+                for it in items
+                for key in ("cup_spec_id", "sugar_spec_id", "ice_spec_id")
+            },
+        )
+        for it in items:
+            if (
+                spec_types.get(it["cup_spec_id"]) != "CUP"
+                or spec_types.get(it["sugar_spec_id"]) != "SUGAR"
+                or spec_types.get(it["ice_spec_id"]) != "ICE"
+            ):
+                raise ValidationError("商品规格选项无效，请重新选择")
+
         priced = []
         for idx, it in enumerate(items, start=1):
             row = catalog_dao.find_cup_price(s, it["product_id"], it["cup_spec_id"])
@@ -77,16 +94,31 @@ def place_order(member_id, items, cashier_id=None, coupon_id=None) -> dict:
 
             extra = Decimal("0.00")
             topping_rows = []
+            topping_needs = []
+            seen_toppings = set()
             for tp in it.get("toppings") or []:
-                t_row = catalog_dao.topping_price(s, tp["topping_id"])
+                tid = tp.get("topping_id") if isinstance(tp, dict) else None
+                if isinstance(tid, bool) or not isinstance(tid, int):
+                    raise ValidationError("加料选项无效，请重新选择")
+                if tid in seen_toppings:
+                    raise ValidationError("同一饮品不能重复添加相同加料")
+                seen_toppings.add(tid)
+                t_qty = tp.get("qty", 1)
+                if (
+                    isinstance(t_qty, bool)
+                    or not isinstance(t_qty, int)
+                    or t_qty < 1
+                    or t_qty > MAX_QTY_PER_LINE * 5
+                ):
+                    raise ValidationError("加料份数不合法")
+                t_row = catalog_dao.topping_price(s, tid)
                 if t_row is None:
                     raise ValidationError("加料已下架，请重新选择")
-                t_price = _dec(t_row[1])
-                t_qty = int(tp.get("qty") or 1)
-                if t_qty < 1 or t_qty > MAX_QTY_PER_LINE:
-                    raise ValidationError("加料份数不合法")
+                _t_name, t_price_raw, t_ing_id, t_per_serving = t_row
+                t_price = _dec(t_price_raw)
                 extra += t_price * t_qty
-                topping_rows.append((tp["topping_id"], t_qty, t_price))
+                topping_rows.append((tid, t_qty, t_price))
+                topping_needs.append((t_ing_id, _dec(t_per_serving) * t_qty))
 
             subtotal = unit_price * it["qty"] + extra
             priced.append(
@@ -99,11 +131,12 @@ def place_order(member_id, items, cashier_id=None, coupon_id=None) -> dict:
                     "qty": it["qty"],
                     "unit_price": unit_price,
                     "toppings": topping_rows,
+                    "topping_needs": topping_needs,
                     "subtotal": subtotal,
                 }
             )
 
-        amount_due = sum((p["subtotal"] for p in priced), Decimal("0.00"))
+        gross_amount = sum((p["subtotal"] for p in priced), Decimal("0.00"))
 
         # 用券：只认「本人的、未用的、在有效期内的」券。门槛按券前金额算；
         # 抵扣不超过订单金额（券可能比单贵，此时实付 0 而不是负数）。
@@ -115,12 +148,13 @@ def place_order(member_id, items, cashier_id=None, coupon_id=None) -> dict:
             if coupon is None:
                 raise BusinessRuleViolation("这张券不可用（可能已被用掉或已过期）")
             face, min_amount = _dec(coupon[0]), _dec(coupon[1])
-            if amount_due < min_amount:
+            if gross_amount < min_amount:
                 raise BusinessRuleViolation(
-                    "这张券需要满 %s 元才能用，当前是 %s 元" % (min_amount, amount_due)
+                    "这张券需要满 %s 元才能用，当前是 %s 元" % (min_amount, gross_amount)
                 )
-            discount = face if face < amount_due else amount_due
-        amount_paid = amount_due - discount
+            discount = face if face < gross_amount else gross_amount
+        amount_due = gross_amount - discount
+        amount_paid = amount_due
 
         # 原料总需求先算完再一次性校验，避免逐行扣减后才发现不够
         need = {}
@@ -129,10 +163,14 @@ def place_order(member_id, items, cashier_id=None, coupon_id=None) -> dict:
                 s, p["product_id"], p["cup_spec_id"], p["sugar_spec_id"]
             ):
                 need[ingredient_id] = need.get(ingredient_id, Decimal("0")) + _dec(qty) * p["qty"]
+            for ingredient_id, qty in p["topping_needs"]:
+                need[ingredient_id] = need.get(ingredient_id, Decimal("0")) + qty
 
         used_ids = list(need.keys())
         stock = catalog_dao.stock_of(s, used_ids)  # {ingredient_id: (qty_on_hand, is_sold_out, name)}
         for ingredient_id, required in need.items():
+            if ingredient_id not in stock:
+                raise BusinessRuleViolation("所需原料配置缺失，暂时无法制作")
             on_hand, sold_out, name = stock[ingredient_id]
             if sold_out:
                 raise BusinessRuleViolation("「%s」已沽清，暂时无法制作" % name)

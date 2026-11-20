@@ -44,7 +44,7 @@ def list_orders(s, member_id: int, limit: int = 50) -> list:
     return s.query(
         """
         SELECT TOP (?) order_id, order_no, business_date, pickup_no,
-               amount_due, amount_paid, pay_status, order_status, order_time
+               amount_due, discount_amount, amount_paid, pay_status, order_status, order_time
         FROM tbl_order_header
         WHERE member_id = ?
         ORDER BY order_id DESC

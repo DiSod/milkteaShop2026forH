@@ -173,9 +173,15 @@ def get_status(s, order_id: int):
     return row[0] if row else None
 
 
-def update_status(s, order_id: int, status: str) -> int:
+def update_status(s, order_id: int, status: str, expected_status: str = None) -> int:
+    if expected_status is not None:
+        return s.execute(
+            "SET NOCOUNT OFF; UPDATE tbl_order_header SET order_status = ? "
+            "WHERE order_id = ? AND order_status = ?",
+            (status, order_id, expected_status),
+        )
     return s.execute(
-        "UPDATE tbl_order_header SET order_status = ? WHERE order_id = ?",
+        "SET NOCOUNT OFF; UPDATE tbl_order_header SET order_status = ? WHERE order_id = ?",
         (status, order_id),
     )
 

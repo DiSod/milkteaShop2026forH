@@ -126,13 +126,16 @@ def _order_views(rows: list) -> list:
     views = []
     for row in rows:
         (order_id, order_no, business_date, pickup_no, amount_due,
-         amount_paid, pay_status, order_status, order_time) = row
+         discount_amount, amount_paid, pay_status, order_status, order_time) = row
+        discount = discount_amount or 0
         views.append({
             "order_id": order_id,
             "order_no": order_no,
             "business_date": business_date,
             "pickup_no": pickup_no,
             "amount_due": amount_due,
+            "discount_amount": discount,
+            "original_amount": (amount_due or 0) + discount,
             "amount_paid": amount_paid,
             "pay_status": pay_status,
             "status": order_status,
@@ -173,6 +176,7 @@ def profile(member_id: int) -> dict:
             "points": points,
             "points_denied": points_denied,
             "orders": orders,
+            "order_views": views,
             "active_orders": [o for o in views if o["is_active"]],
             "history_orders": [o for o in views if not o["is_active"]],
         }

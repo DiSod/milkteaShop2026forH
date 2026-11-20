@@ -44,8 +44,8 @@
 <ul class="list-group">
   {% for o in orders %}
     <li class="list-group-item d-flex justify-content-between">
-      <span><code>{{ o[1] }}</code> · 取餐号 {{ o[3] }}</span>
-      <span>{{ '%.2f'|format(o[5]) }} 元 · {{ states.get(o[7], o[7]) }}</span>
+      <span><code>{{ o.order_no }}</code> · 取餐号 {{ o.pickup_no }}</span>
+      <span>{{ '%.2f'|format(o.amount_paid) }} 元 · {{ states.get(o.status, o.status) }}</span>
     </li>
   {% else %}
     <li class="list-group-item text-muted">暂无订单</li>

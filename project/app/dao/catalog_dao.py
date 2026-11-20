@@ -63,18 +63,33 @@ def find_cup_price(s, product_id: int, cup_spec_id: int):
         """
         SELECT selling_price, theor_makeable_cups, product_name, is_ingredient_sold_out
         FROM vw_product_stock_availability
-        WHERE product_id = ? AND cup_spec_id = ?
+        WHERE product_id = ? AND cup_spec_id = ? AND product_status = 'ON_SALE'
         """,
         (product_id, cup_spec_id),
     )
 
 
 def topping_price(s, topping_id: int):
-    """取加料单价。返回 (topping_name, extra_price)。"""
+    """取加料单价与用量。返回 (topping_name, extra_price, ingredient_id, qty_per_serving)。"""
     return s.query_one(
-        "SELECT topping_name, extra_price FROM tbl_topping WHERE topping_id = ? AND is_active = 1",
+        "SELECT topping_name, extra_price, ingredient_id, qty_per_serving "
+        "FROM tbl_topping WHERE topping_id = ? AND is_active = 1",
         (topping_id,),
     )
+
+
+def spec_types_of(s, spec_ids) -> dict:
+    """批量查询规格 ID 对应的 spec_type（CUP / SUGAR / ICE）。"""
+    ids = sorted({int(i) for i in spec_ids})
+    if not ids:
+        return {}
+    placeholders = ", ".join("?" for _ in ids)
+    rows = s.query(
+        "SELECT spec_option_id, spec_type FROM tbl_spec_option WHERE spec_option_id IN (%s)"
+        % placeholders,
+        tuple(ids),
+    )
+    return {int(r[0]): r[1] for r in rows}
 
 
 def stock_of(s, ingredient_ids) -> dict:

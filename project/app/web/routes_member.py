@@ -39,7 +39,7 @@ def _parse_items(form) -> list:
             continue
         toppings = []
         for topping_id in form.getlist("topping_id_%d" % idx):
-            toppings.append({"topping_id": int(topping_id), "qty": 1})
+            toppings.append({"topping_id": int(topping_id), "qty": int(qty_raw)})
         items.append(
             {
                 "product_id": int(product_id),
@@ -131,6 +131,6 @@ def me():
         member=data["member"],
         points=data["points"],
         points_denied=data.get("points_denied", False),
-        orders=data["orders"][:5],
+        orders=data["order_views"][:5],
         states=auth.ORDER_STATUS_LABEL,
     )
