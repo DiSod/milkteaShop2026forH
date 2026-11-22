@@ -108,10 +108,10 @@ SELECT TOP 10
     p.product_code                                                       AS 商品编码,
     p.product_name                                                       AS 商品名称,
     c.category_name                                                      AS 所属品类,
-    COUNT(d.order_detail_id)                                             AS 累计销售杯数,
-    SUM(CASE WHEN odt.topping_count > 0 THEN 1 ELSE 0 END)               AS 加料定制杯数,
-    CAST(SUM(CASE WHEN odt.topping_count > 0 THEN 1.0 ELSE 0.0 END) 
-         * 100.0 / COUNT(d.order_detail_id) AS DECIMAL(5,2))             AS 加料渗透率_百分比,
+    SUM(d.qty)                                                           AS 累计销售杯数,
+    SUM(CASE WHEN odt.topping_count > 0 THEN d.qty ELSE 0 END)           AS 加料定制杯数,
+    CAST(SUM(CASE WHEN odt.topping_count > 0 THEN d.qty * 1.0 ELSE 0.0 END) 
+         * 100.0 / SUM(d.qty) AS DECIMAL(5,2))                           AS 加料渗透率_百分比,
     ISNULL(SUM(odt.topping_amount), 0)                                   AS 小料附加增收,
     SUM(d.subtotal)                                                      AS 商品销售总额
 FROM tbl_order_detail d
@@ -139,9 +139,9 @@ PRINT N'【查询】=== Q2b：全店顾客甜度与冰度组合偏好热度分�
 SELECT TOP 10
     ISNULL(sugar.spec_name, N'默认/无配方')                              AS 甜度档位,
     ISNULL(ice.spec_name,   N'默认/常温')                                AS 冰度档位,
-    COUNT(d.order_detail_id)                                             AS 点单杯数,
-    CAST(COUNT(d.order_detail_id) * 100.0 
-         / SUM(COUNT(d.order_detail_id)) OVER() AS DECIMAL(5,2))         AS 点单占比_百分比
+    SUM(d.qty)                                                           AS 点单杯数,
+    CAST(SUM(d.qty) * 100.0 
+         / SUM(SUM(d.qty)) OVER() AS DECIMAL(5,2))                       AS 点单占比_百分比
 FROM tbl_order_detail d
 INNER JOIN tbl_order_header h 
     ON h.order_id = d.order_id
@@ -220,42 +220,41 @@ SELECT TOP 10
     i.ingredient_code                                                    AS 原料编码,
     i.ingredient_name                                                    AS 原料名称,
     i.unit                                                               AS 单位,
-    SUM(CASE WHEN sl.ref_type = 'OPENING' THEN sl.qty ELSE 0 END)        AS 期初建账库存,
-    SUM(CASE WHEN sl.ref_type = 'PURCHASE' THEN sl.qty ELSE 0 END)       AS 累计采购入库,
-    SUM(CASE WHEN sl.ledger_type = 'SALES_USE' THEN ABS(sl.qty) 
-             ELSE 0 END)                                                 AS 累计销售耗用,
-    SUM(CASE WHEN sl.ledger_type = 'LOSS' THEN ABS(sl.qty) 
-             ELSE 0 END)                                                 AS 累计报损耗用,
-    SUM(sl.qty)                                                          AS 流水理论结存,
-    i.qty_on_hand                                                        AS 物理在手实存,
-    i.qty_on_hand - SUM(sl.qty)                                          AS 账实差异,
+    ISNULL(SUM(CASE WHEN sl.ref_type = 'OPENING' THEN sl.qty ELSE 0 END), 0)  AS 期初建账库存,
+    ISNULL(SUM(CASE WHEN sl.ref_type = 'PURCHASE' THEN sl.qty ELSE 0 END), 0) AS 累计采购入库,
+    ISNULL(SUM(CASE WHEN sl.ledger_type = 'SALES_USE' THEN -sl.qty ELSE 0 END), 0)   AS 累计销售耗用,
+    ISNULL(SUM(CASE WHEN sl.ledger_type = 'CANCEL_BACK' THEN sl.qty ELSE 0 END), 0)  AS 累计取消回冲,
+    ISNULL(SUM(CASE WHEN sl.ledger_type = 'LOSS' THEN -sl.qty ELSE 0 END), 0)        AS 累计报损耗用,
+    ISNULL(SUM(sl.qty), 0)                                                           AS 流水理论结存,
+    i.qty_on_hand                                                                    AS 物理在手实存,
+    i.qty_on_hand - ISNULL(SUM(sl.qty), 0)                                           AS 账实差异,
     CASE 
-        WHEN ABS(i.qty_on_hand - SUM(sl.qty)) < 0.001 THEN N'严格平账' 
+        WHEN ABS(i.qty_on_hand - ISNULL(SUM(sl.qty), 0)) < 0.001 THEN N'严格平账' 
         ELSE N'账实异常' 
-    END                                                                  AS 审计核对结论
+    END                                                                              AS 审计核对结论
 FROM tbl_ingredient i
-INNER JOIN tbl_stock_ledger sl 
+LEFT JOIN tbl_stock_ledger sl 
     ON sl.ingredient_id = i.ingredient_id
 GROUP BY i.ingredient_code, i.ingredient_name, i.unit, i.qty_on_hand
 ORDER BY 累计采购入库 DESC, i.ingredient_code ASC;
 GO
 
-PRINT N'【查询】=== Q4 汇总断言：检查全库 60 种原料是否存在任何账实不平记录 ===';
+PRINT N'【查询】=== Q4 汇总断言：检查全库原料是否存在任何账实不平记录 ===';
 SELECT 
     COUNT(*)                                                             AS 存在差异物料数,
-    ISNULL(SUM(ABS(i.qty_on_hand - sub.ledger_sum)), 0)                  AS 差异总量绝对值,
+    ISNULL(SUM(ABS(i.qty_on_hand - ISNULL(sub.ledger_sum, 0))), 0)       AS 差异总量绝对值,
     CASE 
-        WHEN COUNT(*) = 0 THEN N'✅ 全库 60 种原料 100% 账实自洽，进销存台账绝对守恒！'
+        WHEN COUNT(*) = 0 THEN N'✅ 全库原料 100% 账实自洽，进销存台账绝对守恒！'
         ELSE N'❌ 警告：检测到台账不平，请排查流水！'
     END                                                                  AS 全店审计最终裁决
-FROM (
+FROM tbl_ingredient i
+LEFT JOIN (
     SELECT ingredient_id, SUM(qty) AS ledger_sum
     FROM tbl_stock_ledger
     GROUP BY ingredient_id
 ) sub
-INNER JOIN tbl_ingredient i 
-    ON i.ingredient_id = sub.ingredient_id
-WHERE ABS(i.qty_on_hand - sub.ledger_sum) > 0.0001
+    ON sub.ingredient_id = i.ingredient_id
+WHERE ABS(i.qty_on_hand - ISNULL(sub.ledger_sum, 0)) > 0.0001
   AND i.ingredient_code NOT LIKE 'DEMO-%';
 GO
 

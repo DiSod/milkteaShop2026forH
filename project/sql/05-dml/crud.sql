@@ -30,6 +30,8 @@
 USE milktea_shop;
 GO
 
+SET ANSI_NULLS ON;
+SET QUOTED_IDENTIFIER ON;
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
 GO
@@ -138,7 +140,7 @@ VALUES
     (N'DEMO-CP1',
      (SELECT member_id FROM tbl_member WHERE member_code = 'DEMO-M1'),
      (SELECT template_id FROM tbl_coupon_template WHERE template_code = 'TPL_POINTS_5'),
-     '2026-10-04 00:00:00', '2026-11-04 23:59:59');
+     DATEADD(DAY, -1, SYSDATETIME()), DATEADD(DAY, 30, SYSDATETIME()));
 
 SELECT coupon_id, coupon_code, coupon_name, discount_amount, status
 FROM   vw_coupon_legacy WHERE coupon_code = 'DEMO-CP1';
@@ -286,12 +288,17 @@ BEGIN TRY
             GROUP BY d.order_id, t.ingredient_id
         ) u;
 
-        -- ② 扣减库存（若扣成负数，ck_ingredient_qty_on_hand 会直接拒绝 —— 这正是设计意图）
+        -- ② 扣减库存（先按 ingredient_id 聚合，避免固定配方与加料同原料时 T-SQL 多对一静默丢扣）
         UPDATE i
-        SET    i.qty_on_hand = i.qty_on_hand + l.qty
+        SET    i.qty_on_hand = i.qty_on_hand + s.total_delta
         FROM   tbl_ingredient i
-        JOIN   tbl_stock_ledger l ON l.ingredient_id = i.ingredient_id
-        WHERE  l.order_id = (SELECT order_id FROM tbl_order_header WHERE order_no = 'DEMO-O1');
+        JOIN (
+            SELECT l.ingredient_id, SUM(l.qty) AS total_delta
+            FROM   tbl_stock_ledger l
+            WHERE  l.order_id = (SELECT order_id FROM tbl_order_header WHERE order_no = 'DEMO-O1')
+              AND  l.ledger_type = N'SALES_USE'
+            GROUP BY l.ingredient_id
+        ) s ON s.ingredient_id = i.ingredient_id;
 
         -- ③ 积分累积：1 元 = 1 分
         INSERT INTO tbl_points_ledger (member_id, point_type, point_change, order_id)
@@ -466,6 +473,7 @@ SELECT TOP 8
        i.ingredient_name AS 名称,
        ISNULL(SUM(CASE WHEN l.ledger_type = 'PURCHASE_IN' THEN l.qty END), 0) AS 采购入库,
        ISNULL(SUM(CASE WHEN l.ledger_type = 'SALES_USE'   THEN l.qty END), 0) AS 销售耗用,
+       ISNULL(SUM(CASE WHEN l.ledger_type = 'CANCEL_BACK' THEN l.qty END), 0) AS 取消回冲,
        ISNULL(SUM(CASE WHEN l.ledger_type = 'LOSS'        THEN l.qty END), 0) AS 报损,
        i.qty_on_hand                                                          AS 期末库存,
        i.qty_on_hand - ISNULL(SUM(l.qty), 0)                                  AS 反推期初
@@ -632,9 +640,9 @@ BEGIN TRY
         SET    status = 'UNUSED', used_time = NULL
         WHERE  coupon_id = (SELECT coupon_id FROM tbl_order_header WHERE order_no = 'DEMO-O1');
 
-        -- ② 退积分：写一条 REDEEM 反向流水，并把余额减回去
-        INSERT INTO tbl_points_ledger (member_id, point_type, point_change, order_id, coupon_id)
-        SELECT h.member_id, N'REDEEM', -CAST(h.amount_paid AS INT), h.order_id, h.coupon_id
+        -- ② 退积分：写一条 REVOKE 反向流水（migration-06 约定：挂订单、不挂券），并扣回余额
+        INSERT INTO tbl_points_ledger (member_id, point_type, point_change, order_id)
+        SELECT h.member_id, N'REVOKE', -CAST(h.amount_paid AS INT), h.order_id
         FROM   tbl_order_header h
         WHERE  h.order_no = 'DEMO-O1';
 
@@ -644,17 +652,11 @@ BEGIN TRY
         JOIN   tbl_order_header h ON h.member_id = m.member_id
         WHERE  h.order_no = 'DEMO-O1';
 
-        -- ③ 退库存：把该订单的销售耗用**反向冲回**
-        --    ⚠️ 注意是"**写一条反向流水**"，而不是删掉原流水 —— 流水表只增不改。
-        --    方向：原 SALES_USE 的 qty 是负数，取反后就是正数（回冲入库）。
-        --
-        --    📌 v0.1 的一个已知限制：流水类型只有 3 类（PURCHASE_IN / SALES_USE / LOSS），
-        --       "取消回冲"这类**正向调整**只能借用 PURCHASE_IN 表达；ref_type 仍用 ORDER
-        --       以保持"能追溯到订单"。v1.0 补上 STOCKTAKE 后才会有专门的调整类型。
+        -- ③ 退库存：按 migration-06 写入 CANCEL_BACK 反向流水（只增不改）并聚合加回结存
         INSERT INTO tbl_stock_ledger
             (ingredient_id, ledger_type, qty, ref_type, order_id, operator_id, remark)
         SELECT l.ingredient_id,
-               N'PURCHASE_IN',
+               N'CANCEL_BACK',
                -l.qty,                       -- 取反：负 → 正
                N'ORDER',                     -- 仍可追溯到这张订单
                l.order_id,
@@ -664,15 +666,15 @@ BEGIN TRY
         WHERE  l.order_id = (SELECT order_id FROM tbl_order_header WHERE order_no = 'DEMO-O1')
           AND  l.ledger_type = N'SALES_USE';
 
-        -- 库存加回去（用刚写入的那条回冲流水，严格限定当前订单并聚合，杜绝多对一非确定性覆盖）
+        -- 库存加回去（严格限定当前订单与 CANCEL_BACK 并聚合，杜绝多对一非确定性覆盖）
         UPDATE i
         SET    i.qty_on_hand = i.qty_on_hand + r.total_return_qty
         FROM   tbl_ingredient i
         JOIN (
             SELECT ingredient_id, SUM(qty) AS total_return_qty
             FROM   tbl_stock_ledger
-            WHERE  order_id = (SELECT order_id FROM tbl_order_header WHERE order_no = 'DEMO-O1')
-              AND  remark   = N'订单取消回冲'
+            WHERE  order_id    = (SELECT order_id FROM tbl_order_header WHERE order_no = 'DEMO-O1')
+              AND  ledger_type = N'CANCEL_BACK'
             GROUP BY ingredient_id
         ) r ON r.ingredient_id = i.ingredient_id;
 
