@@ -240,7 +240,7 @@ def test_cannot_use_other_members_coupon(client):
 
 
 def test_cancel_releases_coupon(client):
-    """取消订单要退券：券回到 UNUSED，订单上的 coupon_id 解绑。"""
+    """取消订单要退券：券回到 UNUSED，取消单保留 coupon_id 供审计，且该券可立即再次下单使用。"""
     member_id = _member_id(MEMBER_1[0])
     coupon_id, _face = _free_coupon(member_id)
 
@@ -248,6 +248,7 @@ def test_cancel_releases_coupon(client):
     resp = client.post("/order", data=_form(_first_sellable_item(), coupon_id), follow_redirects=False)
     assert resp.status_code == 302
     order_id = _latest_order()[0]
+    second_order_id = None
     try:
         assert _coupon_state(coupon_id)[0] == "USED"
 
@@ -265,6 +266,15 @@ def test_cancel_releases_coupon(client):
                 "SELECT order_status, coupon_id FROM tbl_order_header WHERE order_id = ?", (order_id,)
             )
         assert head[0] == "CANCELLED"
-        assert head[1] is None, "退券必须把订单上的 coupon_id 解绑，否则唯一索引会挡住下一单"
+        assert head[1] == coupon_id, "过滤唯一索引已排除 CANCELLED，取消单应保留 coupon_id 供审计追溯"
+
+        # 关键验证：退回的券可立即在同一会员的新单中再次核销
+        reuse = client.post("/order", data=_form(_first_sellable_item(), coupon_id), follow_redirects=False)
+        assert reuse.status_code == 302, reuse.get_data(as_text=True)[:300]
+        second_order_id = _latest_order()[0]
+        assert second_order_id != order_id
+        assert _coupon_state(coupon_id)[0] == "USED"
     finally:
+        if second_order_id is not None:
+            _purge(second_order_id)
         _purge(order_id)

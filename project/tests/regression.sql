@@ -32,7 +32,7 @@ GO
 
 DECLARE @pass_count INT = 0;
 DECLARE @fail_count INT = 0;
-DECLARE @total_tests INT = 16;
+DECLARE @total_tests INT = 20;
 
 -- 测试辅助变量
 DECLARE @test_member_id INT;
@@ -47,41 +47,41 @@ DELETE FROM tbl_coupon WHERE coupon_code LIKE 'REG-CPN-%';
 /* ------------------------------------------------------------
  * 断言 1：全库表数判定（应从 17 表扩充为 18 表）
  * ------------------------------------------------------------ */
-PRINT N'[TC-01] 校验数据库总表数是否为 18 表（含新拆分 tbl_coupon_template）...';
+PRINT N'【TC-01】 校验数据库总表数是否为 18 表（含新拆分 tbl_coupon_template）...';
 DECLARE @tbl_cnt INT;
-SELECT @tbl_cnt = COUNT(*) FROM sys.tables;
+SELECT @tbl_cnt = COUNT(*) FROM sys.tables WHERE name LIKE N'tbl[_]%';
 IF @tbl_cnt = 18
 BEGIN
-    PRINT FORMATMESSAGE(N'  --> ✅ [PASS] 全库业务表数为 18 张。');
+    PRINT FORMATMESSAGE(N'  --> ✅ 【PASS】 全库业务表数为 18 张。');
     SET @pass_count = @pass_count + 1;
 END
 ELSE
 BEGIN
-    PRINT FORMATMESSAGE(N'  --> ❌ [FAIL] 表数不符！期望 18，实际: %d', @tbl_cnt);
+    PRINT FORMATMESSAGE(N'  --> ❌ 【FAIL】 表数不符！期望 18，实际: %d', @tbl_cnt);
     SET @fail_count = @fail_count + 1;
 END;
 
 /* ------------------------------------------------------------
  * 断言 2：模板表存在性与行数校验
  * ------------------------------------------------------------ */
-PRINT N'[TC-02] 校验 tbl_coupon_template 是否包含 2 个去重券模板 ...';
+PRINT N'【TC-02】 校验 tbl_coupon_template 是否包含 2 个去重券模板 ...';
 DECLARE @tpl_cnt INT;
 SELECT @tpl_cnt = COUNT(*) FROM tbl_coupon_template WHERE template_code IN ('TPL_CAMP_5', 'TPL_POINTS_5');
 IF @tpl_cnt = 2
 BEGIN
-    PRINT FORMATMESSAGE(N'  --> ✅ [PASS] 券模板表包含 2 个标准去重模板。');
+    PRINT FORMATMESSAGE(N'  --> ✅ 【PASS】 券模板表包含 2 个标准去重模板。');
     SET @pass_count = @pass_count + 1;
 END
 ELSE
 BEGIN
-    PRINT FORMATMESSAGE(N'  --> ❌ [FAIL] 券模板数不符！期望 2，实际: %d', @tpl_cnt);
+    PRINT FORMATMESSAGE(N'  --> ❌ 【FAIL】 券模板数不符！期望 2，实际: %d', @tpl_cnt);
     SET @fail_count = @fail_count + 1;
 END;
 
 /* ------------------------------------------------------------
  * 断言 3：优惠券实例总数与孤儿数据校验
  * ------------------------------------------------------------ */
-PRINT N'[TC-03] 校验种子区间 tbl_coupon 实例数是否为 24 且无孤儿券记录 ...';
+PRINT N'【TC-03】 校验种子区间 tbl_coupon 实例数是否为 24 且无孤儿券记录 ...';
 -- 口径：只锁 v0.1 种子区间（valid_from < 2026-10-01）的 24 张券。
 -- 第 9 周 migration-07 默认发放的 CPDEF 券属于运行期数据，单独统计、不参与断言。
 DECLARE @cpn_cnt INT, @cpn_orphan INT, @cpn_all INT;
@@ -90,19 +90,19 @@ FROM tbl_coupon WHERE valid_from < '2026-10-01';
 SELECT @cpn_all = COUNT(*) FROM tbl_coupon;
 IF @cpn_cnt = 24 AND @cpn_orphan = 0
 BEGIN
-    PRINT FORMATMESSAGE(N'  --> ✅ [PASS] 种子券 24 张、孤儿券 0；全库现有 %d 张（第 9 周默认发放的可用券不计入断言）。', @cpn_all);
+    PRINT FORMATMESSAGE(N'  --> ✅ 【PASS】 种子券 24 张、孤儿券 0；全库现有 %d 张（第 9 周默认发放的可用券不计入断言）。', @cpn_all);
     SET @pass_count = @pass_count + 1;
 END
 ELSE
 BEGIN
-    PRINT FORMATMESSAGE(N'  --> ❌ [FAIL] 券数据不符！总数: %d, 孤儿数: %d', @cpn_cnt, @cpn_orphan);
+    PRINT FORMATMESSAGE(N'  --> ❌ 【FAIL】 券数据不符！总数: %d, 孤儿数: %d', @cpn_cnt, @cpn_orphan);
     SET @fail_count = @fail_count + 1;
 END;
 
 /* ------------------------------------------------------------
  * 断言 4：兼容视图可用性与投影字段校验
  * ------------------------------------------------------------ */
-PRINT N'[TC-04] 校验向后兼容视图 vw_coupon_legacy 可用性 ...';
+PRINT N'【TC-04】 校验向后兼容视图 vw_coupon_legacy 可用性 ...';
 DECLARE @vw_cnt INT, @vw_nulls INT;
 SELECT @vw_cnt = COUNT(*), 
        @vw_nulls = SUM(CASE WHEN coupon_name IS NULL OR discount_amount IS NULL OR min_order_amount IS NULL THEN 1 ELSE 0 END)
@@ -110,19 +110,19 @@ FROM vw_coupon_legacy WHERE valid_from < '2026-10-01';
 
 IF @vw_cnt = 24 AND @vw_nulls = 0
 BEGIN
-    PRINT FORMATMESSAGE(N'  --> ✅ [PASS] 兼容视图按种子口径返回 24 行且模板字段 100%% 完整投影。');
+    PRINT FORMATMESSAGE(N'  --> ✅ 【PASS】 兼容视图按种子口径返回 24 行且模板字段 100%% 完整投影。');
     SET @pass_count = @pass_count + 1;
 END
 ELSE
 BEGIN
-    PRINT FORMATMESSAGE(N'  --> ❌ [FAIL] 兼容视图异常！行数: %d, 空字段数: %d', @vw_cnt, @vw_nulls);
+    PRINT FORMATMESSAGE(N'  --> ❌ 【FAIL】 兼容视图异常！行数: %d, 空字段数: %d', @vw_cnt, @vw_nulls);
     SET @fail_count = @fail_count + 1;
 END;
 
 /* ------------------------------------------------------------
  * 断言 5：约束负例 1 —— 提前核销拦截
  * ------------------------------------------------------------ */
-PRINT N'[TC-05] 负例：试图核销早于 valid_from 的券 (应当被 ck_coupon_used_time_range 拦截) ...';
+PRINT N'【TC-05】 负例：试图核销早于 valid_from 的券 (应当被 ck_coupon_used_time_range 拦截) ...';
 BEGIN TRY
     INSERT INTO tbl_coupon (
         coupon_code, member_id, template_id, valid_from, valid_to, status, used_time
@@ -130,18 +130,18 @@ BEGIN TRY
         'REG-CPN-01', @test_member_id, @test_template_id,
         '2026-10-10 00:00:00', '2026-10-31 23:59:59', 'USED', '2026-10-09 23:59:59'
     );
-    PRINT N'  --> ❌ [FAIL] 非法提前核销未被拦截！';
+    PRINT N'  --> ❌ 【FAIL】 非法提前核销未被拦截！';
     SET @fail_count = @fail_count + 1;
 END TRY
 BEGIN CATCH
     IF ERROR_NUMBER() = 547 AND ERROR_MESSAGE() LIKE '%ck_coupon_used_time_range%'
     BEGIN
-        PRINT N'  --> ✅ [PASS] 成功拦截提前核销 (ck_coupon_used_time_range)。';
+        PRINT N'  --> ✅ 【PASS】 成功拦截提前核销 (ck_coupon_used_time_range)。';
         SET @pass_count = @pass_count + 1;
     END
     ELSE
     BEGIN
-        PRINT N'  --> ❌ [FAIL] 拦截异常：' + ERROR_MESSAGE();
+        PRINT N'  --> ❌ 【FAIL】 拦截异常：' + ERROR_MESSAGE();
         SET @fail_count = @fail_count + 1;
     END;
 END CATCH;
@@ -149,7 +149,7 @@ END CATCH;
 /* ------------------------------------------------------------
  * 断言 6：约束负例 2 —— 过期核销拦截
  * ------------------------------------------------------------ */
-PRINT N'[TC-06] 负例：试图核销晚于 valid_to 的券 (应当被 ck_coupon_used_time_range 拦截) ...';
+PRINT N'【TC-06】 负例：试图核销晚于 valid_to 的券 (应当被 ck_coupon_used_time_range 拦截) ...';
 BEGIN TRY
     INSERT INTO tbl_coupon (
         coupon_code, member_id, template_id, valid_from, valid_to, status, used_time
@@ -157,18 +157,18 @@ BEGIN TRY
         'REG-CPN-02', @test_member_id, @test_template_id,
         '2026-10-01 00:00:00', '2026-10-10 23:59:59', 'USED', '2026-10-11 00:00:01'
     );
-    PRINT N'  --> ❌ [FAIL] 非法过期核销未被拦截！';
+    PRINT N'  --> ❌ 【FAIL】 非法过期核销未被拦截！';
     SET @fail_count = @fail_count + 1;
 END TRY
 BEGIN CATCH
     IF ERROR_NUMBER() = 547 AND ERROR_MESSAGE() LIKE '%ck_coupon_used_time_range%'
     BEGIN
-        PRINT N'  --> ✅ [PASS] 成功拦截过期核销 (ck_coupon_used_time_range)。';
+        PRINT N'  --> ✅ 【PASS】 成功拦截过期核销 (ck_coupon_used_time_range)。';
         SET @pass_count = @pass_count + 1;
     END
     ELSE
     BEGIN
-        PRINT N'  --> ❌ [FAIL] 拦截异常：' + ERROR_MESSAGE();
+        PRINT N'  --> ❌ 【FAIL】 拦截异常：' + ERROR_MESSAGE();
         SET @fail_count = @fail_count + 1;
     END;
 END CATCH;
@@ -176,7 +176,7 @@ END CATCH;
 /* ------------------------------------------------------------
  * 断言 7：外键负例 —— 不存在模板 ID 拦截
  * ------------------------------------------------------------ */
-PRINT N'[TC-07] 负例：试图插入不存在的 template_id (应当被 fk_coupon_template 拦截) ...';
+PRINT N'【TC-07】 负例：试图插入不存在的 template_id (应当被 fk_coupon_template 拦截) ...';
 BEGIN TRY
     INSERT INTO tbl_coupon (
         coupon_code, member_id, template_id, valid_from, valid_to, status, used_time
@@ -184,18 +184,18 @@ BEGIN TRY
         'REG-CPN-03', @test_member_id, 999999,
         '2026-10-01 00:00:00', '2026-10-31 23:59:59', 'UNUSED', NULL
     );
-    PRINT N'  --> ❌ [FAIL] 悬空外键未被拦截！';
+    PRINT N'  --> ❌ 【FAIL】 悬空外键未被拦截！';
     SET @fail_count = @fail_count + 1;
 END TRY
 BEGIN CATCH
     IF ERROR_NUMBER() = 547 AND ERROR_MESSAGE() LIKE '%fk_coupon_template%'
     BEGIN
-        PRINT N'  --> ✅ [PASS] 成功拦截悬空模板外键 (fk_coupon_template)。';
+        PRINT N'  --> ✅ 【PASS】 成功拦截悬空模板外键 (fk_coupon_template)。';
         SET @pass_count = @pass_count + 1;
     END
     ELSE
     BEGIN
-        PRINT N'  --> ❌ [FAIL] 拦截异常：' + ERROR_MESSAGE();
+        PRINT N'  --> ❌ 【FAIL】 拦截异常：' + ERROR_MESSAGE();
         SET @fail_count = @fail_count + 1;
     END;
 END CATCH;
@@ -203,7 +203,7 @@ END CATCH;
 /* ------------------------------------------------------------
  * 断言 8：正例 1 —— 未核销合法入库
  * ------------------------------------------------------------ */
-PRINT N'[TC-08] 正例：插入未核销券 (used_time IS NULL) ...';
+PRINT N'【TC-08】 正例：插入未核销券 (used_time IS NULL) ...';
 BEGIN TRY
     INSERT INTO tbl_coupon (
         coupon_code, member_id, template_id, valid_from, valid_to, status, used_time
@@ -211,18 +211,18 @@ BEGIN TRY
         'REG-CPN-04', @test_member_id, @test_template_id,
         '2026-10-01 00:00:00', '2026-10-31 23:59:59', 'UNUSED', NULL
     );
-    PRINT N'  --> ✅ [PASS] 合法未核销券成功入库。';
+    PRINT N'  --> ✅ 【PASS】 合法未核销券成功入库。';
     SET @pass_count = @pass_count + 1;
 END TRY
 BEGIN CATCH
-    PRINT N'  --> ❌ [FAIL] 正常发券失败：' + ERROR_MESSAGE();
+    PRINT N'  --> ❌ 【FAIL】 正常发券失败：' + ERROR_MESSAGE();
     SET @fail_count = @fail_count + 1;
 END CATCH;
 
 /* ------------------------------------------------------------
  * 断言 9：正例 2 —— 有效区间内核销入库
  * ------------------------------------------------------------ */
-PRINT N'[TC-09] 正例：插入有效区间内核销券 ...';
+PRINT N'【TC-09】 正例：插入有效区间内核销券 ...';
 BEGIN TRY
     INSERT INTO tbl_coupon (
         coupon_code, member_id, template_id, valid_from, valid_to, status, used_time
@@ -230,11 +230,11 @@ BEGIN TRY
         'REG-CPN-05', @test_member_id, @test_template_id,
         '2026-10-01 00:00:00', '2026-10-31 23:59:59', 'USED', '2026-10-15 12:00:00'
     );
-    PRINT N'  --> ✅ [PASS] 合法区间内核销券成功入库。';
+    PRINT N'  --> ✅ 【PASS】 合法区间内核销券成功入库。';
     SET @pass_count = @pass_count + 1;
 END TRY
 BEGIN CATCH
-    PRINT N'  --> ❌ [FAIL] 合法核销失败：' + ERROR_MESSAGE();
+    PRINT N'  --> ❌ 【FAIL】 合法核销失败：' + ERROR_MESSAGE();
     SET @fail_count = @fail_count + 1;
 END CATCH;
 
@@ -252,7 +252,7 @@ DELETE FROM tbl_coupon WHERE coupon_code LIKE 'REG-CPN-%';
  * 改坏」，不是「业务数据不许增长」。
  * ------------------------------------------------------------ */
 DECLARE @baseline_cutoff DATE = '2026-10-01';
-PRINT N'[TC-10] 基线断言：已收款销售额 D 口径校验 (pay_status = ''SUCCESS'' 且 order_status <> ''CANCELLED'' 且 business_date < 2026-10-01) ...';
+PRINT N'【TC-10】 基线断言：已收款销售额 D 口径校验 (pay_status = ''SUCCESS'' 且 order_status <> ''CANCELLED'' 且 business_date < 2026-10-01) ...';
 DECLARE @sales_orders INT, @sales_amt DECIMAL(12,2);
 SELECT
     @sales_orders = COUNT(*),
@@ -275,19 +275,19 @@ PRINT FORMATMESSAGE(N'      种子口径 %d 单 / %s 元；运行期新增（不
 
 IF @sales_orders = 1926 AND @sales_amt = 23762.00
 BEGIN
-    PRINT FORMATMESSAGE(N'  --> ✅ [PASS] 销售额 D 口径精确匹配：订单数 1,926，实收 23,762.00。');
+    PRINT FORMATMESSAGE(N'  --> ✅ 【PASS】 销售额 D 口径精确匹配：订单数 1,926，实收 23,762.00。');
     SET @pass_count = @pass_count + 1;
 END
 ELSE
 BEGIN
-    PRINT FORMATMESSAGE(N'  --> ❌ [FAIL] 销售额 D 口径偏差！实际订单数: %d, 金额: %s', @sales_orders, CAST(@sales_amt AS VARCHAR(20)));
+    PRINT FORMATMESSAGE(N'  --> ❌ 【FAIL】 销售额 D 口径偏差！实际订单数: %d, 金额: %s', @sales_orders, CAST(@sales_amt AS VARCHAR(20)));
     SET @fail_count = @fail_count + 1;
 END;
 
 /* ------------------------------------------------------------
  * 断言 11：基线 S1 抽样 34 单 59 明细计算不变量偏差为 0
  * ------------------------------------------------------------ */
-PRINT N'[TC-11] 基线断言：订单明细复算恒等式偏差校验 ...';
+PRINT N'【TC-11】 基线断言：订单明细复算恒等式偏差校验 ...';
 DECLARE @bad_diff_count INT = 0;
 WITH SampleOrders AS (
     SELECT order_id FROM tbl_order_header WHERE coupon_id IS NOT NULL
@@ -314,34 +314,35 @@ WHERE subtotal <> calc_subtotal;
 
 IF @bad_diff_count = 0
 BEGIN
-    PRINT N'  --> ✅ [PASS] 抽样订单明细复算恒等式 100% 成立，偏差行数 0。';
+    PRINT N'  --> ✅ 【PASS】 抽样订单明细复算恒等式 100% 成立，偏差行数 0。';
     SET @pass_count = @pass_count + 1;
 END
 ELSE
 BEGIN
-    PRINT FORMATMESSAGE(N'  --> ❌ [FAIL] 发现 %d 行明细小计与加料复算存在偏差！', @bad_diff_count);
+    PRINT FORMATMESSAGE(N'  --> ❌ 【FAIL】 发现 %d 行明细小计与加料复算存在偏差！', @bad_diff_count);
     SET @fail_count = @fail_count + 1;
 END;
 
 /* ------------------------------------------------------------
  * 断言 12：基线 S3 原料库存基表行数与负库存硬性断言
  * ------------------------------------------------------------ */
-PRINT N'[TC-12] 基线断言：原料库存基表完整性与无负库存校验 ...';
+PRINT N'【TC-12】 基线断言：原料库存基表完整性与无负库存校验 ...';
 DECLARE @ing_cnt INT, @neg_stock_cnt INT, @unit_cnt INT;
 SELECT 
     @ing_cnt = COUNT(*),
     @neg_stock_cnt = SUM(CASE WHEN qty_on_hand < 0 THEN 1 ELSE 0 END),
     @unit_cnt = COUNT(DISTINCT unit)
-FROM tbl_ingredient;
+FROM tbl_ingredient
+WHERE ingredient_id <= 60;
 
 IF @ing_cnt = 60 AND @neg_stock_cnt = 0 AND @unit_cnt = 5
 BEGIN
-    PRINT FORMATMESSAGE(N'  --> ✅ [PASS] 原料表完整（60 行，5 种单位，0 负库存）。');
+    PRINT FORMATMESSAGE(N'  --> ✅ 【PASS】 原料表完整（60 行，5 种单位，0 负库存）。');
     SET @pass_count = @pass_count + 1;
 END
 ELSE
 BEGIN
-    PRINT FORMATMESSAGE(N'  --> ❌ [FAIL] 原料库存异常！行数: %d, 负库存: %d, 单位数: %d', @ing_cnt, @neg_stock_cnt, @unit_cnt);
+    PRINT FORMATMESSAGE(N'  --> ❌ 【FAIL】 原料库存异常！行数: %d, 负库存: %d, 单位数: %d', @ing_cnt, @neg_stock_cnt, @unit_cnt);
     SET @fail_count = @fail_count + 1;
 END;
 
@@ -353,7 +354,7 @@ END;
  *         迁移 03 补了 OPENING 类型与 80 条期初流水，这里把它固化成
  *         止损线 —— 以后谁再往余额列里凭空加数，这条断言立刻失败。
  * ------------------------------------------------------------ */
-PRINT N'[TC-13] 积分台账对账：points_balance = Σ point_change ...';
+PRINT N'【TC-13】 积分台账对账：points_balance = Σ point_change ...';
 DECLARE @pts_mismatch INT, @pts_opening_cnt INT;
 
 SELECT @pts_mismatch = COUNT(*)
@@ -371,12 +372,12 @@ WHERE point_type = N'OPENING';
 
 IF @pts_mismatch = 0 AND @pts_opening_cnt = 80
 BEGIN
-    PRINT FORMATMESSAGE(N'  --> ✅ [PASS] 积分台账自洽（80 位会员余额 = 流水合计，期初流水 80 条）。');
+    PRINT FORMATMESSAGE(N'  --> ✅ 【PASS】 积分台账自洽（80 位会员余额 = 流水合计，期初流水 80 条）。');
     SET @pass_count = @pass_count + 1;
 END
 ELSE
 BEGIN
-    PRINT FORMATMESSAGE(N'  --> ❌ [FAIL] 积分台账不自洽！不符会员 %d 位，期初流水 %d 条。', @pts_mismatch, @pts_opening_cnt);
+    PRINT FORMATMESSAGE(N'  --> ❌ 【FAIL】 积分台账不自洽！不符会员 %d 位，期初流水 %d 条。', @pts_mismatch, @pts_opening_cnt);
     SET @fail_count = @fail_count + 1;
 END;
 
@@ -385,34 +386,38 @@ END;
  *   验证 80 位会员与 5 位员工初始登录凭据覆盖度与 64 位大写十六进制 SHA-256 格式。
  *   任何格式不符或基准数据凭据缺失都将阻断流水线。
  * ------------------------------------------------------------ */
-PRINT N'[TC-14] 登录凭据质量校验：80 会员 + 5 员工 64 位 SHA-256 散列有效性 ...';
+PRINT N'【TC-14】 登录凭据质量校验：80 会员 + 5 员工 64 位 SHA-256 散列有效性 ...';
 DECLARE @member_cred_cnt INT, @member_bad_hash INT;
 DECLARE @emp_cred_cnt INT, @emp_bad_hash INT;
 
 SELECT 
     @member_cred_cnt = COUNT(password_hash),
     @member_bad_hash = SUM(CASE 
-        WHEN password_hash IS NOT NULL 
-             AND (LEN(password_hash) <> 64 OR password_hash COLLATE Latin1_General_100_BIN2 LIKE '%[^0-9A-F]%') 
+        WHEN password_hash IS NULL
+             OR LEN(password_hash) <> 64
+             OR password_hash COLLATE Latin1_General_100_BIN2 LIKE '%[^0-9A-F]%'
         THEN 1 ELSE 0 END)
-FROM tbl_member;
+FROM tbl_member
+WHERE member_id <= 80;
 
 SELECT 
     @emp_cred_cnt = COUNT(password_hash),
     @emp_bad_hash = SUM(CASE 
-        WHEN password_hash IS NOT NULL 
-             AND (LEN(password_hash) <> 64 OR password_hash COLLATE Latin1_General_100_BIN2 LIKE '%[^0-9A-F]%') 
+        WHEN password_hash IS NULL
+             OR LEN(password_hash) <> 64
+             OR password_hash COLLATE Latin1_General_100_BIN2 LIKE '%[^0-9A-F]%'
         THEN 1 ELSE 0 END)
-FROM tbl_employee;
+FROM tbl_employee
+WHERE employee_id <= 5;
 
 IF @member_cred_cnt = 80 AND @member_bad_hash = 0 AND @emp_cred_cnt = 5 AND @emp_bad_hash = 0
 BEGIN
-    PRINT FORMATMESSAGE(N'  --> ✅ [PASS] 登录凭据质量达标（会员 80/80、员工 5/5，无非法哈希格式）。');
+    PRINT FORMATMESSAGE(N'  --> ✅ 【PASS】 登录凭据质量达标（会员 80/80、员工 5/5，无非法哈希格式）。');
     SET @pass_count = @pass_count + 1;
 END
 ELSE
 BEGIN
-    PRINT FORMATMESSAGE(N'  --> ❌ [FAIL] 登录凭据异常！会员凭据: %d (非法: %d), 员工凭据: %d (非法: %d)',
+    PRINT FORMATMESSAGE(N'  --> ❌ 【FAIL】 登录凭据异常！会员凭据: %d (非法: %d), 员工凭据: %d (非法: %d)',
         @member_cred_cnt, ISNULL(@member_bad_hash, 0), @emp_cred_cnt, ISNULL(@emp_bad_hash, 0));
     SET @fail_count = @fail_count + 1;
 END;
@@ -426,7 +431,7 @@ END;
  *      用 HAS_PERMS_BY_NAME 在 EXECUTE AS 下判定，比"真跑一条被拒的语句"更稳定
  *      （不依赖错误号，也不会污染日志）。
  * ------------------------------------------------------------ */
-PRINT N'[TC-15] 角色授权与越权防护：四角色授权条数 / 架构级授权 0 / 关键越权必须被拒 ...';
+PRINT N'【TC-15】 角色授权与越权防护：四角色授权条数 / 架构级授权 0 / 关键越权必须被拒 ...';
 
 DECLARE @perm_mgr INT, @obj_mgr INT, @perm_cash INT, @obj_cash INT;
 DECLARE @perm_stock INT, @obj_stock INT, @perm_maker INT, @obj_maker INT;
@@ -456,22 +461,28 @@ WHERE r.name = N'role_maker' AND p.state IN (N'G', N'W');
 
 SELECT @schema_grants = COUNT(*) FROM sys.database_permissions WHERE class = 3;
 
-EXECUTE AS USER = N'usr_test_maker';
-SELECT @deny_maker_member = HAS_PERMS_BY_NAME(N'tbl_member', N'OBJECT', N'SELECT');
-REVERT;
+BEGIN TRY
+    EXECUTE AS USER = N'usr_test_maker';
+    SELECT @deny_maker_member = HAS_PERMS_BY_NAME(N'tbl_member', N'OBJECT', N'SELECT');
+    REVERT;
 
-EXECUTE AS USER = N'usr_test_cashier';
-SELECT @deny_cashier_product = HAS_PERMS_BY_NAME(N'tbl_product', N'OBJECT', N'UPDATE'),
-       @deny_cashier_ingredient = HAS_PERMS_BY_NAME(N'tbl_ingredient', N'OBJECT', N'SELECT');
-REVERT;
+    EXECUTE AS USER = N'usr_test_cashier';
+    SELECT @deny_cashier_product = HAS_PERMS_BY_NAME(N'tbl_product', N'OBJECT', N'UPDATE'),
+           @deny_cashier_ingredient = HAS_PERMS_BY_NAME(N'tbl_ingredient', N'OBJECT', N'SELECT');
+    REVERT;
 
-EXECUTE AS USER = N'usr_test_stocker';
-SELECT @deny_stocker_order = HAS_PERMS_BY_NAME(N'tbl_order_header', N'OBJECT', N'SELECT');
-REVERT;
+    EXECUTE AS USER = N'usr_test_stocker';
+    SELECT @deny_stocker_order = HAS_PERMS_BY_NAME(N'tbl_order_header', N'OBJECT', N'SELECT');
+    REVERT;
 
-EXECUTE AS USER = N'usr_test_manager';
-SELECT @allow_manager_product = HAS_PERMS_BY_NAME(N'tbl_product', N'OBJECT', N'UPDATE');
-REVERT;
+    EXECUTE AS USER = N'usr_test_manager';
+    SELECT @allow_manager_product = HAS_PERMS_BY_NAME(N'tbl_product', N'OBJECT', N'UPDATE');
+    REVERT;
+END TRY
+BEGIN CATCH
+    WHILE USER_NAME() LIKE N'usr_test[_]%' REVERT;
+    THROW;
+END CATCH;
 
 IF @perm_mgr = 78 AND @obj_mgr = 24
    AND @perm_cash = 20 AND @obj_cash = 13
@@ -484,12 +495,12 @@ IF @perm_mgr = 78 AND @obj_mgr = 24
    AND ISNULL(@deny_stocker_order, 1) = 0
    AND ISNULL(@allow_manager_product, 0) = 1
 BEGIN
-    PRINT FORMATMESSAGE(N'  --> ✅ [PASS] 权限边界符合设计（店长 78/24、收银 20/13、库管 10/6、制作 9/8；架构级授权 0；4 组越权均被拒、店长改商品为允许）。');
+    PRINT FORMATMESSAGE(N'  --> ✅ 【PASS】 权限边界符合设计（店长 78/24、收银 20/13、库管 10/6、制作 9/8；架构级授权 0；4 组越权均被拒、店长改商品为允许）。');
     SET @pass_count = @pass_count + 1;
 END
 ELSE
 BEGIN
-    PRINT FORMATMESSAGE(N'  --> ❌ [FAIL] 权限边界异常！店长 %d/%d、收银 %d/%d、库管 %d/%d、制作 %d/%d；架构级 %d；越权检查(制作读会员 %d, 收银改商品 %d, 收银读原料 %d, 库管读订单 %d, 店长改商品 %d)',
+    PRINT FORMATMESSAGE(N'  --> ❌ 【FAIL】 权限边界异常！店长 %d/%d、收银 %d/%d、库管 %d/%d、制作 %d/%d；架构级 %d；越权检查(制作读会员 %d, 收银改商品 %d, 收银读原料 %d, 库管读订单 %d, 店长改商品 %d)',
         @perm_mgr, @obj_mgr, @perm_cash, @obj_cash, @perm_stock, @obj_stock, @perm_maker, @obj_maker,
         @schema_grants, ISNULL(@deny_maker_member, -1), ISNULL(@deny_cashier_product, -1),
         ISNULL(@deny_cashier_ingredient, -1), ISNULL(@deny_stocker_order, -1), ISNULL(@allow_manager_product, -1));
@@ -499,7 +510,7 @@ END;
 /* ------------------------------------------------------------
  * TC-16 第 10 周可编程对象（三个函数 + 两个存储过程）
  * ------------------------------------------------------------ */
-PRINT N'[TC-16] 第 10 周可编程对象：3 个函数 + 2 个存储过程必须在库，且补货量函数取值正确 ...';
+PRINT N'【TC-16】 第 10 周可编程对象：3 个函数 + 2 个存储过程必须在库，且补货量函数取值正确 ...';
 
 DECLARE @fn_cnt INT, @p_cnt INT, @rep_budding DECIMAL(12,3), @rep_coco DECIMAL(12,3), @rep_missing DECIMAL(12,3);
 
@@ -516,16 +527,177 @@ SET @rep_missing = dbo.fn_replenish_qty(-1);
 IF @fn_cnt = 3 AND @p_cnt = 2
    AND @rep_budding > 0 AND @rep_coco > 0 AND @rep_missing IS NULL
 BEGIN
-    PRINT FORMATMESSAGE(N'  --> ✅ [PASS] 可编程对象齐全（函数 %d 个 / 过程 %d 个）；补货量函数：布丁粉 %s、椰浆 %s、不存在编号返回 NULL。',
+    PRINT FORMATMESSAGE(N'  --> ✅ 【PASS】 可编程对象齐全（函数 %d 个 / 过程 %d 个）；补货量函数：布丁粉 %s、椰浆 %s、不存在编号返回 NULL。',
         @fn_cnt, @p_cnt, CONVERT(NVARCHAR(30), @rep_budding), CONVERT(NVARCHAR(30), @rep_coco));
     SET @pass_count = @pass_count + 1;
 END
 ELSE
 BEGIN
-    PRINT FORMATMESSAGE(N'  --> ❌ [FAIL] 可编程对象异常！函数 %d 个（应 3）、过程 %d 个（应 2）；补货量：布丁粉 %s、椰浆 %s、不存在 %s（应为正数、正数、NULL）。',
+    PRINT FORMATMESSAGE(N'  --> ❌ 【FAIL】 可编程对象异常！函数 %d 个（应 3）、过程 %d 个（应 2）；补货量：布丁粉 %s、椰浆 %s、不存在 %s（应为正数、正数、NULL）。',
         @fn_cnt, @p_cnt, CONVERT(NVARCHAR(30), ISNULL(@rep_budding, -1)),
         CONVERT(NVARCHAR(30), ISNULL(@rep_coco, -1)),
         CONVERT(NVARCHAR(30), ISNULL(@rep_missing, -1)));
+    SET @fail_count = @fail_count + 1;
+END;
+
+/* ------------------------------------------------------------
+ * TC-17 全库库存台账守恒（A6 不变量：qty_on_hand = Σ tbl_stock_ledger.qty）
+ * ------------------------------------------------------------ */
+PRINT N'【TC-17】库存台账守恒：全库原料 qty_on_hand = Σ tbl_stock_ledger.qty ...';
+DECLARE @stock_drift_cnt INT;
+SELECT @stock_drift_cnt = COUNT(*)
+FROM tbl_ingredient i
+LEFT JOIN (
+    SELECT ingredient_id, SUM(qty) AS ledger_sum
+    FROM tbl_stock_ledger
+    GROUP BY ingredient_id
+) l ON l.ingredient_id = i.ingredient_id
+WHERE ABS(i.qty_on_hand - ISNULL(l.ledger_sum, 0)) > 0.0001;
+
+IF @stock_drift_cnt = 0
+BEGIN
+    PRINT N'  --> ✅ 【PASS】库存台账 100% 守恒（漂移原料 0 种）。';
+    SET @pass_count = @pass_count + 1;
+END
+ELSE
+BEGIN
+    PRINT FORMATMESSAGE(N'  --> ❌ 【FAIL】库存台账存在漂移！不符原料 %d 种。', @stock_drift_cnt);
+    SET @fail_count = @fail_count + 1;
+END;
+
+/* ------------------------------------------------------------
+ * TC-18 核心业务视图财务口径（vw_daily_business_summary D 口径 + CARD + 预警过滤）
+ * ------------------------------------------------------------ */
+PRINT N'【TC-18】核心视图口径：经营日报种子区间 D 口径 / CARD 渠道 / 预警仅含在用原料 ...';
+DECLARE @v_net DECIMAL(12,2), @v_cups INT, @v_card DECIMAL(12,2), @v_chan_sum DECIMAL(12,2), @v_inactive_alerts INT;
+SELECT
+    @v_net      = ISNULL(SUM(net_revenue), 0),
+    @v_cups     = ISNULL(SUM(total_cups), 0),
+    @v_card     = ISNULL(SUM(card_revenue), 0),
+    @v_chan_sum = ISNULL(SUM(wechat_revenue + alipay_revenue + cash_revenue + card_revenue), 0)
+FROM vw_daily_business_summary
+WHERE business_date < '2026-10-01';
+
+SELECT @v_inactive_alerts = COUNT(*)
+FROM vw_ingredient_reorder_alert a
+JOIN tbl_ingredient i ON i.ingredient_id = a.ingredient_id
+WHERE i.is_active = 0;
+
+IF @v_net = 23762.00 AND @v_cups = 2579 AND @v_card = 507.00
+   AND @v_chan_sum = @v_net AND @v_inactive_alerts = 0
+BEGIN
+    PRINT N'  --> ✅ 【PASS】视图口径准确（净实收 23,762.00 / 2,579 杯 / 刷卡 507.00 / 四渠道平账 / 无停用原料报警）。';
+    SET @pass_count = @pass_count + 1;
+END
+ELSE
+BEGIN
+    PRINT FORMATMESSAGE(N'  --> ❌ 【FAIL】视图口径异常！net=%s cups=%d card=%s chan_sum=%s inactive=%d',
+        CONVERT(NVARCHAR(30), @v_net), @v_cups, CONVERT(NVARCHAR(30), @v_card),
+        CONVERT(NVARCHAR(30), @v_chan_sum), @v_inactive_alerts);
+    SET @fail_count = @fail_count + 1;
+END;
+
+/* ------------------------------------------------------------
+ * TC-19 全库 CHECK 与 FK 约束完整性及可信状态检查
+ * ------------------------------------------------------------ */
+PRINT N'【TC-19】约束完整性：49 条 CHECK 与 31 条 FK 全部启用且 is_not_trusted = 0 ...';
+DECLARE @ck_cnt INT, @ck_bad INT, @fk_cnt INT, @fk_bad INT;
+SELECT
+    @ck_cnt = COUNT(*),
+    @ck_bad = SUM(CASE WHEN is_disabled = 1 OR is_not_trusted = 1 THEN 1 ELSE 0 END)
+FROM sys.check_constraints cc
+JOIN sys.tables t ON t.object_id = cc.parent_object_id
+WHERE t.name LIKE N'tbl[_]%';
+
+SELECT
+    @fk_cnt = COUNT(*),
+    @fk_bad = SUM(CASE WHEN is_disabled = 1 OR is_not_trusted = 1 THEN 1 ELSE 0 END)
+FROM sys.foreign_keys fk
+JOIN sys.tables t ON t.object_id = fk.parent_object_id
+WHERE t.name LIKE N'tbl[_]%';
+
+IF @ck_cnt = 49 AND ISNULL(@ck_bad, 0) = 0 AND @fk_cnt = 31 AND ISNULL(@fk_bad, 0) = 0
+BEGIN
+    PRINT N'  --> ✅ 【PASS】约束全量受信任（CHECK 49/49、FK 31/31，0 禁用，0 未受信任）。';
+    SET @pass_count = @pass_count + 1;
+END
+ELSE
+BEGIN
+    PRINT FORMATMESSAGE(N'  --> ❌ 【FAIL】约束异常！CHECK=%d(异常 %d), FK=%d(异常 %d)',
+        @ck_cnt, ISNULL(@ck_bad, 0), @fk_cnt, ISNULL(@fk_bad, 0));
+    SET @fail_count = @fail_count + 1;
+END;
+
+/* ------------------------------------------------------------
+ * TC-20 迁移 07 约束正反例（事务内验证后回滚，零污染）
+ *   1) ck_coupon_used_time_consistent 必须拦截 status='USED' 且 used_time IS NULL
+ *   2) uq_order_header_coupon 允许 CANCELLED 单保留 coupon_id 且同券可再绑新单，
+ *      但必须拦截第二张非 CANCELLED 单重复使用同一 coupon_id
+ * ------------------------------------------------------------ */
+PRINT N'【TC-20】迁移 07 约束验证：USED/used_time 一致性 + 过滤唯一索引允许取消单复用并拦截双用 ...';
+DECLARE @tc20_ck_blocked INT = 0, @tc20_reuse_ok INT = 0, @tc20_dup_blocked INT = 0;
+
+BEGIN TRANSACTION;
+    -- 1) 负例：USED 但 used_time IS NULL
+    BEGIN TRY
+        INSERT INTO tbl_coupon (coupon_code, member_id, template_id, valid_from, valid_to, status, used_time)
+        VALUES ('REG-CPN-TC20-BAD', @test_member_id, @test_template_id, '2026-09-01', '2026-10-01', 'USED', NULL);
+    END TRY
+    BEGIN CATCH
+        IF ERROR_NUMBER() = 547 SET @tc20_ck_blocked = 1;
+    END CATCH;
+
+    -- 2) 正反例：先插测试券 + 取消单，再插两张活跃单（第 1 张成功，第 2 张被 uq_order_header_coupon 拦截）
+    DECLARE @tc20_cid INT;
+    INSERT INTO tbl_coupon (coupon_code, member_id, template_id, valid_from, valid_to, status, used_time)
+    VALUES ('REG-CPN-TC20-OK', @test_member_id, @test_template_id, '2026-09-01', '2026-12-31', 'UNUSED', NULL);
+    SET @tc20_cid = SCOPE_IDENTITY();
+
+    INSERT INTO tbl_order_header
+        (order_no, business_date, pickup_no, member_id, coupon_id,
+         discount_amount, amount_due, amount_paid, pay_method, pay_status,
+         order_status, order_time, cashier_id)
+    VALUES
+        ('REG-TC20-C1', '2026-10-15', 901, @test_member_id, @tc20_cid,
+         5.00, 10.00, 10.00, 'WECHAT', 'SUCCESS', 'CANCELLED', '2026-10-15 10:00:00', 2);
+
+    BEGIN TRY
+        INSERT INTO tbl_order_header
+            (order_no, business_date, pickup_no, member_id, coupon_id,
+             discount_amount, amount_due, amount_paid, pay_method, pay_status,
+             order_status, order_time, cashier_id)
+        VALUES
+            ('REG-TC20-A1', '2026-10-15', 902, @test_member_id, @tc20_cid,
+             5.00, 10.00, 10.00, 'WECHAT', 'SUCCESS', 'PENDING', '2026-10-15 10:05:00', 2);
+        SET @tc20_reuse_ok = 1;
+    END TRY
+    BEGIN CATCH
+        SET @tc20_reuse_ok = 0;
+    END CATCH;
+
+    BEGIN TRY
+        INSERT INTO tbl_order_header
+            (order_no, business_date, pickup_no, member_id, coupon_id,
+             discount_amount, amount_due, amount_paid, pay_method, pay_status,
+             order_status, order_time, cashier_id)
+        VALUES
+            ('REG-TC20-A2', '2026-10-15', 903, @test_member_id, @tc20_cid,
+             5.00, 10.00, 10.00, 'WECHAT', 'SUCCESS', 'PENDING', '2026-10-15 10:06:00', 2);
+    END TRY
+    BEGIN CATCH
+        IF ERROR_NUMBER() IN (2601, 2627) SET @tc20_dup_blocked = 1;
+    END CATCH;
+ROLLBACK TRANSACTION;
+
+IF @tc20_ck_blocked = 1 AND @tc20_reuse_ok = 1 AND @tc20_dup_blocked = 1
+BEGIN
+    PRINT N'  --> ✅ 【PASS】迁移 07 约束正反例全过（USED 空时间被拦、取消单留券后可复用、活跃单双用被拦）。';
+    SET @pass_count = @pass_count + 1;
+END
+ELSE
+BEGIN
+    PRINT FORMATMESSAGE(N'  --> ❌ 【FAIL】迁移 07 约束异常！ck_blocked=%d reuse_ok=%d dup_blocked=%d',
+        @tc20_ck_blocked, @tc20_reuse_ok, @tc20_dup_blocked);
     SET @fail_count = @fail_count + 1;
 END;
 
@@ -543,6 +715,6 @@ BEGIN
 END
 ELSE
 BEGIN
-    PRINT N'【回归测试结论】🎉 16 项自动化断言全绿通过！模式演进、数据完整性与基线语义 100% 保持！';
+    PRINT FORMATMESSAGE(N'【回归测试结论】🎉 %d 项自动化断言全绿通过！模式演进、数据完整性与基线语义 100%% 保持！', @total_tests);
 END;
 GO

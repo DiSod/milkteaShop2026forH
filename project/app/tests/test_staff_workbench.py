@@ -295,14 +295,27 @@ def test_over_loss_is_blocked(client):
 def test_receive_purchase_line(client):
     with _manager() as s:
         lines = s.query(
-            "SELECT TOP 1 purchase_order_detail_id, ingredient_id, "
-            "       qty_ordered - qty_received AS remaining "
-            "  FROM tbl_purchase_order_detail WHERE qty_ordered > qty_received "
-            " ORDER BY purchase_order_detail_id"
+            "SELECT TOP 1 d.purchase_order_detail_id, d.purchase_order_id, d.ingredient_id, "
+            "       d.qty_ordered - d.qty_received AS remaining, "
+            "       o.order_status, o.received_by, o.arrival_date "
+            "  FROM tbl_purchase_order_detail d "
+            "  JOIN tbl_purchase_order o ON o.purchase_order_id = d.purchase_order_id "
+            " WHERE d.qty_ordered > d.qty_received "
+            "   AND o.order_status NOT IN ('ACCEPTED', 'CANCELLED') "
+            " ORDER BY d.purchase_order_detail_id"
         )
     if not lines:
         pytest.skip("没有待收货明细")
-    detail_id, ingredient_id, remaining = lines[0][0], lines[0][1], float(lines[0][2])
+    (
+        detail_id,
+        purchase_order_id,
+        ingredient_id,
+        remaining,
+        orig_status,
+        orig_received_by,
+        orig_arrival_date,
+    ) = lines[0]
+    remaining = float(remaining)
 
     login_staff(client, "STOCKER")
     response = client.post("/stocker/receive", data={"detail_id": str(detail_id), "qty": "1"})
@@ -331,6 +344,12 @@ def test_receive_purchase_line(client):
                 "UPDATE tbl_purchase_order_detail SET qty_received = qty_received - 1 "
                 " WHERE purchase_order_detail_id = ?",
                 (detail_id,),
+            )
+            s.execute(
+                "UPDATE tbl_purchase_order "
+                "   SET order_status = ?, received_by = ?, arrival_date = ? "
+                " WHERE purchase_order_id = ?",
+                (orig_status, orig_received_by, orig_arrival_date, purchase_order_id),
             )
             s.execute(
                 "DELETE FROM tbl_stock_ledger WHERE ledger_id = "
@@ -397,38 +416,42 @@ def test_cashier_creates_guest_order_without_points(client):
     )
     assert response.status_code == 302
 
-    with _manager() as s:
-        header = s.query_one(
-            "SELECT TOP 1 order_id, member_id, cashier_id, order_status, amount_paid "
-            "  FROM tbl_order_header ORDER BY order_id DESC"
-        )
-        assert header[1] is None, "散客单的 member_id 必须为空"
-        assert header[3] == "PENDING"
-        order_id = header[0]
-        assert s.query_one(
-            "SELECT COUNT(*) FROM tbl_points_ledger WHERE order_id = ?", (order_id,)
-        )[0] == 0
-        assert s.query_one("SELECT SUM(points_balance) FROM tbl_member")[0] == points_before
-        assert s.query_one("SELECT COUNT(*) FROM tbl_stock_ledger")[0] > ledger_before
-
-        # 清理：先把这条单扣掉的库存补回去，再按外键逆序删行
-        for ingredient_id, qty in s.query(
-            "SELECT ingredient_id, qty FROM tbl_stock_ledger WHERE order_id = ?", (order_id,)
-        ):
-            s.execute(
-                "UPDATE tbl_ingredient SET qty_on_hand = qty_on_hand - ? WHERE ingredient_id = ?",
-                (qty, ingredient_id),
+    order_id = None
+    try:
+        with _manager() as s:
+            header = s.query_one(
+                "SELECT TOP 1 order_id, member_id, cashier_id, order_status, amount_paid "
+                "  FROM tbl_order_header ORDER BY order_id DESC"
             )
-        s.execute("DELETE FROM tbl_stock_ledger WHERE order_id = ?", (order_id,))
-        s.execute(
-            "DELETE FROM tbl_order_detail_topping WHERE order_detail_id IN "
-            "(SELECT order_detail_id FROM tbl_order_detail WHERE order_id = ?)",
-            (order_id,),
-        )
-        s.execute("DELETE FROM tbl_order_detail WHERE order_id = ?", (order_id,))
-        s.execute("DELETE FROM tbl_order_header WHERE order_id = ?", (order_id,))
-        s.commit()
-        assert stock_dao.ledger_drift(s) == []
+            order_id = header[0]
+            assert header[1] is None, "散客单的 member_id 必须为空"
+            assert header[3] == "PENDING"
+            assert s.query_one(
+                "SELECT COUNT(*) FROM tbl_points_ledger WHERE order_id = ?", (order_id,)
+            )[0] == 0
+            assert s.query_one("SELECT SUM(points_balance) FROM tbl_member")[0] == points_before
+            assert s.query_one("SELECT COUNT(*) FROM tbl_stock_ledger")[0] > ledger_before
+    finally:
+        if order_id is not None:
+            with _manager() as s:
+                # 清理：先把这条单扣掉的库存补回去，再按外键逆序删行
+                for ingredient_id, qty in s.query(
+                    "SELECT ingredient_id, qty FROM tbl_stock_ledger WHERE order_id = ?", (order_id,)
+                ):
+                    s.execute(
+                        "UPDATE tbl_ingredient SET qty_on_hand = qty_on_hand - ? WHERE ingredient_id = ?",
+                        (qty, ingredient_id),
+                    )
+                s.execute("DELETE FROM tbl_stock_ledger WHERE order_id = ?", (order_id,))
+                s.execute(
+                    "DELETE FROM tbl_order_detail_topping WHERE order_detail_id IN "
+                    "(SELECT order_detail_id FROM tbl_order_detail WHERE order_id = ?)",
+                    (order_id,),
+                )
+                s.execute("DELETE FROM tbl_order_detail WHERE order_id = ?", (order_id,))
+                s.execute("DELETE FROM tbl_order_header WHERE order_id = ?", (order_id,))
+                s.commit()
+                assert stock_dao.ledger_drift(s) == []
 
 
 def test_cashier_rejects_unknown_member_phone(client):
