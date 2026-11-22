@@ -80,7 +80,11 @@ def receive(role: str, staff_id, detail_id, qty) -> dict:
         if line is None:
             raise NotFound("采购明细不存在")
         (_, purchase_order_id, ingredient_id, ingredient_name,
-         unit, _, _, remaining) = line
+         unit, _, _, remaining, order_status) = line
+        if order_status == "CANCELLED":
+            raise BusinessRuleViolation("该采购单已取消，不能继续收货")
+        if order_status == "ACCEPTED":
+            raise BusinessRuleViolation("该采购单已验收结案，不能重复收货")
         remaining = Decimal(str(remaining))
         if qty > remaining:
             raise BusinessRuleViolation(
@@ -88,6 +92,9 @@ def receive(role: str, staff_id, detail_id, qty) -> dict:
                 % (ingredient_name, remaining, unit, qty, unit)
             )
 
+        updated = purchase_dao.add_received(s, detail_id, qty)
+        if updated != 1:
+            raise BusinessRuleViolation("该采购明细已被其他操作更新，请刷新后重试")
         stock_dao.apply_movement(
             s,
             ingredient_id=ingredient_id,
@@ -98,7 +105,6 @@ def receive(role: str, staff_id, detail_id, qty) -> dict:
             remark="按采购单收货 %d" % purchase_order_id,
             operator_id=staff_id,
         )
-        purchase_dao.add_received(s, detail_id, qty)
         finished = purchase_dao.count_open_lines(s, purchase_order_id) == 0
         if finished:
             purchase_dao.mark_order_received(s, purchase_order_id, staff_id)

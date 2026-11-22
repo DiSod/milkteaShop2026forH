@@ -284,10 +284,13 @@ def cancel_order(order_id: int, member_id: int = None) -> dict:
         if member_id is not None and owner_id != member_id:
             raise PermissionDenied("这张单不属于当前会员")
 
-        # 退券：先把订单上的券解绑（唯一索引要求），再把券退回 UNUSED
+        # 先锁并翻转订单头状态（PENDING → CANCELLED），与下单同锁序避免 AB-BA 死锁
+        if order_dao.mark_cancelled(s, order_id) != 1:
+            raise BusinessRuleViolation("订单状态已被其他操作改变，请刷新后重试")
+
+        # 退券：过滤唯一索引已排除 CANCELLED，保留订单上的 coupon_id 供审计追溯，仅退回券状态
         coupon_released = False
         if coupon_id is not None:
-            order_dao.detach_coupon(s, order_id)
             coupon_dao.release(s, coupon_id)
             coupon_released = True
 
@@ -307,13 +310,16 @@ def cancel_order(order_id: int, member_id: int = None) -> dict:
         revoked = 0
         earned = int(order_dao.sum_earned_points(s, order_id) or 0)
         if owner_id is not None and earned > 0:
+            member_row = member_dao.get(s, owner_id)
+            current_points = int(member_row[4]) if member_row else 0
+            if current_points < earned:
+                raise BusinessRuleViolation(
+                    "当前会员积分余额不足以扣回本单积分（余额 %d，需扣回 %d），无法自助取消，请联系店长处理"
+                    % (current_points, earned)
+                )
             order_dao.insert_points_revoke(s, owner_id, order_id, -earned)
             member_dao.add_points(s, owner_id, -earned)
             revoked = earned
-
-        if order_dao.mark_cancelled(s, order_id) != 1:
-            # 并发：在读完状态到写之间，制作台可能已经把它推到 MAKING
-            raise BusinessRuleViolation("订单状态已被其他操作改变，请刷新后重试")
 
         s.commit()
 

@@ -8,9 +8,8 @@
   · ``mark_used`` 用 ``WHERE status='UNUSED' AND 当前时间在有效期内`` 的
     受影响行数判成败（乐观并发）。**这条 SQL 不能带 ``SET NOCOUNT ON``**，
     否则 ``cursor.rowcount`` 恒为 -1，"券已被用掉"就检测不出来。
-  · 退券要两步：先 ``order_dao.detach_coupon`` 把订单上的 ``coupon_id`` 置空，
-    再 ``release`` 回 ``UNUSED``。因为 ``uq_order_header_coupon`` 是过滤唯一
-    索引，券还挂在单上时，下一单再用同一张会撞索引。
+  · 退券：过滤唯一索引 ``uq_order_header_coupon`` 已排除 ``CANCELLED`` 状态，
+    取消订单可直接保留 ``coupon_id`` 作为审计关联，仅需 ``release`` 把券退回 ``UNUSED``。
 """
 
 
@@ -75,9 +74,7 @@ def get_redeemable(s, coupon_id: int, member_id: int):
 
 def mark_used(s, coupon_id: int, member_id: int) -> int:
     """核销：返回受影响行数（1 = 成功，0 = 已被用掉或刚好过期）。不提交。"""
-    # ⚠️ 必须先 `SET NOCOUNT OFF`：同一个连接上前面的 insert_header 里带
-    # `SET NOCOUNT ON`，而 NOCOUNT 是**会话级**设置——不关掉的话这条 UPDATE
-    # 的 rowcount 恒为 -1，券已被用掉就永远检测不出来（实测踩过）。
+    # 显式 SET NOCOUNT OFF 作为兜底，防止任意外部会话设置导致 rowcount 恒为 -1
     return s.execute(
         """
         SET NOCOUNT OFF;

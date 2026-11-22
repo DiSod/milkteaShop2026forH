@@ -13,7 +13,6 @@ def next_sequence(s, business_date: str):
     """取当日的下一个流水号与取餐号；带 UPDLOCK/HOLDLOCK 串行化并发下单。"""
     row = s.query_one(
         """
-        SET NOCOUNT ON;
         SELECT ISNULL(MAX(CAST(RIGHT(order_no, 4) AS INT)), 0) + 1 AS next_seq,
                ISNULL(MAX(pickup_no), 0) + 1 AS next_pickup
         FROM tbl_order_header WITH (UPDLOCK, HOLDLOCK)
@@ -29,7 +28,6 @@ def insert_header(s, order_no, business_date, pickup_no, member_id,
                   pay_status, order_status, cashier_id=None, coupon_id=None) -> int:
     row = s.query_one(
         """
-        SET NOCOUNT ON;
         INSERT INTO tbl_order_header
             (order_no, business_date, pickup_no, member_id, coupon_id,
              discount_amount, amount_due, amount_paid, pay_method, pay_status,
@@ -67,7 +65,6 @@ def insert_detail(s, order_id, line_no, product_id, qty, unit_price,
                   cup_spec_id, sugar_spec_id, ice_spec_id, subtotal) -> int:
     row = s.query_one(
         """
-        SET NOCOUNT ON;
         INSERT INTO tbl_order_detail
             (order_id, line_no, product_id, qty, unit_price,
              cup_spec_id, sugar_spec_id, ice_spec_id, subtotal)
@@ -83,7 +80,6 @@ def insert_detail(s, order_id, line_no, product_id, qty, unit_price,
 def insert_topping(s, order_detail_id, topping_id, qty, unit_extra_price) -> None:
     s.execute(
         """
-        SET NOCOUNT ON;
         INSERT INTO tbl_order_detail_topping
             (order_detail_id, topping_id, qty, unit_extra_price)
         VALUES (?, ?, ?, ?)
@@ -123,7 +119,6 @@ def insert_stock_ledger(s, ingredient_id, qty, order_id, operator_id=None) -> No
     """销售耗用流水：``qty`` 传负数表示出库，与既有台账口径一致。"""
     s.execute(
         """
-        SET NOCOUNT ON;
         INSERT INTO tbl_stock_ledger
             (ingredient_id, ledger_type, qty, ref_type, order_id,
              operator_id, ledger_time, remark)
@@ -136,7 +131,6 @@ def insert_stock_ledger(s, ingredient_id, qty, order_id, operator_id=None) -> No
 def insert_points(s, member_id, order_id, point_change) -> None:
     s.execute(
         """
-        SET NOCOUNT ON;
         INSERT INTO tbl_points_ledger
             (member_id, point_type, point_change, order_id, change_time)
         VALUES (?, 'EARN', ?, ?, SYSDATETIME())
@@ -148,7 +142,7 @@ def insert_points(s, member_id, order_id, point_change) -> None:
 def today(s) -> str:
     """取数据库当天的业务日（'YYYY-MM-DD'），与业务日口径保持一处来源。"""
     return s.query_one(
-        "SET NOCOUNT ON; SELECT CONVERT(char(10), CAST(SYSDATETIME() AS date), 120)"
+        "SELECT CONVERT(char(10), CAST(SYSDATETIME() AS date), 120)"
     )[0]
 
 
@@ -194,7 +188,6 @@ def get_for_cancel(s, order_id: int):
     """
     return s.query_one(
         """
-        SET NOCOUNT ON;
         SELECT member_id, order_status, coupon_id, order_no
         FROM tbl_order_header
         WHERE order_id = ?
@@ -220,7 +213,6 @@ def sum_earned_points(s, order_id: int):
     """该单累计获得的积分（EARN 合计）；没有则 0。"""
     return s.query_one(
         """
-        SET NOCOUNT ON;
         SELECT ISNULL(SUM(point_change), 0)
         FROM tbl_points_ledger
         WHERE order_id = ? AND point_type = 'EARN'
@@ -233,7 +225,6 @@ def insert_points_revoke(s, member_id: int, order_id: int, point_change) -> None
     """订单取消扣回积分：``point_change`` 传负数。"""
     s.execute(
         """
-        SET NOCOUNT ON;
         INSERT INTO tbl_points_ledger
             (member_id, point_type, point_change, order_id, change_time)
         VALUES (?, 'REVOKE', ?, ?, SYSDATETIME())
@@ -246,7 +237,6 @@ def coupon_is_used(s, coupon_id: int) -> bool:
     """券是否已核销（``status = 'USED'`` 或 ``used_time`` 非空）。"""
     row = s.query_one(
         """
-        SET NOCOUNT ON;
         SELECT CASE WHEN status = 'USED' OR used_time IS NOT NULL THEN 1 ELSE 0 END
         FROM tbl_coupon
         WHERE coupon_id = ?
@@ -258,10 +248,10 @@ def coupon_is_used(s, coupon_id: int) -> bool:
 
 def mark_cancelled(s, order_id: int) -> int:
     """置为已取消 —— 带状态前置条件，避免与制作台的推进互相覆盖。"""
-    # 注意：这里不能加 SET NOCOUNT ON —— 那会让 cursor.rowcount 变成 -1，
-    # 调用方就无法用返回值判断"这一行到底改没改"（并发保护就失效了）。
+    # 显式 SET NOCOUNT OFF 兜底，保证 cursor.rowcount 反映真实受影响行数
     return s.execute(
         """
+        SET NOCOUNT OFF;
         UPDATE tbl_order_header
         SET order_status = 'CANCELLED'
         WHERE order_id = ? AND order_status = 'PENDING'

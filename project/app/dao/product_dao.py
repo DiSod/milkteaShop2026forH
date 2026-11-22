@@ -44,7 +44,6 @@ def insert_product(s, code: str, name: str, category_id: int,
     # 用 OUTPUT INSERTED 而不是 SCOPE_IDENTITY()：每次 execute 是一个独立批，
     # SCOPE_IDENTITY() 换批之后拿到的是 NULL。
     row = s.query_one(
-        "SET NOCOUNT ON; "
         "INSERT INTO tbl_product (product_code, product_name, category_id, base_price, product_status) "
         "OUTPUT INSERTED.product_id "
         "VALUES (?, ?, ?, ?, ?)",

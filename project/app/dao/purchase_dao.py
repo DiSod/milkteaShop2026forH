@@ -17,6 +17,7 @@ def list_open_lines(s) -> list:
         "  JOIN tbl_purchase_order o ON o.purchase_order_id = d.purchase_order_id "
         "  JOIN tbl_ingredient i ON i.ingredient_id = d.ingredient_id "
         " WHERE d.qty_ordered > d.qty_received "
+        "   AND o.order_status NOT IN ('ACCEPTED', 'CANCELLED') "
         " ORDER BY o.purchase_order_id, d.purchase_order_detail_id"
     )
 
@@ -25,7 +26,7 @@ def get_line(s, detail_id: int):
     rows = s.query(
         "SELECT d.purchase_order_detail_id, o.purchase_order_id, i.ingredient_id, "
         "       i.ingredient_name, i.unit, d.qty_ordered, d.qty_received, "
-        "       d.qty_ordered - d.qty_received AS qty_remaining "
+        "       d.qty_ordered - d.qty_received AS qty_remaining, o.order_status "
         "  FROM tbl_purchase_order_detail d "
         "  JOIN tbl_purchase_order o ON o.purchase_order_id = d.purchase_order_id "
         "  JOIN tbl_ingredient i ON i.ingredient_id = d.ingredient_id "
@@ -37,17 +38,22 @@ def get_line(s, detail_id: int):
 
 def add_received(s, detail_id: int, qty) -> int:
     return s.execute(
+        "SET NOCOUNT OFF; "
         "UPDATE tbl_purchase_order_detail SET qty_received = qty_received + ? "
-        " WHERE purchase_order_detail_id = ?",
-        (qty, detail_id),
+        " WHERE purchase_order_detail_id = ? "
+        "   AND qty_received + ? <= qty_ordered",
+        (qty, detail_id, qty),
     )
 
 
 def mark_order_received(s, purchase_order_id: int, receiver_id: int) -> int:
     return s.execute(
+        "SET NOCOUNT OFF; "
         "UPDATE tbl_purchase_order "
-        "   SET order_status = 'ACCEPTED', received_by = ? "
-        " WHERE purchase_order_id = ? AND order_status <> 'ACCEPTED'",
+        "   SET order_status = 'ACCEPTED', received_by = ?, "
+        "       arrival_date = ISNULL(arrival_date, CAST(SYSDATETIME() AS DATE)) "
+        " WHERE purchase_order_id = ? "
+        "   AND order_status NOT IN ('ACCEPTED', 'CANCELLED')",
         (receiver_id, purchase_order_id),
     )
 
