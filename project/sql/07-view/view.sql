@@ -58,7 +58,7 @@ SELECT
     p.product_name                                AS product_name,
     cs.spec_option_id                             AS cup_spec_id,
     cs.spec_name                                  AS cup_spec_name,
-    p.base_price + cs.extra_price                 AS selling_price,
+    CAST(p.base_price + cs.extra_price AS DECIMAL(10,2)) AS selling_price,
     ISNULL(MIN(FLOOR(i.qty_on_hand / r.qty)), 0)  AS theor_makeable_cups,
     MAX(CAST(i.is_sold_out AS INT))               AS is_ingredient_sold_out,
     p.product_status                              AS product_status,
@@ -79,6 +79,8 @@ JOIN tbl_spec_option cs
 JOIN tbl_ingredient i 
     ON i.ingredient_id = r.ingredient_id
 WHERE r.qty > 0
+  AND i.is_active = 1
+  AND c.is_active = 1
 GROUP BY 
     c.category_name, 
     p.product_id, 
@@ -125,10 +127,10 @@ SELECT
     CAST(i.qty_on_hand * i.moving_avg_cost AS DECIMAL(12,2)) AS stock_value,
     i.is_sold_out                                 AS is_sold_out,
     CASE
-        WHEN i.is_sold_out = 1                          THEN N'人工沽清'
         WHEN i.qty_on_hand = 0                          THEN N'零库存'
         WHEN i.qty_on_hand <= i.reorder_point * 0.5     THEN N'严重不足'
         WHEN i.qty_on_hand <= i.reorder_point           THEN N'触及补货点'
+        WHEN i.is_sold_out = 1                          THEN N'人工沽清'
         ELSE N'库存健康'
     END                                           AS alert_level,
     CASE
@@ -138,7 +140,8 @@ SELECT
         WHEN i.is_sold_out = 1                          THEN 4
         ELSE 5
     END                                           AS alert_priority
-FROM tbl_ingredient i;
+FROM tbl_ingredient i
+WHERE i.is_active = 1;
 GO
 
 PRINT N'【视图】2/5 vw_ingredient_reorder_alert 创建完成。';
@@ -226,7 +229,8 @@ SELECT
 FROM tbl_member m
 LEFT JOIN tbl_order_header o 
     ON o.member_id = m.member_id 
-   AND o.order_status = 'COMPLETED'
+   AND o.pay_status = 'SUCCESS'
+   AND o.order_status <> 'CANCELLED'
 GROUP BY 
     m.member_id, 
     m.member_code, 

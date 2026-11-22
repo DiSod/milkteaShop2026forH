@@ -49,18 +49,21 @@ BEGIN TRY
     IF NOT EXISTS (SELECT 1 FROM tbl_coupon_template WHERE template_code = 'TPL_CAMP_5')
         THROW 51303, N'【迁移07】缺少券模板 TPL_CAMP_5（5 元无门槛）。', 1;
 
-    DECLARE @checks_before INT;
+    DECLARE @checks_before INT, @ck_existed INT = 0;
     SELECT @checks_before = COUNT(*)
     FROM sys.check_constraints cc
     JOIN sys.tables t ON t.object_id = cc.parent_object_id
     WHERE t.name LIKE 'tbl[_]%';
 
-    PRINT FORMATMESSAGE(N'【迁移07】迁移前 CHECK 约束 %d 条。', @checks_before);
-
-    /* ---------------- 1. status 与 used_time 同进同出 ---------------- */
     IF EXISTS (SELECT 1 FROM sys.check_constraints
                WHERE name = 'ck_coupon_used_time_consistent'
                  AND parent_object_id = OBJECT_ID('dbo.tbl_coupon'))
+        SET @ck_existed = 1;
+
+    PRINT FORMATMESSAGE(N'【迁移07】迁移前 CHECK 约束 %d 条（目标约束已存在：%d）。', @checks_before, @ck_existed);
+
+    /* ---------------- 1. status 与 used_time 同进同出 ---------------- */
+    IF @ck_existed = 1
         ALTER TABLE tbl_coupon DROP CONSTRAINT ck_coupon_used_time_consistent;
 
     ALTER TABLE tbl_coupon WITH CHECK
@@ -72,7 +75,7 @@ BEGIN TRY
 
     PRINT N'【迁移07】已建 ck_coupon_used_time_consistent（USED ⇔ used_time 非空）。';
 
-    /* ---------------- 2. A5：一张券最多出现在一张订单上 ---------------- */
+    /* ---------------- 2. A5：一张券最多出现在一张有效（非取消）订单上 ---------------- */
     IF EXISTS (SELECT 1 FROM sys.indexes
                WHERE name = 'uq_order_header_coupon'
                  AND object_id = OBJECT_ID('dbo.tbl_order_header'))
@@ -80,9 +83,9 @@ BEGIN TRY
 
     CREATE UNIQUE INDEX uq_order_header_coupon
         ON tbl_order_header (coupon_id)
-        WHERE coupon_id IS NOT NULL;
+        WHERE coupon_id IS NOT NULL AND order_status <> 'CANCELLED';
 
-    PRINT N'【迁移07】已建过滤唯一索引 uq_order_header_coupon（A5 落到库层）。';
+    PRINT N'【迁移07】已建过滤唯一索引 uq_order_header_coupon（排除 CANCELLED，A5 落到库层且保留退单审计）。';
 
     /* ---------------- 3. 默认发券：前 3 位会员各 2 张 ---------------- */
     DECLARE @tpl_id INT;
@@ -143,17 +146,18 @@ BEGIN TRY
       AND used_time IS NULL
       AND SYSDATETIME() BETWEEN valid_from AND valid_to;
 
-    IF @usable < 6
-        THROW 51306, N'【迁移07】可用券不足 6 张，核销链路演示不了，事务回滚。', 1;
+    IF @issued > 0 AND @usable < 6
+        THROW 51306, N'【迁移07】首次发券后可用券不足 6 张，核销链路演示不了，事务回滚。', 1;
 
-    DECLARE @checks_after INT;
+    DECLARE @checks_after INT, @expected_checks INT;
     SELECT @checks_after = COUNT(*)
     FROM sys.check_constraints cc
     JOIN sys.tables t ON t.object_id = cc.parent_object_id
     WHERE t.name LIKE 'tbl[_]%';
 
-    IF @checks_after <> @checks_before + 1
-        THROW 51307, N'【迁移07】CHECK 约束条数未按预期 +1，事务回滚。', 1;
+    SET @expected_checks = @checks_before + (1 - @ck_existed);
+    IF @checks_after <> @expected_checks
+        THROW 51307, N'【迁移07】CHECK 约束条数与预期不符，事务回滚。', 1;
 
     PRINT FORMATMESSAGE(N'【迁移07】自证通过：CHECK %d -> %d 条，可用券 %d 张。',
                         @checks_before, @checks_after, @usable);

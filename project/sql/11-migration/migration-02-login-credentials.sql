@@ -67,6 +67,7 @@ GO
 SET ANSI_NULLS ON;
 SET QUOTED_IDENTIFIER ON;
 SET NOCOUNT ON;
+SET XACT_ABORT ON;
 GO
 
 PRINT N'【迁移02】开始 —— 补充登录凭据列';
@@ -155,30 +156,28 @@ BEGIN TRY
     ELSE
         PRINT N'【迁移02】ck_employee_password_hash_format 已存在，跳过。';
 
-    /* ---------- 5. 自证：库里每一行都必须能被同一规则重算出来 ---------- */
+    /* ---------- 5. 自证：全部凭据非空且满足 64 位大写十六进制格式（兼容改密后重跑） ---------- */
     SET @sql = N'
         IF EXISTS (
             SELECT 1 FROM dbo.tbl_member
              WHERE password_hash IS NULL
-                OR password_hash <> CONVERT(CHAR(64),
-                     HASHBYTES(''SHA2_256'',
-                       ''m'' + CONVERT(VARCHAR(10), member_id) + RIGHT(member_phone, 6)), 2)
+                OR LEN(password_hash) <> 64
+                OR password_hash COLLATE Latin1_General_100_BIN2 LIKE ''%[^0-9A-F]%''
         )
-            THROW 52002, N''【迁移02】tbl_member 存在为空或与规则不符的凭据。'', 1;';
+            THROW 52002, N''【迁移02】tbl_member 存在为空或格式非法的凭据。'', 1;';
     EXEC sp_executesql @sql;
 
     SET @sql = N'
         IF EXISTS (
             SELECT 1 FROM dbo.tbl_employee
              WHERE password_hash IS NULL
-                OR password_hash <> CONVERT(CHAR(64),
-                     HASHBYTES(''SHA2_256'',
-                       ''e'' + CONVERT(VARCHAR(10), employee_id) + LOWER(employee_code)), 2)
+                OR LEN(password_hash) <> 64
+                OR password_hash COLLATE Latin1_General_100_BIN2 LIKE ''%[^0-9A-F]%''
         )
-            THROW 52003, N''【迁移02】tbl_employee 存在为空或与规则不符的凭据。'', 1;';
+            THROW 52003, N''【迁移02】tbl_employee 存在为空或格式非法的凭据。'', 1;';
     EXEC sp_executesql @sql;
 
-    PRINT N'【迁移02】自证通过：全部凭据均可按约定重算。';
+    PRINT N'【迁移02】自证通过：全部会员与员工凭据非空且格式合法。';
 
     COMMIT TRANSACTION;
     PRINT N'【迁移02】事务提交成功。';
