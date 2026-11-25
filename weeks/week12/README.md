@@ -1,7 +1,7 @@
-# 第 12 周 · 窗口函数（`window_query.sql`）
+# 第 12 周 · 窗口函数 / 递归查询 / 业务事务
 
-> 阶段三 v2.0（第 10—13 周）的一部分。并发与死锁实验在第 13 周、由 hezhlin5 搭框架；
-> 本页只记窗口函数这一批，递归查询另起一节。
+> 阶段三 v2.0（第 10—13 周）的一部分，本页记三批：**窗口函数**（§1—7）、**业务事务**（§8）、**递归查询**（§9）。
+> 并发与死锁实验在第 13 周、由 hezhlin5 搭框架。
 
 ## 0. 一句话
 
@@ -92,6 +92,12 @@ sqlcmd -S .\SQLEXPRESS -E -C -b -f 65001 -d milktea_shop -i project\sql\09-progr
 
 实测：`21 | 通过: 21 | 失败: 0`，exit=0。
 
+## 6. 还没做的
+
+- **递归查询**（`10-transaction/recursive_query.sql`）：品类树与补货传导链，另起一批；
+- 并发与死锁实验（第 13 周，hezhlin5 主责）；
+- 把窗口查询接成视图或存储过程（不做：课程要的是“查询”，多一个对象就多一份维护）。
+
 ## 7. 变异测试：断言是否真的在验（2026-11-25 实测）
 
 做法：复制 	est-window.sql，**故意改坏一处逻辑**再跑，看有没有断言变红。改坏的副本用完即删，仓库里的原文件没动。
@@ -111,8 +117,106 @@ COUNT(DISTINCT category_name) = COUNT(*)，去掉分区后只剩 1 行，两个�
 
 变异脚本是一次性工具（harness/logs/tmp-mutation-window.py，未入库），要重跑的话按上表四处替换即可。
 
-## 6. 还没做的
+## 8. 业务事务：两段 T-SQL 事务脚本（2026-11-25 实测）
 
-- **递归查询**（`10-transaction/recursive_query.sql`）：品类树与补货传导链，另起一批；
-- 并发与死锁实验（第 13 周，hezhlin5 主责）；
-- 把窗口查询接成视图或存储过程（不做：课程要的是“查询”，多一个对象就多一份维护）。
+课程第 12 周要求「两项事务脚本及提交/回滚结果」。事务我们一直有 —— 但它开在应用层
+（project/app/service/ordering.py 的 with db.open_session() as s: … s.commit()），
+课上问「事务到底包住了什么」时，代码在 Python 里不好指。这两段把同一件事摊成 T-SQL。
+
+| 脚本 | 干什么 | 结果 |
+|---|---|---|
+| project/sql/10-transaction/tx1-order-commit.sql | 一次下单：写头 → 写明细 → 扣结存 → 写流水 → 加积分，五步同一个事务 | [COMMIT] 后逐表校验：头 1 行 / 明细 1 行 / 流水 5 行（=原料种类数）/ 积分 1 行；随后自己清理，残留 0/0/0/0 |
+| project/sql/10-transaction/tx2-order-rollback.sql | 同一流程，第 4 步故意把结存扣成负数 | 捕获 **547**（撞 ck_ingredient_qty_on_hand）→ 整体 ROLLBACK；六项比对（订单/明细/库存流水/积分流水/会员积分合计/结存合计）全部回到事务前 |
+
+两段都是幂等的：tx1 结尾按 order_id 删掉自己写入的行并按 Σ流水 重算结存，tx2 整体回滚。
+连跑一遍，库的七个指标一个都没变：
+
+`
+事务前：订单=1963 明细=2629 库存流水=13851 积分流水=1259 积分合计=25224 结存合计=403371.600 结存偏差=0
+事务后：订单=1963 明细=2629 库存流水=13851 积分流水=1259 积分合计=25224 结存合计=403371.600 结存偏差=0
+`
+
+### 写这两个脚本时踩的两个坑
+
+1. **往 	bl_order_header 写数据必须 SET QUOTED_IDENTIFIER ON**。第一次编译就报
+   消息 1934 … INSERT 失败，因为下列 SET 选项的设置不正确: 'QUOTED_IDENTIFIER' ——
+   原因是第 9 周建的**筛选索引** uq_order_header_coupon，SQL Server 要求写带筛选索引的表时
+   该选项为 ON，而 sqlcmd 默认 OFF。两个脚本开头都显式开了。
+2. **配方查询必须带上 sugar_spec_id IS NULL 的行**。只写 
+.sugar_spec_id = @sugar_id
+   会得到「这个组合没有配方行」——因为基础原料（茶底、水、冰）的用量与糖度无关，
+   在 	bl_recipe 里就是 sugar_spec_id IS NULL。正确写法是
+   (sugar_spec_id = @sugar_id OR sugar_spec_id IS NULL)，这正是
+   order_dao.recipe_usage() 的做法（第 5 周 ER 图 §1.4 登记过这条语义）。
+
+### 和应用层事务的对照
+
+| | 应用层 place_order() | 这两段 T-SQL |
+|---|---|---|
+| 事务谁开 | pyodbc 连接对象（with db.open_session() as s:） | BEGIN TRANSACTION |
+| 提交谁做 | s.commit() | COMMIT TRANSACTION |
+| 失败怎么退 | 抛异常 → 上下文管理器 
+ollback → REVERT 切回 dbo | TRY/CATCH + XACT_STATE() <> 0 → ROLLBACK |
+| 什么时候会发生 | 用户点「提交订单」 | 课上演示 / 批量脚本 |
+
+两条路径的**校验规则是同一条**（原料够不够、配方有没有、金额对不对），区别只在边界由谁管。
+
+## 9. 递归查询：`recursive_query.sql`（2026-11-25 实测）
+
+| 文件 | 内容 | 运行 |
+|---|---|---|
+| [`recursive_query.sql`](../../project/sql/10-transaction/recursive_query.sql) | R1 日期轴补零 / R2 断档识别 / R3 品类树展开 | `sqlcmd -b -i project\sql\10-transaction\recursive_query.sql` |
+| [`test-recursive.sql`](../../project/sql/10-transaction/test-recursive.sql) | **13 条**断言，全只读 | `sqlcmd -b -i project\sql\10-transaction\test-recursive.sql` |
+
+### 为什么这三处要用递归
+
+日期不是表里的数据。库里只有「有订单的那几天」有行，直接 `GROUP BY business_date`，
+图就从 09-23 直接跳到 11-08 —— 中间 46 天连行都没有。递归 CTE 先造一把连续的「尺子」
+（`SELECT @start UNION ALL SELECT DATEADD(DAY,1,d) WHERE d < @end`），再把事实表 `LEFT JOIN` 上去，
+缺的那几天自然得到 0，而不是「消失」。
+
+### 三个查询与实测输出
+
+**R1 日期轴补零**（窗口 `2026-09-17 ~ 09-26`，故意跨过种子最后一天）：
+
+```
+2026-09-17|252|3070.00
+...
+2026-09-23|244|2843.00
+2026-09-24|0|.00|无营业
+2026-09-25|0|.00|无营业
+2026-09-26|0|.00|无营业
+```
+
+**R2 断档识别**（gaps & islands）：同一把尺子先标「这天有没有单」，再用
+`DATEADD(DAY, -ROW_NUMBER() OVER (ORDER BY d), d)` 把连续段归到同一个常量，按它分组即得区间：
+
+```
+空档起|空档止|连续天数
+2026-09-24|2026-09-26|3
+```
+
+**R3 品类树展开**：沿 `parent_category_id` 递归，带层级与路径（`父 > 子`）。
+当前库里 5 个分类的 `parent_category_id` **全是 NULL**，所以展开只有一层 5 行、`层级 = 0`。
+这不是写错 —— 是数据还没有层级。以后给某个分类挂上父级，**这段 SQL 一个字都不用改**就会多出第 2、3 层。
+
+### 写的时候踩的三个坑
+
+1. **`date` 不能直接减 `bigint`**：`营业日 - ROW_NUMBER()` 报 `操作数类型冲突: date 与 bigint 不兼容`
+   （`ROW_NUMBER()` 返回 bigint）。改成 `DATEADD(DAY, -CAST(ROW_NUMBER() AS INT), 营业日)`。
+2. **`COUNT(列名)` 会触发 ANSI 警告**「聚合或其他 SET 操作消除了 Null 值」——
+   `LEFT JOIN` 后空档那几天的 `h.order_id` 是 NULL，`COUNT(h.order_id)` 跳过它们就报这句。
+   换成 `SUM(CASE WHEN h.order_id IS NULL THEN 0 ELSE 1 END)` 后干净了（`SUM(ISNULL(...))` 同理）。
+3. **`sqlcmd` 把 `DECIMAL` 的 0 打印成 `.00`**（不是 `0.00`）——这是 sqlcmd 的单元格格式，不是 SQL 的问题；
+   别为了好看去 `CAST` 成字符串，会丢掉数值类型。
+
+### 13 条断言覆盖
+
+行数 = 跨度+1、首末行正确、日期不重复、有营业日 7 天 / 无营业日 3 天、无营业日实收 = 0、
+09-18 实收 = 3,074.00（与直接查订单表一致）、**补零后总额仍 = 23,762.00**（不改变业务口径）、
+识别出 1 段空档且 = 09-24~09-26 共 3 天、品类树 5 行 / 最大层级 0、跨度 > 3660 天被拒（52101）。
+
+> 第 9 条是这组断言里最要紧的：**补零只是「补上没发生的事」，不能让总额变**。
+> 它和 `regression.sql` TC-10 的常量 23,762.00 交叉校验，是这条递归唯一的业务锚点。
+
+**这两个脚本不进 `99-rebuild.sql`**：它们是查询与断言，不是数据库对象。
