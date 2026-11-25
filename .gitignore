@@ -53,3 +53,5 @@ project/app/.env
 
 # ---- 汇报 PPT（体积大、每次导出都会变，留在本地不入库）----
 weeks/submissions/v1.0/*.pptx
+# ---- 演示辅助脚本（含本机绝对路径，只在本机用）----
+demo-checks.ps1
