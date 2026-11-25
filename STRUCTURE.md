@@ -107,11 +107,11 @@ databaseExp/
 │  │  ├─ config.py                    #     连接串与 角色→数据库账户 映射（读 .env）
 │  │  ├─ dao/                         #     ⭐ 数据访问层：唯一 import pyodbc、唯一写 SQL
 │  │  ├─ service/                     #     ⭐ 业务层：业务规则、事务边界、角色可执行范围
-│  │  ├─ web/                         #     ⭐ 页面层：21 条路由 + 13 个模板 + MD3 视觉层 + Chart.js（不含 SQL）
-│  │  └─ tests/                       #     46 条自动化测试（分层边界 / 权限 / 四个工作台 / 订单取消 / 券核销）
+│  │  ├─ web/                         #     ⭐ 页面层：21 条路由 + 14 个模板 + MD3 视觉层 + Chart.js（不含 SQL）
+│  │  └─ tests/                       #     58 条自动化测试（分层边界 / 权限 / 四个工作台 / 订单取消 / 券核销 / Batch1-2 修复）
 │  ├─ docs/                           #   ER图、数据字典、设计说明
 │  └─ tests/                          #   测试用例与运行记录
-│     ├─ regression.sql               #     16 项数据库断言（迁移后必须全绿，失败返回非零）
+│     ├─ regression.sql               #     21 项数据库断言（迁移后必须全绿，失败返回非零）
 │     ├─ baseline/                    #     迁移前后数据快照（三脚本 + before/after 结果）
 │     └─ 01-migration-verification.*  #     迁移 02 的正反例验证记录
 │
