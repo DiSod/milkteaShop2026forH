@@ -205,7 +205,7 @@ BEGIN TRY
              5.00,   -- 应收 = 10.00 小计 − 5.00 券
              5.00,   -- 实收
              N'CASH', N'SUCCESS', SYSDATETIME(),
-             N'COMPLETED',
+             N'PENDING',
              (SELECT employee_id FROM tbl_employee WHERE employee_code = 'DEMO-E1'));
 
         -- 订单明细：P001 招牌柠檬水 ×2，中杯（+0）、五分糖、正常冰
