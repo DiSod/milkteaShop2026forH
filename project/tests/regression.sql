@@ -32,7 +32,7 @@ GO
 
 DECLARE @pass_count INT = 0;
 DECLARE @fail_count INT = 0;
-DECLARE @total_tests INT = 20;
+DECLARE @total_tests INT = 21;
 
 -- 测试辅助变量
 DECLARE @test_member_id INT;
@@ -698,6 +698,53 @@ ELSE
 BEGIN
     PRINT FORMATMESSAGE(N'  --> ❌ 【FAIL】迁移 07 约束异常！ck_blocked=%d reuse_ok=%d dup_blocked=%d',
         @tc20_ck_blocked, @tc20_reuse_ok, @tc20_dup_blocked);
+    SET @fail_count = @fail_count + 1;
+END;
+
+/* ------------------------------------------------------------
+ * TC-21 第 11 周触发器体系（4 个触发器启用 + 流水防改 & 终态防篡改实测）
+ * ------------------------------------------------------------ */
+PRINT N'【TC-21】第 11 周触发器：4 个触发器全部启用，且流水不可修改、终态订单不可回退 ...';
+DECLARE @trg_cnt INT = 0, @tc21_ledger_blocked INT = 0, @tc21_state_blocked INT = 0;
+
+SELECT @trg_cnt = COUNT(*)
+FROM sys.triggers
+WHERE is_ms_shipped = 0
+  AND is_disabled = 0
+  AND name IN (
+      N'trg_stock_ledger_immutable',
+      N'trg_points_ledger_immutable',
+      N'trg_order_detail_spec_type_guard',
+      N'trg_order_header_state_guard'
+  );
+
+DECLARE @any_sl_id INT = (SELECT TOP 1 ledger_id FROM tbl_stock_ledger ORDER BY ledger_id);
+BEGIN TRY
+    UPDATE tbl_stock_ledger SET remark = remark WHERE ledger_id = @any_sl_id;
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+    IF ERROR_NUMBER() = 51501 SET @tc21_ledger_blocked = 1;
+END CATCH;
+
+DECLARE @any_done_oid INT = (SELECT TOP 1 order_id FROM tbl_order_header WHERE order_status = 'COMPLETED' ORDER BY order_id);
+BEGIN TRY
+    UPDATE tbl_order_header SET order_status = 'MAKING' WHERE order_id = @any_done_oid;
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+    IF ERROR_NUMBER() = 51521 SET @tc21_state_blocked = 1;
+END CATCH;
+
+IF @trg_cnt = 4 AND @tc21_ledger_blocked = 1 AND @tc21_state_blocked = 1
+BEGIN
+    PRINT N'  --> ✅ 【PASS】第 11 周 4 个触发器全量启用（4/4），流水防改 (51501) 与终态防回退 (51521) 均生效。';
+    SET @pass_count = @pass_count + 1;
+END
+ELSE
+BEGIN
+    PRINT FORMATMESSAGE(N'  --> ❌ 【FAIL】触发器异常！启用数=%d/4, ledger_blocked=%d, state_blocked=%d',
+        @trg_cnt, @tc21_ledger_blocked, @tc21_state_blocked);
     SET @fail_count = @fail_count + 1;
 END;
 
