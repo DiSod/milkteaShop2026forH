@@ -45,7 +45,9 @@ class Session:
         """参数化查询。占位符一律是 ``?``（pyodbc 的 qmark 风格）。"""
         try:
             self.cur.execute(sql, params)
-            return self.cur.fetchall()
+            while self.cur.description is None and self.cur.nextset():
+                pass
+            return self.cur.fetchall() if self.cur.description is not None else []
         except Exception as exc:  # noqa: BLE001 - 统计转译后重抛
             raise errors.translate(exc)
 

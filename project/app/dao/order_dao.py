@@ -28,12 +28,14 @@ def insert_header(s, order_no, business_date, pickup_no, member_id,
                   pay_status, order_status, cashier_id=None, coupon_id=None) -> int:
     row = s.query_one(
         """
+        DECLARE @out TABLE (order_id INT);
         INSERT INTO tbl_order_header
             (order_no, business_date, pickup_no, member_id, coupon_id,
              discount_amount, amount_due, amount_paid, pay_method, pay_status,
              order_status, order_time, cashier_id)
-        OUTPUT INSERTED.order_id
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, SYSDATETIME(), ?)
+        OUTPUT INSERTED.order_id INTO @out (order_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, SYSDATETIME(), ?);
+        SELECT order_id FROM @out;
         """,
         (
             order_no, business_date, pickup_no, member_id, coupon_id,
@@ -65,11 +67,13 @@ def insert_detail(s, order_id, line_no, product_id, qty, unit_price,
                   cup_spec_id, sugar_spec_id, ice_spec_id, subtotal) -> int:
     row = s.query_one(
         """
+        DECLARE @out TABLE (order_detail_id INT);
         INSERT INTO tbl_order_detail
             (order_id, line_no, product_id, qty, unit_price,
              cup_spec_id, sugar_spec_id, ice_spec_id, subtotal)
-        OUTPUT INSERTED.order_detail_id
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        OUTPUT INSERTED.order_detail_id INTO @out (order_detail_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+        SELECT order_detail_id FROM @out;
         """,
         (order_id, line_no, product_id, qty, unit_price,
          cup_spec_id, sugar_spec_id, ice_spec_id, subtotal),

@@ -249,8 +249,8 @@ def test_loss_writes_ledger_and_keeps_invariant(client):
         assert rows[0][3] == "测试报损"
         assert rows[0][4] == 5, "操作人要落库管员 E005"
     finally:
-        # 断言失败也要把痕迹清掉：测试库不是垃圾桶
-        with _manager() as s:
+        # 断言失败也要把痕迹清掉：测试库不是垃圾桶（用 dbo 清理，非 dbo 角色被触发器禁止删流水）
+        with db.open_session() as s:
             s.execute(
                 "DELETE FROM tbl_stock_ledger WHERE ledger_id = "
                 "(SELECT MAX(ledger_id) FROM tbl_stock_ledger WHERE ingredient_id = ?)",
@@ -339,7 +339,7 @@ def test_receive_purchase_line(client):
         assert last[1] == "PURCHASE"
         assert float(last[2]) == 1.0
     finally:
-        with _manager() as s:
+        with db.open_session() as s:
             s.execute(
                 "UPDATE tbl_purchase_order_detail SET qty_received = qty_received - 1 "
                 " WHERE purchase_order_detail_id = ?",
@@ -433,7 +433,7 @@ def test_cashier_creates_guest_order_without_points(client):
             assert s.query_one("SELECT COUNT(*) FROM tbl_stock_ledger")[0] > ledger_before
     finally:
         if order_id is not None:
-            with _manager() as s:
+            with db.open_session() as s:
                 # 清理：先把这条单扣掉的库存补回去，再按外键逆序删行
                 for ingredient_id, qty in s.query(
                     "SELECT ingredient_id, qty FROM tbl_stock_ledger WHERE order_id = ?", (order_id,)
