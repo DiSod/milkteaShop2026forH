@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
  * 脚本：recursive_query.sql
  * 用途：第 12 周「递归查询」—— 三处真用得上的递归 CTE
  *       R1 日期轴补零：把「没有营业的日子」补成 0，而不是让图断掉
@@ -92,34 +92,95 @@ SELECT MIN(营业日) AS 空档起, MAX(营业日) AS 空档止,
 OPTION (MAXRECURSION 4000);
 
 /* ================================================================
- * R3. 品类树展开：沿 parent_category_id 递归
+ * R3. 品类树展开：沿 parent_category_id 递归（三级 + 自底向上汇总）
  * ----------------------------------------------------------------
- * 当前库里 5 个分类的 parent_category_id 全是 NULL，所以展开出来只有一层 5 行。
- * 这不是写错了 —— 是数据还没有层级。只要以后给某个分类挂上父级，
- * 同一段 SQL 不用改就会多出第 2、3 层（层级深度 = lvl）。
- * 顺带演示两件递归必须处理的事：深度标记、以及用 MAXRECURSION 防跑飞。
+ * 库里 5 个分类的 parent_category_id 全是 NULL —— 真实数据是平的，
+ * 直接递归只能出一层，证明不了多级穿透。
+ *
+ * 一开始想直接 INSERT 两个根类再 ROLLBACK，但那样会消耗 IDENTITY
+ * （category_id 回滚不回退号），表里的号会跳号。所以改成：
+ *   把真实 5 行搬进 #品类（临时表，用真实 category_id），
+ *   再在临时表里加两个根（1001/1002）和一个叶子（1003），
+ *   只改临时表里的父子关系 —— 真表一个字节都不动。
+ *
+ * 两段递归：
+ *   ① 品类树：从根开始逐层展开，带层级与路径；
+ *   ② 后代映射：每个节点 → 它自己 + 全部后代（自底向上汇总要用）。
+ * 汇总口径与日报一致（D 口径），杯数取明细 qty。
  * ================================================================ */
-PRINT N'=== R3. 品类树展开（当前数据只有一层）===';
+PRINT N'=== R3. 品类树展开（临时表造三级，不动真表）===';
+
+/* 真实 5 个分类搬进临时表（category_id 沿用真值） */
+CREATE TABLE #品类 (
+    category_id   INT           NOT NULL PRIMARY KEY,
+    parent_id     INT           NULL,
+    category_code VARCHAR(20)   NOT NULL,
+    category_name NVARCHAR(100) NOT NULL
+);
+
+INSERT INTO #品类 (category_id, parent_id, category_code, category_name)
+SELECT category_id, parent_category_id, category_code, category_name
+  FROM tbl_product_category;
+
+/* 临时表里加两个根，并把真实分类挂到根下 */
+INSERT INTO #品类 (category_id, parent_id, category_code, category_name) VALUES
+    (1001, NULL, 'R01', N'现制茶饮总类'),
+    (1002, NULL, 'R02', N'甜品与限定总类');
+
+UPDATE #品类 SET parent_id = 1001 WHERE category_code IN ('C01', 'C02', 'C03');
+UPDATE #品类 SET parent_id = 1002 WHERE category_code IN ('C04', 'C05');
+
+/* 再给「水果茶」挂一个叶子（父级 id 从表里查，不写死） */
+INSERT INTO #品类 (category_id, parent_id, category_code, category_name)
+SELECT 1003, category_id, 'S01', N'鲜果茶子类（示例）'
+  FROM #品类 WHERE category_code = 'C02';
 
 WITH 品类树 AS (
     SELECT c.category_id, c.category_code, c.category_name,
-           c.parent_category_id,
-           0 AS 层级,
+           c.parent_id,
+           1 AS 层级,
            CAST(c.category_name AS NVARCHAR(400)) AS 路径
-      FROM tbl_product_category c
-     WHERE c.parent_category_id IS NULL
+      FROM #品类 c
+     WHERE c.parent_id IS NULL
     UNION ALL
     SELECT c.category_id, c.category_code, c.category_name,
-           c.parent_category_id,
+           c.parent_id,
            父.层级 + 1,
-           CAST(父.路径 + N' > ' + c.category_name AS NVARCHAR(400))
-      FROM tbl_product_category c
-      JOIN 品类树 父 ON 父.category_id = c.parent_category_id
+           CAST(父.路径 + N' / ' + c.category_name AS NVARCHAR(400))
+      FROM #品类 c
+      JOIN 品类树 父 ON 父.category_id = c.parent_id
+),
+后代 AS (
+    SELECT category_id AS 祖先, category_id AS 后代 FROM #品类
+    UNION ALL
+    SELECT d.祖先, c.category_id
+      FROM 后代 d
+      JOIN #品类 c ON c.parent_id = d.后代
+),
+直营 AS (
+    SELECT p.category_id,
+           SUM(d.qty)                        AS 杯数,
+           CAST(SUM(d.subtotal) AS DECIMAL(12,2)) AS 金额
+      FROM tbl_order_detail d
+      JOIN tbl_order_header h ON h.order_id = d.order_id
+      JOIN tbl_product      p ON p.product_id = d.product_id
+     WHERE h.pay_status = 'SUCCESS'
+       AND h.order_status <> 'CANCELLED'
+     GROUP BY p.category_id
 )
-SELECT category_id, category_code, category_name, 层级, 路径
-  FROM 品类树
- ORDER BY 路径
+SELECT t.层级,
+       t.category_code                             AS 品类编码,
+       t.路径,
+       ISNULL(SUM(s.杯数), 0)                      AS 含子级杯数,
+       ISNULL(SUM(s.金额), 0.00)                   AS 含子级销售额
+  FROM 品类树 t
+  JOIN 后代   d ON d.祖先 = t.category_id
+  LEFT JOIN 直营 s ON s.category_id = d.后代
+ GROUP BY t.层级, t.category_code, t.路径
+ ORDER BY t.路径
 OPTION (MAXRECURSION 100);
 
-PRINT N'【递归结论】日期轴按天连续（含无营业日）、断档可识别、品类树按父级展开 —— 三处都是递归，两处现在就有业务含义。';
+DROP TABLE #品类;
+
+PRINT N'【递归结论】日期轴按天连续（含无营业日）、断档可识别、品类树三级穿透且能自底向上汇总 —— 三处都是递归，三处都有业务含义。';
 GO

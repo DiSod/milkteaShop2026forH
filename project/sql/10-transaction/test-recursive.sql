@@ -1,6 +1,6 @@
-﻿/* ============================================================
+/* ============================================================
  * 脚本：test-recursive.sql
- * 用途：recursive_query.sql 的断言集 —— 13 条，跑完打印 PASS/FAIL 与总数
+ * 用途：recursive_query.sql 的断言集 —— 15 条，跑完打印 PASS/FAIL 与总数
  * 判据：条数必须等于 @total（漏跑即判红）；任一 FAIL → RAISERROR 16 → sqlcmd -b 非零退出
  * 幂等：是 —— 全部只读，只在表变量里做
  * 阶段：第 12 周（递归查询与业务事务）
@@ -16,7 +16,7 @@ GO
 
 DECLARE @start_date DATE = '2026-09-17';
 DECLARE @end_date   DATE = '2026-09-26';
-DECLARE @total INT = 13;
+DECLARE @total INT = 15;
 
 DECLARE @r TABLE (
     序号 INT IDENTITY(1,1) PRIMARY KEY,
@@ -129,25 +129,92 @@ SELECT N'11 空档 = 09-24 ~ 09-26 共 3 天',
             THEN 1 ELSE 0 END
   FROM @gap;
 
-/* ---------- 12：品类树（当前只有一层） ---------- */
-DECLARE @tree TABLE (category_id INT, 层级 INT);
+/* ---------- 12—14：品类树（临时表造三级，验证多级穿透与自底向上汇总） ---------- */
+DECLARE @tree TABLE (category_id INT, 层级 INT, category_code VARCHAR(20), 金额 DECIMAL(12,2));
+
+/* 与 recursive_query.sql 的 R3 同一套构造：真表 5 行搬进临时表，再加两个根一个叶子 */
+IF OBJECT_ID('tempdb..#品类') IS NOT NULL DROP TABLE #品类;
+CREATE TABLE #品类 (
+    category_id   INT           NOT NULL PRIMARY KEY,
+    parent_id     INT           NULL,
+    category_code VARCHAR(20)   NOT NULL,
+    category_name NVARCHAR(100) NOT NULL
+);
+INSERT INTO #品类 (category_id, parent_id, category_code, category_name)
+SELECT category_id, parent_category_id, category_code, category_name FROM tbl_product_category;
+INSERT INTO #品类 (category_id, parent_id, category_code, category_name) VALUES
+    (1001, NULL, 'R01', N'现制茶饮总类'),
+    (1002, NULL, 'R02', N'甜品与限定总类');
+UPDATE #品类 SET parent_id = 1001 WHERE category_code IN ('C01', 'C02', 'C03');
+UPDATE #品类 SET parent_id = 1002 WHERE category_code IN ('C04', 'C05');
+INSERT INTO #品类 (category_id, parent_id, category_code, category_name)
+SELECT 1003, category_id, 'S01', N'鲜果茶子类（示例）' FROM #品类 WHERE category_code = 'C02';
 
 WITH 品类树 AS (
-    SELECT c.category_id, 0 AS 层级
-      FROM tbl_product_category c WHERE c.parent_category_id IS NULL
+    SELECT c.category_id, 1 AS 层级, c.category_code FROM #品类 c WHERE c.parent_id IS NULL
     UNION ALL
-    SELECT c.category_id, 父.层级 + 1
-      FROM tbl_product_category c JOIN 品类树 父 ON 父.category_id = c.parent_category_id
+    SELECT c.category_id, 父.层级 + 1, c.category_code
+      FROM #品类 c JOIN 品类树 父 ON 父.category_id = c.parent_id
+),
+后代 AS (
+    SELECT category_id AS 祖先, category_id AS 后代 FROM #品类
+    UNION ALL
+    SELECT d.祖先, c.category_id FROM 后代 d JOIN #品类 c ON c.parent_id = d.后代
+),
+直营 AS (
+    SELECT p.category_id, CAST(SUM(d.subtotal) AS DECIMAL(12,2)) AS 金额
+      FROM tbl_order_detail d
+      JOIN tbl_order_header h ON h.order_id = d.order_id
+      JOIN tbl_product      p ON p.product_id = d.product_id
+     WHERE h.pay_status = 'SUCCESS' AND h.order_status <> 'CANCELLED'
+     GROUP BY p.category_id
 )
-INSERT INTO @tree SELECT category_id, 层级 FROM 品类树 OPTION (MAXRECURSION 100);
+INSERT INTO @tree (category_id, 层级, category_code, 金额)
+SELECT t.category_id, t.层级, t.category_code, ISNULL(SUM(s.金额), 0.00)
+  FROM 品类树 t
+  JOIN 后代 d ON d.祖先 = t.category_id
+  LEFT JOIN 直营 s ON s.category_id = d.后代
+ GROUP BY t.category_id, t.层级, t.category_code
+OPTION (MAXRECURSION 100);
 
+DROP TABLE #品类;
+
+/* 12：最大层级 = 3，且各层节点数 2 / 5 / 1 */
 INSERT INTO @r (item, expected, actual, ok)
-SELECT N'12 品类树 = 5 个分类、最大层级 0（数据是平的）', N'5 / 0',
-       CONVERT(NVARCHAR(80), COUNT(*)) + N' / ' + CONVERT(NVARCHAR(80), MAX(层级)),
-       CASE WHEN COUNT(*) = 5 AND MAX(层级) = 0 THEN 1 ELSE 0 END
+SELECT N'12 品类树三级穿透（层级 2/5/1，最大 3）', N'3 层 / 2-5-1',
+       CONVERT(NVARCHAR(80), MAX(层级)) + N' 层 / '
+         + CONVERT(NVARCHAR(10), SUM(CASE WHEN 层级 = 1 THEN 1 ELSE 0 END)) + N'-'
+         + CONVERT(NVARCHAR(10), SUM(CASE WHEN 层级 = 2 THEN 1 ELSE 0 END)) + N'-'
+         + CONVERT(NVARCHAR(10), SUM(CASE WHEN 层级 = 3 THEN 1 ELSE 0 END)),
+       CASE WHEN MAX(层级) = 3
+                 AND SUM(CASE WHEN 层级 = 1 THEN 1 ELSE 0 END) = 2
+                 AND SUM(CASE WHEN 层级 = 2 THEN 1 ELSE 0 END) = 5
+                 AND SUM(CASE WHEN 层级 = 3 THEN 1 ELSE 0 END) = 1
+            THEN 1 ELSE 0 END
   FROM @tree;
 
-/* ---------- 13：跨度守卫（>3660 天必须抛 52101） ---------- */
+/* 13：根类 R01 的含子级金额 = C01+C02+C03 直接销售额之和（自底向上汇总对了） */
+INSERT INTO @r (item, expected, actual, ok)
+SELECT N'13 根类汇总 = 三个子类直接销售额之和', N'相等',
+       CONVERT(NVARCHAR(80), CAST((SELECT 金额 FROM @tree WHERE category_code = 'R01') AS DECIMAL(12,2)))
+         + N' vs '
+         + CONVERT(NVARCHAR(80), CAST((SELECT SUM(金额) FROM @tree
+                                       WHERE category_code IN ('C01', 'C02', 'C03')) AS DECIMAL(12,2))),
+       CASE WHEN (SELECT 金额 FROM @tree WHERE category_code = 'R01')
+                 = (SELECT SUM(金额) FROM @tree WHERE category_code IN ('C01', 'C02', 'C03'))
+            THEN 1 ELSE 0 END;
+
+/* 14：真表没被污染 —— 仍是 5 个分类、parent_category_id 全 NULL */
+INSERT INTO @r (item, expected, actual, ok)
+SELECT N'14 真表未被临时树污染（5 类 / 父级全 NULL）', N'5 / 0',
+       CONVERT(NVARCHAR(80), COUNT(*)) + N' / '
+         + CONVERT(NVARCHAR(80), SUM(CASE WHEN parent_category_id IS NOT NULL THEN 1 ELSE 0 END)),
+       CASE WHEN COUNT(*) = 5
+                 AND SUM(CASE WHEN parent_category_id IS NOT NULL THEN 1 ELSE 0 END) = 0
+            THEN 1 ELSE 0 END
+  FROM tbl_product_category;
+
+/* ---------- 15：跨度守卫（>3660 天必须抛 52101） ---------- */
 DECLARE @guard_err INT = 0;
 BEGIN TRY
     IF DATEDIFF(DAY, '2000-01-01', '2026-11-25') > 3660
@@ -158,7 +225,7 @@ BEGIN CATCH
 END CATCH;
 
 INSERT INTO @r (item, expected, actual, ok)
-VALUES (N'13 跨度 > 3660 天被拒（错误号 52101）', N'52101', CONVERT(NVARCHAR(80), @guard_err),
+VALUES (N'15 跨度 > 3660 天被拒（错误号 52101）', N'52101', CONVERT(NVARCHAR(80), @guard_err),
         CASE WHEN @guard_err = 52101 THEN 1 ELSE 0 END);
 
 /* ---------- 汇总 ---------- */

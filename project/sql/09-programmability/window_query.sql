@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    脚本：window_query.sql
    用途：第 12 周 —— 三类窗口函数查询（排名 / 累计与环比 / 移动平均）
    依赖：需先跑过 99-rebuild.sql（表与种子数据就绪）
@@ -137,5 +137,111 @@ FROM    t
 ORDER BY score DESC, name;
 GO
 
-PRINT N'【窗口函数】四个查询执行完毕：累计与环比 / 分类内排名与占比 / 近 3 日移动平均 / 排名口径对照。';
+/* ------------------------------------------------------------
+   查询 5｜会员价值分层 + 平均复购间隔
+   ------------------------------------------------------------
+   业务问题：会员运营要知道"哪 25% 的人贡献了大头"，以及
+             "老客多久回来一次"——后者是判断促活活动频率的依据。
+   两个窗口：
+     · LAG(order_time) OVER (PARTITION BY member_id ORDER BY order_time)
+       拿到同一会员的上一单时间，相减即复购间隔（小时）
+     · NTILE(4) OVER (ORDER BY 累计实付 DESC) 把会员切成四等份，
+       DENSE_RANK 只用来标排名（并列不跳号）
+   为什么间隔用 DATEDIFF(MINUTE)/60.0 而不是 DATEDIFF(HOUR)：
+       DATEDIFF(HOUR) 会截断，60 分钟差会被算成 1 小时、59 分钟算成 0；
+       先用分钟取差再除 60，得到的是真实小时数（精确到分钟）。
+   为什么只算有效单：口径与 TC-10 一致（SUCCESS 且非 CANCELLED），
+       否则已取消的单会把复购间隔算短。
+   ------------------------------------------------------------ */
+;WITH member_gaps AS (
+    SELECT  h.member_id,
+            h.order_id,
+            h.amount_paid,
+            h.order_time,
+            LAG(h.order_time) OVER (
+                PARTITION BY h.member_id
+                ORDER BY h.order_time, h.order_id
+            ) AS prev_order_time
+    FROM    tbl_order_header h
+    WHERE   h.member_id IS NOT NULL
+      AND   h.pay_status = 'SUCCESS'
+      AND   h.order_status <> 'CANCELLED'
+),
+member_agg AS (
+    SELECT  m.member_code,
+            m.member_name,
+            COUNT(g.order_id)                                          AS 有效订单数,
+            CAST(SUM(g.amount_paid) AS DECIMAL(10,2))                  AS 累计实付,
+            CAST(AVG(DATEDIFF(MINUTE, g.prev_order_time, g.order_time) / 60.0) AS DECIMAL(6,2))
+                                                                       AS 平均复购间隔_小时
+    FROM    member_gaps g
+    JOIN    tbl_member m ON m.member_id = g.member_id
+    GROUP BY m.member_code, m.member_name
+)
+SELECT  DENSE_RANK() OVER (ORDER BY 累计实付 DESC)                      AS 消费排名,
+        NTILE(4)     OVER (ORDER BY 累计实付 DESC)                      AS 价值四分位,
+        member_code                                                    AS 会员码,
+        member_name                                                    AS 会员姓名,
+        有效订单数,
+        累计实付,
+        平均复购间隔_小时
+FROM    member_agg
+ORDER BY 消费排名 ASC, 会员码 ASC;
+GO
+
+/* ------------------------------------------------------------
+   查询 6｜原料消耗成本的 ABC 帕累托
+   ------------------------------------------------------------
+   业务问题：采购预算有限时，先盯住"花掉 80% 钱的那批原料"。
+   两个窗口：
+     · SUM(成本) OVER (ORDER BY 成本 DESC ROWS UNBOUNDED PRECEDING)
+       —— 降序累计，得到"到这一行为止花掉多少"
+     · SUM(成本) OVER () —— 不带 ORDER BY 时整表就是一个窗口，
+       得到分母（全店消耗总成本）
+   累计占比 ≤80% 记 A 类、≤95% 记 B 类、其余 C 类。
+   为什么排序键要带 ingredient_code：成本并列时若只按成本排，
+       两次执行的行序可能不同，累计占比会抖动；加编码做第二键保证可复现。
+   ------------------------------------------------------------ */
+;WITH ing_cost AS (
+    SELECT  i.ingredient_code,
+            i.ingredient_name,
+            i.unit,
+            CAST(SUM(-sl.qty)                     AS DECIMAL(12,3)) AS 累计耗用量,
+            CAST(SUM(-sl.qty * i.moving_avg_cost) AS DECIMAL(12,2)) AS 累计消耗成本
+    FROM    tbl_stock_ledger sl
+    JOIN    tbl_ingredient   i ON i.ingredient_id = sl.ingredient_id
+    WHERE   sl.ledger_type = 'SALES_USE'
+    GROUP BY i.ingredient_code, i.ingredient_name, i.unit
+),
+pareto AS (
+    SELECT  ingredient_code,
+            ingredient_name,
+            unit,
+            累计耗用量,
+            累计消耗成本,
+            SUM(累计消耗成本) OVER (
+                ORDER BY 累计消耗成本 DESC, ingredient_code ASC
+                ROWS UNBOUNDED PRECEDING
+            )                                                                 AS 累计成本和,
+            SUM(累计消耗成本) OVER ()                                         AS 全店消耗总成本,
+            CAST(SUM(累计消耗成本) OVER (
+                ORDER BY 累计消耗成本 DESC, ingredient_code ASC
+                ROWS UNBOUNDED PRECEDING
+            ) * 100.0 / NULLIF(SUM(累计消耗成本) OVER (), 0) AS DECIMAL(5,2)) AS 累计成本占比
+    FROM    ing_cost
+)
+SELECT  ingredient_code                                    AS 原料编码,
+        ingredient_name                                    AS 原料名称,
+        unit                                               AS 单位,
+        累计耗用量,
+        累计消耗成本,
+        累计成本占比,
+        CASE WHEN 累计成本占比 <= 80.0 THEN N'A 类（核心 0-80%）'
+             WHEN 累计成本占比 <= 95.0 THEN N'B 类（重要 80-95%）'
+             ELSE N'C 类（常规 95-100%）' END              AS ABC分类
+FROM    pareto
+ORDER BY 累计消耗成本 DESC, 原料编码 ASC;
+GO
+
+PRINT N'【窗口函数】六个查询执行完毕：累计与环比 / 分类内排名与占比 / 近 3 日移动平均 / 排名口径对照 / 会员分层与复购 / 原料成本 ABC。';
 GO

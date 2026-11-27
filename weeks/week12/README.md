@@ -166,7 +166,7 @@ ollback → REVERT 切回 dbo | TRY/CATCH + XACT_STATE() <> 0 → ROLLBACK |
 | 文件 | 内容 | 运行 |
 |---|---|---|
 | [`recursive_query.sql`](../../project/sql/10-transaction/recursive_query.sql) | R1 日期轴补零 / R2 断档识别 / R3 品类树展开 | `sqlcmd -b -i project\sql\10-transaction\recursive_query.sql` |
-| [`test-recursive.sql`](../../project/sql/10-transaction/test-recursive.sql) | **13 条**断言，全只读 | `sqlcmd -b -i project\sql\10-transaction\test-recursive.sql` |
+| [`test-recursive.sql`](../../project/sql/10-transaction/test-recursive.sql) | **15 条**断言，全只读 | `sqlcmd -b -i project\sql\10-transaction\test-recursive.sql` |
 
 ### 为什么这三处要用递归
 
@@ -196,9 +196,24 @@ ollback → REVERT 切回 dbo | TRY/CATCH + XACT_STATE() <> 0 → ROLLBACK |
 2026-09-24|2026-09-26|3
 ```
 
-**R3 品类树展开**：沿 `parent_category_id` 递归，带层级与路径（`父 > 子`）。
-当前库里 5 个分类的 `parent_category_id` **全是 NULL**，所以展开只有一层 5 行、`层级 = 0`。
-这不是写错 —— 是数据还没有层级。以后给某个分类挂上父级，**这段 SQL 一个字都不用改**就会多出第 2、3 层。
+**R3 品类树展开**：沿 `parent_category_id` 递归，带层级与路径（`父 > 子`），并用
+「祖先 → 后代」映射做自底向上汇总，算出每个节点**含子级**的销售额。
+
+真实库里 5 个分类的 `parent_category_id` **全是 NULL**（数据还没有层级），所以
+`recursive_query.sql` 里这段用**临时表造一棵三级树**：把真实 5 个分类搬进 `#品类`，
+再加两个根（`R01 现制茶饮总类`、`R02 甜品与限定总类`）和一个叶子（`S01`），只改临时表的父子关系，
+**真表零写入**。实测（2026-11-27）：
+
+```
+层级|category_code|category_name|杯数|含子级销售额
+1|R01|现制茶饮总类|1862|17063.00
+1|R02|甜品与限定总类|717|6819.00
+2|C01|水果茶|...|...
+3|S01|鲜果茶子类（示例）|...|...
+```
+
+`R01 = C01 + C02 + C03` 的直接销售额之和（17,063.00），这就是「递归 + 累加」对上账的证据。
+真实数据一旦挂上父级，**这段 SQL 一个字都不用改**就会多出第 2、3 层（临时表那段只是演示用的脚手架）。
 
 ### 写的时候踩的三个坑
 
@@ -210,13 +225,49 @@ ollback → REVERT 切回 dbo | TRY/CATCH + XACT_STATE() <> 0 → ROLLBACK |
 3. **`sqlcmd` 把 `DECIMAL` 的 0 打印成 `.00`**（不是 `0.00`）——这是 sqlcmd 的单元格格式，不是 SQL 的问题；
    别为了好看去 `CAST` 成字符串，会丢掉数值类型。
 
-### 13 条断言覆盖
+### 15 条断言覆盖
 
 行数 = 跨度+1、首末行正确、日期不重复、有营业日 7 天 / 无营业日 3 天、无营业日实收 = 0、
 09-18 实收 = 3,074.00（与直接查订单表一致）、**补零后总额仍 = 23,762.00**（不改变业务口径）、
-识别出 1 段空档且 = 09-24~09-26 共 3 天、品类树 5 行 / 最大层级 0、跨度 > 3660 天被拒（52101）。
+识别出 1 段空档且 = 09-24~09-26 共 3 天、**品类树三级穿透（层级 2/5/1）**、
+**根类汇总 = 三个子类直接销售额之和（17,063.00）**、**真表未被临时树污染（5 类 / 父级全 NULL）**、
+跨度 > 3660 天被拒（52101）。
 
 > 第 9 条是这组断言里最要紧的：**补零只是「补上没发生的事」，不能让总额变**。
 > 它和 `regression.sql` TC-10 的常量 23,762.00 交叉校验，是这条递归唯一的业务锚点。
 
 **这两个脚本不进 `99-rebuild.sql`**：它们是查询与断言，不是数据库对象。
+
+## 10. 与队友第 12 周脚本的合并（2026-11-27，方案 B「去重吸纳」）
+
+队友（hezhlin5）在他自己的分支 `feat/week12-advanced-query-and-transaction` 上写了另一套
+第 12 周脚本，与我这套有 4 处重复。两边都没错，问题是同一件事两套实现；`harness/issues/022`
+把事实、重叠矩阵和四个方案摆出来，他选了**方案 B：去重吸纳**——留一套、吸收对方独有的部分。
+
+### 10.1 吸收进来的东西（来自他的分支 `cb18704`）
+
+| 能力 | 落在哪 | 说明 |
+|---|---|---|
+| 会员价值分层 + 平均复购间隔 | `window_query.sql` **查询 5** | 他的 AQ2：`LAG` 算复购间隔、`NTILE(4)` 四分位 |
+| 原料消耗成本 ABC 帕累托 | `window_query.sql` **查询 6** | 他的 AQ3：累计占比 ≤80% 为 A、≤95% 为 B、其余 C |
+| 多级品类树 + 自底向上汇总 | `recursive_query.sql` **R3** 与 `test-recursive.sql` **12—14** | 他的 AQ5，但**改成临时表造树**，不再往真表 `INSERT`（回滚也不退 `IDENTITY` 号段） |
+| 补货入库事务（成功 / 失败两条路） | `tx3-purchase-commit.sql`、`tx4-purchase-rollback.sql` | 他的 TX-2A / TX-2B：改实收、重算移动加权成本、加结存、写 `PURCHASE_IN`、采购单结案 |
+| 双会话并发实验 | `concurrency-guide.sql`、`run-concurrency-experiments.py` | **原样复制**（第 13 周内容，只统一了行尾为 CRLF） |
+
+### 10.2 没吸收的部分
+
+- 他的 AQ1 / AQ4 与我的 Q1 / Q3 / R1 是同一件事，**留我的**（已带断言）；
+- 他的 `tx-order-and-replenish.sql` 把 TX-1 与 TX-2 合在一个文件里，**拆成四段**（`tx1`—`tx4`）各自可单独跑、各自自清理；
+- 他的 `10-transaction/README.md`（25 行）内容并进本节，不再单独留一份，避免两个口径。
+
+### 10.3 加了断言之后的数量
+
+| 脚本 | 断言数 | 结果 |
+|---|---|---|
+| `test-window.sql` | 21 → **30** | 30/30 PASS |
+| `test-recursive.sql` | 13 → **15** | 15/15 PASS |
+| `tx3` / `tx4` | 各自内联校验 | 均 exit 0 |
+
+> 新增断言里有两条是「自我纠正」：原来断言「非 NULL 的复购间隔都 > 0」是**错的**——
+> 种子里真有 2 条零间隔（同一时刻下的两单）。改成「无负值，零间隔单独计数」，
+> 并把「间隔条数 = 有效单数 − 有单会员数」写成结构性质断言，不再依赖当天的数据长什么样。

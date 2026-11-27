@@ -1,11 +1,11 @@
-﻿/* ============================================================
+/* ============================================================
    脚本：test-window.sql
-   用途：第 12 周 —— 三类窗口函数查询的正反例（预期 / 实际 / PASS｜FAIL）
+   用途：第 12 周 —— 五类窗口函数查询的正反例（预期 / 实际 / PASS｜FAIL）
    设计要点：
    1) 预期值多数"独立重算"（用另一条聚合路径算出来再比），不把查询复制两遍
       互相自证；只有"业务口径常量"才写死数字（如累计末期 23,762.00）
    2) 全部只读，不建临时表、不写任何业务表 —— 随时可重复执行
-   3) 用例总数固定 21，漏跑会判红
+   3) 用例总数固定 30，漏跑会判红
    退出码：任一 FAIL → RAISERROR 16 → 配合 sqlcmd -b 变成非零退出
    ============================================================ */
 SET NOCOUNT ON;
@@ -333,6 +333,180 @@ FROM (SELECT score,
       FROM (VALUES (N'甲', 100), (N'乙', 90), (N'丙', 90), (N'丁', 80)) v(name, score)) t
 WHERE score = 90;
 
+/* ================= 五、会员分层与复购间隔（查询 5） ================= */
+
+/* 22 正例：四分位桶数 = 4，且每桶人数差不超过 1（NTILE 的定义） */
+INSERT INTO @r (item, expected, actual, ok)
+SELECT N'会员分层·四分位桶数=4 且每桶≤差1',
+       N'4 桶 / 每桶 20',
+       N'桶数 ' + CONVERT(NVARCHAR(10), COUNT(DISTINCT q))
+           + N' / 每桶 ' + CONVERT(NVARCHAR(10), MIN(c)) + N'~' + CONVERT(NVARCHAR(10), MAX(c)),
+       CASE WHEN COUNT(DISTINCT q) = 4 AND MAX(c) - MIN(c) <= 1 THEN 1 ELSE 0 END
+FROM (SELECT q, COUNT(*) AS c FROM (
+        SELECT NTILE(4) OVER (ORDER BY spend DESC) AS q
+        FROM (SELECT member_id, SUM(amount_paid) AS spend
+              FROM tbl_order_header
+              WHERE member_id IS NOT NULL AND pay_status = 'SUCCESS'
+                AND order_status <> 'CANCELLED'
+              GROUP BY member_id) a) b
+      GROUP BY q) t;
+
+/* 23 正例：分层总人数 = 有有效单的会员数（不多不少） */
+INSERT INTO @r (item, expected, actual, ok)
+SELECT N'会员分层·分层人数 = 有有效单会员数',
+       CONVERT(NVARCHAR(60), (SELECT COUNT(DISTINCT member_id) FROM tbl_order_header
+                              WHERE member_id IS NOT NULL AND pay_status = 'SUCCESS'
+                                AND order_status <> 'CANCELLED')),
+       CONVERT(NVARCHAR(60), COUNT(*) * 1),
+       CASE WHEN COUNT(*) = (SELECT COUNT(DISTINCT member_id) FROM tbl_order_header
+                             WHERE member_id IS NOT NULL AND pay_status = 'SUCCESS'
+                               AND order_status <> 'CANCELLED') THEN 1 ELSE 0 END
+FROM (SELECT NTILE(4) OVER (ORDER BY spend DESC) AS q
+      FROM (SELECT member_id, SUM(amount_paid) AS spend FROM tbl_order_header
+            WHERE member_id IS NOT NULL AND pay_status = 'SUCCESS'
+              AND order_status <> 'CANCELLED'
+            GROUP BY member_id) a) b;
+
+/* 24 正例：消费排名 1 的会员 = 累计实付最高的会员（排名口径没歪） */
+INSERT INTO @r (item, expected, actual, ok)
+SELECT N'会员分层·排名第 1 = 实付最高者',
+       CONVERT(NVARCHAR(60), (SELECT TOP 1 member_id FROM tbl_order_header
+                              WHERE member_id IS NOT NULL AND pay_status = 'SUCCESS'
+                                AND order_status <> 'CANCELLED'
+                              GROUP BY member_id ORDER BY SUM(amount_paid) DESC)),
+       CONVERT(NVARCHAR(60), (SELECT TOP 1 member_id FROM (
+            SELECT member_id, DENSE_RANK() OVER (ORDER BY SUM(amount_paid) DESC) AS rk
+            FROM tbl_order_header
+            WHERE member_id IS NOT NULL AND pay_status = 'SUCCESS'
+              AND order_status <> 'CANCELLED'
+            GROUP BY member_id) x WHERE rk = 1)),
+       CASE WHEN (SELECT TOP 1 member_id FROM tbl_order_header
+                  WHERE member_id IS NOT NULL AND pay_status = 'SUCCESS'
+                    AND order_status <> 'CANCELLED'
+                  GROUP BY member_id ORDER BY SUM(amount_paid) DESC)
+               = (SELECT TOP 1 member_id FROM (
+                  SELECT member_id, DENSE_RANK() OVER (ORDER BY SUM(amount_paid) DESC) AS rk
+                  FROM tbl_order_header
+                  WHERE member_id IS NOT NULL AND pay_status = 'SUCCESS'
+                    AND order_status <> 'CANCELLED'
+                  GROUP BY member_id) x WHERE rk = 1)
+            THEN 1 ELSE 0 END;
+
+/* 25 正例：间隔条数 = 有效单数 − 有单会员数
+   （每个会员的第一单没有"上一单"，LAG 必然少一行；这是结构性质，不依赖数据） */
+INSERT INTO @r (item, expected, actual, ok)
+SELECT N'复购间隔·条数 = 有效单数 − 有单会员数',
+       CONVERT(NVARCHAR(60), (SELECT COUNT(*) FROM tbl_order_header
+                              WHERE member_id IS NOT NULL AND pay_status = 'SUCCESS'
+                                AND order_status <> 'CANCELLED')
+                            - (SELECT COUNT(DISTINCT member_id) FROM tbl_order_header
+                               WHERE member_id IS NOT NULL AND pay_status = 'SUCCESS'
+                                 AND order_status <> 'CANCELLED')),
+       CONVERT(NVARCHAR(60), COUNT(prev_time)),
+       CASE WHEN COUNT(prev_time) = (SELECT COUNT(*) FROM tbl_order_header
+                                     WHERE member_id IS NOT NULL AND pay_status = 'SUCCESS'
+                                       AND order_status <> 'CANCELLED')
+                                   - (SELECT COUNT(DISTINCT member_id) FROM tbl_order_header
+                                      WHERE member_id IS NOT NULL AND pay_status = 'SUCCESS'
+                                        AND order_status <> 'CANCELLED') THEN 1 ELSE 0 END
+FROM (SELECT LAG(order_time) OVER (PARTITION BY member_id ORDER BY order_time, order_id) AS prev_time
+      FROM tbl_order_header
+      WHERE member_id IS NOT NULL AND pay_status = 'SUCCESS'
+        AND order_status <> 'CANCELLED') g;
+
+/* 26 反例：间隔不可能为负（时间倒流才会）；零间隔只能来自同一时刻的两单 */
+INSERT INTO @r (item, expected, actual, ok)
+SELECT N'复购间隔·无负值（零间隔=同一时刻两单）',
+       N'最小间隔 ≥ 0 分钟',
+       CONVERT(NVARCHAR(60), MIN(DATEDIFF(MINUTE, prev_time, order_time)))
+           + N' 分钟 / 零间隔 '
+           + CONVERT(NVARCHAR(10), SUM(CASE WHEN DATEDIFF(MINUTE, prev_time, order_time) = 0 THEN 1 ELSE 0 END))
+           + N' 条',
+       CASE WHEN MIN(DATEDIFF(MINUTE, prev_time, order_time)) >= 0 THEN 1 ELSE 0 END
+FROM (SELECT order_time,
+             LAG(order_time) OVER (PARTITION BY member_id ORDER BY order_time, order_id) AS prev_time
+      FROM tbl_order_header
+      WHERE member_id IS NOT NULL AND pay_status = 'SUCCESS'
+        AND order_status <> 'CANCELLED') g
+WHERE prev_time IS NOT NULL;
+
+/* ================= 六、原料成本 ABC 帕累托（查询 6） ================= */
+
+/* 27 正例：A+B+C 三档种数之和 = 有销售耗用的原料种数 */
+INSERT INTO @r (item, expected, actual, ok)
+SELECT N'ABC·三档种数之和 = 原料种数',
+       CONVERT(NVARCHAR(60), (SELECT COUNT(DISTINCT i.ingredient_id)
+                              FROM tbl_stock_ledger sl JOIN tbl_ingredient i
+                                ON i.ingredient_id = sl.ingredient_id
+                              WHERE sl.ledger_type = 'SALES_USE')),
+       CONVERT(NVARCHAR(60), SUM(c)),
+       CASE WHEN SUM(c) = (SELECT COUNT(DISTINCT i.ingredient_id)
+                           FROM tbl_stock_ledger sl JOIN tbl_ingredient i
+                             ON i.ingredient_id = sl.ingredient_id
+                           WHERE sl.ledger_type = 'SALES_USE') THEN 1 ELSE 0 END
+FROM (SELECT CASE WHEN pct <= 80 THEN 'A' WHEN pct <= 95 THEN 'B' ELSE 'C' END AS k,
+             COUNT(*) AS c
+      FROM (SELECT SUM(cost) OVER (ORDER BY cost DESC, ingredient_code ROWS UNBOUNDED PRECEDING)
+                   * 100.0 / NULLIF(SUM(cost) OVER (), 0) AS pct
+            FROM (SELECT i.ingredient_code,
+                         CAST(SUM(-sl.qty * i.moving_avg_cost) AS DECIMAL(12,2)) AS cost
+                  FROM tbl_stock_ledger sl JOIN tbl_ingredient i
+                    ON i.ingredient_id = sl.ingredient_id
+                  WHERE sl.ledger_type = 'SALES_USE'
+                  GROUP BY i.ingredient_code) ic) p
+      GROUP BY CASE WHEN pct <= 80 THEN 'A' WHEN pct <= 95 THEN 'B' ELSE 'C' END) abc;
+
+/* 28 正例：累计占比最后一行 = 100.00（分母取对了） */
+INSERT INTO @r (item, expected, actual, ok)
+SELECT N'ABC·累计占比末行 = 100.00',
+       N'100.00',
+       CONVERT(NVARCHAR(60), MAX(pct)),
+       CASE WHEN MAX(pct) = 100.00 THEN 1 ELSE 0 END
+FROM (SELECT SUM(cost) OVER (ORDER BY cost DESC, ingredient_code ROWS UNBOUNDED PRECEDING)
+             * 100.0 / NULLIF(SUM(cost) OVER (), 0) AS pct
+      FROM (SELECT i.ingredient_code,
+                   CAST(SUM(-sl.qty * i.moving_avg_cost) AS DECIMAL(12,2)) AS cost
+            FROM tbl_stock_ledger sl JOIN tbl_ingredient i
+              ON i.ingredient_id = sl.ingredient_id
+            WHERE sl.ledger_type = 'SALES_USE'
+            GROUP BY i.ingredient_code) ic) p;
+
+/* 29 正例：A 类累计占比必 ≤ 80，B 类必 ≤ 95（分类边界没写反） */
+INSERT INTO @r (item, expected, actual, ok)
+SELECT N'ABC·A≤80 且 B≤95',
+       N'A 上限 80.00 / B 上限 95.00',
+       N'A ' + CONVERT(NVARCHAR(10), MAX(CASE WHEN k = 'A' THEN pct END))
+           + N' / B ' + CONVERT(NVARCHAR(10), MAX(CASE WHEN k = 'B' THEN pct END)),
+       CASE WHEN MAX(CASE WHEN k = 'A' THEN pct END) <= 80.00
+                 AND MAX(CASE WHEN k = 'B' THEN pct END) <= 95.00 THEN 1 ELSE 0 END
+FROM (SELECT pct,
+             CASE WHEN pct <= 80 THEN 'A' WHEN pct <= 95 THEN 'B' ELSE 'C' END AS k
+      FROM (SELECT SUM(cost) OVER (ORDER BY cost DESC, ingredient_code ROWS UNBOUNDED PRECEDING)
+                   * 100.0 / NULLIF(SUM(cost) OVER (), 0) AS pct
+            FROM (SELECT i.ingredient_code,
+                         CAST(SUM(-sl.qty * i.moving_avg_cost) AS DECIMAL(12,2)) AS cost
+                  FROM tbl_stock_ledger sl JOIN tbl_ingredient i
+                    ON i.ingredient_id = sl.ingredient_id
+                  WHERE sl.ledger_type = 'SALES_USE'
+                  GROUP BY i.ingredient_code) ic) p) abc;
+
+/* 30 反例：ABC 只统计 SALES_USE —— 采购入库的原料不该出现在分母里 */
+INSERT INTO @r (item, expected, actual, ok)
+SELECT N'ABC·分母只含 SALES_USE（非全部流水）',
+       N'耗用原料数 < 有流水原料数',
+       CONVERT(NVARCHAR(10), (SELECT COUNT(DISTINCT i.ingredient_id)
+                              FROM tbl_stock_ledger sl JOIN tbl_ingredient i
+                                ON i.ingredient_id = sl.ingredient_id
+                              WHERE sl.ledger_type = 'SALES_USE'))
+           + N' < ' + CONVERT(NVARCHAR(10), (SELECT COUNT(DISTINCT ingredient_id)
+                                             FROM tbl_stock_ledger)),
+       CASE WHEN (SELECT COUNT(DISTINCT i.ingredient_id)
+                  FROM tbl_stock_ledger sl JOIN tbl_ingredient i
+                    ON i.ingredient_id = sl.ingredient_id
+                  WHERE sl.ledger_type = 'SALES_USE')
+               < (SELECT COUNT(DISTINCT ingredient_id) FROM tbl_stock_ledger)
+            THEN 1 ELSE 0 END;
+
 /* ================= 汇总 ================= */
 SELECT  seq                                          AS [#],
         item                                         AS [用例],
@@ -356,9 +530,9 @@ PRINT N'【窗口函数测试总览】用例数: ' + CAST(@total AS NVARCHAR(10)
     + N' | 失败: ' + CAST(@fail AS NVARCHAR(10));
 PRINT N'============================================================';
 
-IF @total <> 21
+IF @total <> 30
 BEGIN
-    SET @msg2 = N'【窗口函数测试】用例数应为 21，实际 ' + CAST(@total AS NVARCHAR(10))
+    SET @msg2 = N'【窗口函数测试】用例数应为 30，实际 ' + CAST(@total AS NVARCHAR(10))
               + N' 条 —— 有用例没跑，按失败处理。';
     RAISERROR(@msg2, 16, 1);
 END
@@ -368,5 +542,5 @@ BEGIN
     RAISERROR(@msg, 16, 1);
 END
 ELSE
-    PRINT N'【窗口函数测试结论】21 条用例全部通过。';
+    PRINT N'【窗口函数测试结论】30 条用例全部通过。';
 GO
